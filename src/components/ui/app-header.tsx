@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { User, LogOut, Shield, Settings, Crown, ClipboardCheck, StickyNote, AlertTriangle, Loader2 } from 'lucide-react'
+import { User, LogOut, Shield, Settings, Crown, ClipboardCheck, StickyNote, AlertTriangle, Loader2, HeartPulse } from 'lucide-react'
 import { logout } from '@/lib/actions/auth'
 import { logoutOtherSessions } from '@/lib/actions/sessions'
 import type { ProfileWithSubscription } from '@/types/database'
@@ -112,6 +112,15 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
                 >
                   <StickyNote className="h-4 w-4 text-amber-500" />
                   Notes de cours
+                </a>
+
+                <a
+                  href="/followups"
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-slate-50"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <HeartPulse className="h-4 w-4 text-rose-500" />
+                  Suivi patients
                 </a>
 
                 <a

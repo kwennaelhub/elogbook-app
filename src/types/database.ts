@@ -212,6 +212,37 @@ export interface AuditLog {
   created_at: string
 }
 
+export type FollowupOutcome = 'pending' | 'success' | 'complication' | 'failure' | 'deceased'
+export type AgeRange = '0-5' | '6-15' | '16-25' | '26-40' | '41-60' | '61-75' | '75+'
+export type PatientSex = 'M' | 'F'
+
+export interface PatientFollowup {
+  id: string
+  user_id: string
+  entry_id: string | null
+  anonymous_id: string
+  intervention_date: string
+  discharge_date: string | null
+  outcome: FollowupOutcome
+  complication_type: string | null
+  complication_date: string | null
+  age_range: AgeRange | null
+  sex: PatientSex | null
+  asa_score: number | null
+  notes: string | null
+  follow_up_days: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PatientFollowupWithEntry extends PatientFollowup {
+  entry?: Pick<Entry, 'id'> & {
+    procedure?: { name: string } | null
+    specialty?: { name: string } | null
+    hospital?: { name: string } | null
+  }
+}
+
 export interface Note {
   id: string
   user_id: string
@@ -355,6 +386,32 @@ export interface InstitutionalSeat {
   max_seats: number
   used_seats: number
   created_at: string
+}
+
+export const FOLLOWUP_OUTCOME_LABELS: Record<FollowupOutcome, string> = {
+  pending: 'En cours',
+  success: 'Succès',
+  complication: 'Complication',
+  failure: 'Échec',
+  deceased: 'Décès',
+}
+
+export const FOLLOWUP_OUTCOME_COLORS: Record<FollowupOutcome, string> = {
+  pending: 'bg-amber-100 text-amber-700',
+  success: 'bg-emerald-100 text-emerald-700',
+  complication: 'bg-orange-100 text-orange-700',
+  failure: 'bg-red-100 text-red-700',
+  deceased: 'bg-slate-200 text-slate-700',
+}
+
+export const AGE_RANGE_LABELS: Record<AgeRange, string> = {
+  '0-5': '0-5 ans',
+  '6-15': '6-15 ans',
+  '16-25': '16-25 ans',
+  '26-40': '26-40 ans',
+  '41-60': '41-60 ans',
+  '61-75': '61-75 ans',
+  '75+': '75+ ans',
 }
 
 export const NOTE_CATEGORIES = [
