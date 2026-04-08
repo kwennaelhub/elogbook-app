@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AdminPanel } from '@/components/admin/admin-panel'
+import { getInstitutionalSeats } from '@/lib/actions/admin'
 
 export default async function AdminPage() {
   const supabase = await createClient()
@@ -25,6 +26,7 @@ export default async function AdminPage() {
     { data: specialties },
     { data: procedures },
     { data: desObjectives },
+    institutionalSeats,
   ] = await Promise.all([
     supabase.from('des_registry').select('*', { count: 'exact' }).order('last_name').limit(500),
     supabase.from('profiles').select('*, hospital:hospitals(name)', { count: 'exact' }).order('last_name').limit(500),
@@ -33,6 +35,7 @@ export default async function AdminPage() {
     supabase.from('specialties').select('*').eq('is_active', true).eq('level', 0).order('name'),
     supabase.from('procedures').select('*, specialty:specialties(name)').eq('is_active', true).order('sort_order'),
     supabase.from('des_objectives').select('*').order('des_level, category'),
+    getInstitutionalSeats(),
   ])
 
   return (
@@ -49,6 +52,7 @@ export default async function AdminPage() {
         specialties={specialties ?? []}
         procedures={procedures ?? []}
         desObjectives={desObjectives ?? []}
+        institutionalSeats={institutionalSeats}
         currentUserRole={profile.role}
       />
     </div>

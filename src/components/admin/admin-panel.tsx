@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Users, BookCheck, Upload, Stethoscope, Search, Download, Plus, X, FileSpreadsheet, UserPlus, AlertCircle, CheckCircle, Settings2, Shield } from 'lucide-react'
+import { Users, BookCheck, Upload, Stethoscope, Search, Download, Plus, X, FileSpreadsheet, UserPlus, AlertCircle, CheckCircle, Settings2, Shield, Building2 } from 'lucide-react'
 import type { DesRegistry, Profile, Hospital, DesLevel } from '@/types/database'
 import { DES_LEVEL_LABELS, SUPERVISOR_TITLE_LABELS, ROLE_LABELS } from '@/types/database'
 import type { SupervisorTitle, UserRole } from '@/types/database'
 import { createSupervisor, updateSupervisor, addDesRegistryEntry, importDesRegistryBatch } from '@/lib/actions/data'
 import { updateUserRole } from '@/lib/actions/admin'
 import { ConfigTab } from './config-tab'
+import { SeatsTab } from './seats-tab'
 
 interface AdminPanelProps {
   registryEntries: DesRegistry[]
@@ -20,6 +21,7 @@ interface AdminPanelProps {
   specialties: { id: string; name: string; is_active: boolean }[]
   procedures: { id: string; name: string; specialty_id: string; specialty?: { name: string } | null }[]
   desObjectives: { id: string; des_level: string; category: string; label: string; target_count: number; description?: string | null; specialty_name?: string | null; procedure_name?: string | null }[]
+  institutionalSeats: unknown[]
   currentUserRole: string
 }
 
@@ -28,9 +30,10 @@ export function AdminPanel({
   users, usersCount,
   supervisors, supervisorsCount,
   hospitals, specialties, procedures, desObjectives,
+  institutionalSeats,
   currentUserRole,
 }: AdminPanelProps) {
-  const [tab, setTab] = useState<'registry' | 'users' | 'supervisors' | 'config'>('registry')
+  const [tab, setTab] = useState<'registry' | 'users' | 'supervisors' | 'seats' | 'config'>('registry')
   const [search, setSearch] = useState('')
   // Gestion des rôles (Users tab)
   const [editingRoleId, setEditingRoleId] = useState<string | null>(null)
@@ -229,6 +232,7 @@ export function AdminPanel({
     { key: 'registry' as const, label: `Registre DES (${registryCount})`, icon: BookCheck },
     { key: 'users' as const, label: `Utilisateurs (${usersCount})`, icon: Users },
     { key: 'supervisors' as const, label: `Superviseurs (${supervisorsCount})`, icon: Stethoscope },
+    { key: 'seats' as const, label: `Sièges (${institutionalSeats.length})`, icon: Building2 },
     { key: 'config' as const, label: 'Configuration', icon: Settings2 },
   ]
 
@@ -744,6 +748,11 @@ export function AdminPanel({
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Sièges institutionnels */}
+      {tab === 'seats' && (
+        <SeatsTab initialSeats={institutionalSeats as Parameters<typeof SeatsTab>[0]['initialSeats']} />
       )}
 
       {/* Configuration */}
