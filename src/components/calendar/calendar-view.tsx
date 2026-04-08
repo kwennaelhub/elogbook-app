@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useActionState } from 'react'
-import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, X, Users, Phone } from 'lucide-react'
 import { createGarde, type GardeState } from '@/lib/actions/gardes'
-import { GARDE_TYPE_LABELS } from '@/types/database'
-import type { Hospital, GardeWithDetails } from '@/types/database'
+import { GARDE_TYPE_LABELS, SUPERVISOR_TITLE_LABELS, DES_LEVEL_LABELS } from '@/types/database'
+import type { Hospital, GardeWithDetails, SupervisorTitle, DesLevel } from '@/types/database'
 
 interface CalendarViewProps {
   initialGardes: GardeWithDetails[]
@@ -138,24 +138,89 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
             <p className="text-sm text-slate-400">Aucune garde ce jour</p>
           ) : (
             <div className="space-y-2">
-              {selectedGardes.map((g) => (
-                <div key={g.id} className="flex items-center gap-3 rounded-lg bg-slate-50 p-2.5">
-                  <div className={`h-2.5 w-2.5 rounded-full ${GARDE_COLORS[g.type]}`} />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-700">{GARDE_TYPE_LABELS[g.type]}</p>
-                    <p className="text-xs text-slate-500">
-                      {(g.hospital as { name: string } | undefined)?.name}
-                      {g.service && ` · ${g.service}`}
-                      {g.senior_name && ` · Dr ${g.senior_name}`}
-                    </p>
+              {/* En-tête équipe */}
+              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                <Users className="h-3.5 w-3.5" />
+                {selectedGardes.length} membre{selectedGardes.length > 1 ? 's' : ''} de garde
+              </div>
+
+              {selectedGardes.map((g) => {
+                const user = g.user as { first_name: string; last_name: string; phone?: string | null; title?: string | null; des_level?: string | null } | undefined
+                const senior = g.senior as { first_name: string; last_name: string; title?: string | null } | undefined
+
+                return (
+                  <div key={g.id} className="rounded-lg bg-slate-50 p-3">
+                    {/* Ligne principale : type + hôpital + badge */}
+                    <div className="mb-2 flex items-center gap-2">
+                      <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${GARDE_COLORS[g.type]}`} />
+                      <span className="text-sm font-semibold text-slate-800">{GARDE_TYPE_LABELS[g.type]}</span>
+                      {(g.hospital as { name: string } | undefined)?.name && (
+                        <span className="text-xs text-slate-500">· {(g.hospital as { name: string }).name}</span>
+                      )}
+                      <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        g.source === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-600'
+                      }`}>
+                        {g.source === 'admin' ? 'Planning' : 'Perso'}
+                      </span>
+                    </div>
+
+                    {/* Interne / DES */}
+                    {user && (
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">
+                            {user.first_name?.[0]}{user.last_name?.[0]}
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-slate-800">
+                              {user.title && SUPERVISOR_TITLE_LABELS[user.title as SupervisorTitle]
+                                ? `${SUPERVISOR_TITLE_LABELS[user.title as SupervisorTitle]} `
+                                : ''
+                              }
+                              {user.first_name} {user.last_name}
+                            </p>
+                            {user.des_level && (
+                              <p className="text-[10px] text-slate-400">{DES_LEVEL_LABELS[user.des_level as DesLevel] || user.des_level}</p>
+                            )}
+                          </div>
+                        </div>
+                        {user.phone && (
+                          <a href={`tel:${user.phone}`} className="flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700 hover:bg-emerald-100">
+                            <Phone className="h-3 w-3" />
+                            {user.phone}
+                          </a>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Senior de garde */}
+                    {(senior || g.senior_name) && (
+                      <div className="flex items-center gap-2 border-t border-slate-200/60 pt-1.5">
+                        <span className="text-[10px] font-medium text-slate-400">Senior :</span>
+                        <span className="text-xs text-slate-600">
+                          {senior
+                            ? `${senior.title && SUPERVISOR_TITLE_LABELS[senior.title as SupervisorTitle] ? SUPERVISOR_TITLE_LABELS[senior.title as SupervisorTitle] + ' ' : 'Dr '}${senior.last_name} ${senior.first_name}`
+                            : `Dr ${g.senior_name}`
+                          }
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Service */}
+                    {g.service && (
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <span className="text-[10px] font-medium text-slate-400">Service :</span>
+                        <span className="text-xs text-slate-600">{g.service}</span>
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    {g.notes && (
+                      <p className="mt-1 text-[10px] italic text-slate-400">{g.notes}</p>
+                    )}
                   </div>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                    g.source === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-600'
-                  }`}>
-                    {g.source === 'admin' ? 'Planning' : 'Perso'}
-                  </span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

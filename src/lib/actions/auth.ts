@@ -99,6 +99,8 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
 }
 
 export async function logout() {
+  const { removeSession } = await import('@/lib/actions/sessions')
+  await removeSession()
   const supabase = await createClient()
   await supabase.auth.signOut()
   redirect('/login')

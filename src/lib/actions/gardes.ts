@@ -55,7 +55,8 @@ export async function getGardes(month: number, year: number) {
     .select(`
       *,
       hospital:hospitals(id, name),
-      senior:profiles!gardes_senior_id_fkey(id, first_name, last_name)
+      senior:profiles!gardes_senior_id_fkey(id, first_name, last_name, title),
+      user:profiles!gardes_user_id_fkey(id, first_name, last_name, phone, title, des_level)
     `)
     .gte('date', startDate)
     .lt('date', endDate)

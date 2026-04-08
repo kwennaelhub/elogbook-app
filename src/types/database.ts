@@ -212,6 +212,17 @@ export interface AuditLog {
   created_at: string
 }
 
+export interface Note {
+  id: string
+  user_id: string
+  title: string
+  content: string
+  category: string | null
+  is_pinned: boolean
+  created_at: string
+  updated_at: string
+}
+
 // ========== TYPES FORMULAIRES (INSERT/UPDATE) ==========
 
 export type EntryInsert = Omit<Entry, 'id' | 'submitted_at' | 'entry_mode' | 'is_validated' | 'validated_at' | 'validated_by' | 'created_at' | 'updated_at'>
@@ -219,6 +230,8 @@ export type EntryInsert = Omit<Entry, 'id' | 'submitted_at' | 'entry_mode' | 'is
 export type GardeInsert = Omit<Garde, 'id' | 'created_at' | 'updated_at'>
 
 export type ProfileUpdate = Partial<Pick<Profile, 'first_name' | 'last_name' | 'phone' | 'hospital_id' | 'des_level' | 'title' | 'avatar_url' | 'date_of_birth'>>
+
+export type NoteInsert = Omit<Note, 'id' | 'created_at' | 'updated_at'>
 
 // ========== TYPES ENRICHIS (avec jointures) ==========
 
@@ -241,7 +254,8 @@ export interface SupervisionEntry extends Entry {
 
 export interface GardeWithDetails extends Garde {
   hospital?: Hospital
-  senior?: Pick<Profile, 'id' | 'first_name' | 'last_name'>
+  senior?: Pick<Profile, 'id' | 'first_name' | 'last_name' | 'title'>
+  user?: Pick<Profile, 'id' | 'first_name' | 'last_name' | 'phone' | 'title' | 'des_level'>
 }
 
 export interface ProfileWithSubscription extends Profile {
@@ -342,3 +356,16 @@ export interface InstitutionalSeat {
   used_seats: number
   created_at: string
 }
+
+export const NOTE_CATEGORIES = [
+  'Anatomie',
+  'Chirurgie',
+  'Médecine interne',
+  'Pédiatrie',
+  'Gynécologie',
+  'Urgences',
+  'Pharmacologie',
+  'Radiologie',
+  'Anesthésie',
+  'Autre',
+] as const

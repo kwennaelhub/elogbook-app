@@ -1,14 +1,43 @@
 'use client'
 
 import { useState } from 'react'
-import { User, LogOut, Shield, Settings, Crown, ClipboardCheck } from 'lucide-react'
+import { User, LogOut, Shield, Settings, Crown, ClipboardCheck, StickyNote, AlertTriangle, Loader2 } from 'lucide-react'
 import { logout } from '@/lib/actions/auth'
+import { logoutOtherSessions } from '@/lib/actions/sessions'
 import type { ProfileWithSubscription } from '@/types/database'
 
-export function AppHeader({ profile }: { profile: ProfileWithSubscription | null }) {
+export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: ProfileWithSubscription | null; otherSessionsCount?: number }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showSessionAlert, setShowSessionAlert] = useState(otherSessionsCount > 0)
+  const [disconnecting, setDisconnecting] = useState(false)
 
   return (
+    <>
+    {showSessionAlert && (
+      <div className="sticky top-0 z-50 flex items-center justify-between gap-2 bg-amber-500 px-4 py-2 text-xs font-medium text-white">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>Votre compte est connecté sur {otherSessionsCount} autre{otherSessionsCount > 1 ? 's' : ''} appareil{otherSessionsCount > 1 ? 's' : ''}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              setDisconnecting(true)
+              await logoutOtherSessions()
+              setShowSessionAlert(false)
+              setDisconnecting(false)
+            }}
+            disabled={disconnecting}
+            className="rounded bg-white/20 px-2 py-1 text-[10px] font-semibold hover:bg-white/30 disabled:opacity-50"
+          >
+            {disconnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Déconnecter les autres'}
+          </button>
+          <button onClick={() => setShowSessionAlert(false)} className="hover:text-white/80">
+            ✕
+          </button>
+        </div>
+      </div>
+    )}
     <header className="sticky top-0 z-40 bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-lg">
       <div className="flex h-14 items-center justify-between px-4">
         <div className="flex items-center gap-2.5">
@@ -77,6 +106,15 @@ export function AppHeader({ profile }: { profile: ProfileWithSubscription | null
                 )}
 
                 <a
+                  href="/notes"
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-slate-50"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <StickyNote className="h-4 w-4 text-amber-500" />
+                  Notes de cours
+                </a>
+
+                <a
                   href="/subscription"
                   className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-slate-50"
                   onClick={() => setMenuOpen(false)}
@@ -111,5 +149,6 @@ export function AppHeader({ profile }: { profile: ProfileWithSubscription | null
         </div>
       </div>
     </header>
+    </>
   )
 }
