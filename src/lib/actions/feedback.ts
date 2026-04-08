@@ -12,12 +12,13 @@ export async function submitFeedback(data: {
   user_role: string
 }) {
   const supabase = await createClient()
+
+  // Optionnel : récupérer l'utilisateur si connecté
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
 
   const { error } = await supabase.from('feedback').insert({
-    user_id: user.id,
-    user_name: data.user_name,
+    user_id: user?.id || null,
+    user_name: data.user_name || 'Anonyme',
     user_role: data.user_role,
     rating: data.rating,
     category: data.category,

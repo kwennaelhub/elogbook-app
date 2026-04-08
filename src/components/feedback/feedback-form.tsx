@@ -21,7 +21,8 @@ const CATEGORIES = [
 
 const RATING_LABELS = ['', 'Très insatisfait', 'Insatisfait', 'Neutre', 'Satisfait', 'Très satisfait']
 
-export function FeedbackForm({ userName, userRole }: FeedbackFormProps) {
+export function FeedbackForm({ userName: initialName, userRole }: FeedbackFormProps) {
+  const [name, setName] = useState(initialName)
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
   const [category, setCategory] = useState('')
@@ -47,7 +48,7 @@ export function FeedbackForm({ userName, userRole }: FeedbackFormProps) {
       message: message.trim(),
       ease_of_use: ease,
       would_recommend: recommend,
-      user_name: userName,
+      user_name: name || 'Anonyme',
       user_role: userRole,
     })
 
@@ -87,6 +88,20 @@ export function FeedbackForm({ userName, userRole }: FeedbackFormProps) {
       {error && (
         <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
       )}
+
+      {/* Nom (optionnel) */}
+      <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <label className="mb-1 block text-sm font-medium text-slate-700">
+          Votre nom <span className="text-xs text-slate-400">(optionnel)</span>
+        </label>
+        <input
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="Pr Nom / Dr Nom..."
+          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+        />
+      </div>
 
       {/* Note globale */}
       <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-const publicRoutes = ['/login', '/register']
+const publicRoutes = ['/login', '/register', '/feedback']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -49,8 +49,13 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Routes publiques : si connecté, rediriger vers le logbook
+  // Routes publiques
   if (publicRoutes.includes(pathname)) {
+    // /feedback est accessible à tous, même connectés
+    if (pathname === '/feedback') {
+      return supabaseResponse
+    }
+    // login/register : si connecté, rediriger vers logbook
     if (user) {
       return NextResponse.redirect(new URL('/logbook', request.url))
     }
