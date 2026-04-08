@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { User, Hospital, AlertTriangle, Trash2, Camera, Pencil, Check, X, Save } from 'lucide-react'
+import { User, Hospital, AlertTriangle, Trash2, Camera, Pencil, Check, X, Save, Globe } from 'lucide-react'
 import { deleteAccount } from '@/lib/actions/auth'
 import { updateProfile } from '@/lib/actions/admin'
+import { useI18n } from '@/lib/i18n/context'
+import type { Locale } from '@/lib/i18n/dictionaries'
 import type { Profile } from '@/types/database'
 import { DES_LEVEL_LABELS } from '@/types/database'
 import type { DesLevel } from '@/types/database'
@@ -14,6 +16,7 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
+  const { locale, setLocale, t } = useI18n()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteText, setDeleteText] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -312,6 +315,32 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Langue */}
+      <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <div className="mb-3 flex items-center gap-2">
+          <Globe className="h-4 w-4 text-blue-500" />
+          <h3 className="text-sm font-semibold text-slate-800">{t('settings.language')}</h3>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setLocale('fr')}
+            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
+              locale === 'fr' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            🇫🇷 Français
+          </button>
+          <button
+            onClick={() => setLocale('en')}
+            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
+              locale === 'en' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            🇬🇧 English
+          </button>
+        </div>
       </div>
 
       {/* Zone dangereuse */}

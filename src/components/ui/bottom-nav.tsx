@@ -3,16 +3,21 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { BookOpen, BarChart3, Calendar, Library } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/context'
 
-const navItems = [
-  { href: '/logbook', label: 'Logbook', icon: BookOpen },
-  { href: '/dashboard', label: 'Stats', icon: BarChart3 },
-  { href: '/calendar', label: 'Gardes', icon: Calendar },
-  { href: '/templates', label: 'Référentiel', icon: Library },
-]
+function useNavItems() {
+  const { t } = useI18n()
+  return [
+    { href: '/logbook', label: t('nav.logbook'), icon: BookOpen },
+    { href: '/dashboard', label: t('nav.stats'), icon: BarChart3 },
+    { href: '/calendar', label: t('nav.gardes'), icon: Calendar },
+    { href: '/templates', label: t('nav.reference'), icon: Library },
+  ]
+}
 
 export function BottomNav() {
   const pathname = usePathname()
+  const navItems = useNavItems()
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200/80 bg-white/95 backdrop-blur-md safe-area-bottom">

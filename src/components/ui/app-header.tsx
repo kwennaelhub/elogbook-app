@@ -4,9 +4,11 @@ import { useState } from 'react'
 import { User, LogOut, Shield, Settings, Crown, ClipboardCheck, StickyNote, AlertTriangle, Loader2, HeartPulse } from 'lucide-react'
 import { logout } from '@/lib/actions/auth'
 import { logoutOtherSessions } from '@/lib/actions/sessions'
+import { useI18n } from '@/lib/i18n/context'
 import type { ProfileWithSubscription } from '@/types/database'
 
 export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: ProfileWithSubscription | null; otherSessionsCount?: number }) {
+  const { t } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
   const [showSessionAlert, setShowSessionAlert] = useState(otherSessionsCount > 0)
   const [disconnecting, setDisconnecting] = useState(false)
@@ -17,7 +19,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
       <div className="sticky top-0 z-50 flex items-center justify-between gap-2 bg-amber-500 px-4 py-2 text-xs font-medium text-white">
         <div className="flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 shrink-0" />
-          <span>Votre compte est connecté sur {otherSessionsCount} autre{otherSessionsCount > 1 ? 's' : ''} appareil{otherSessionsCount > 1 ? 's' : ''}</span>
+          <span>{t('header.sessions.alert', { count: otherSessionsCount })}</span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -30,7 +32,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
             disabled={disconnecting}
             className="rounded bg-white/20 px-2 py-1 text-[10px] font-semibold hover:bg-white/30 disabled:opacity-50"
           >
-            {disconnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Déconnecter les autres'}
+            {disconnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : t('header.sessions.disconnect')}
           </button>
           <button onClick={() => setShowSessionAlert(false)} className="hover:text-white/80">
             ✕
@@ -48,7 +50,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
           </div>
           <div>
             <span className="text-sm font-bold tracking-tight">InternLog</span>
-            <span className="ml-1.5 hidden text-[10px] font-normal text-slate-400 sm:inline">Logbook DES</span>
+            <span className="ml-1.5 hidden text-[10px] font-normal text-slate-400 sm:inline">{t('header.subtitle')}</span>
           </div>
         </div>
 
@@ -90,7 +92,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
                     onClick={() => setMenuOpen(false)}
                   >
                     <ClipboardCheck className="h-4 w-4 text-emerald-500" />
-                    Supervision
+                    {t('nav.supervision')}
                   </a>
                 )}
 
@@ -101,7 +103,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
                     onClick={() => setMenuOpen(false)}
                   >
                     <Shield className="h-4 w-4 text-slate-400" />
-                    Administration
+                    {t('nav.admin')}
                   </a>
                 )}
 
@@ -111,7 +113,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
                   onClick={() => setMenuOpen(false)}
                 >
                   <StickyNote className="h-4 w-4 text-amber-500" />
-                  Notes de cours
+                  {t('nav.notes')}
                 </a>
 
                 <a
@@ -120,7 +122,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
                   onClick={() => setMenuOpen(false)}
                 >
                   <HeartPulse className="h-4 w-4 text-rose-500" />
-                  Suivi patients
+                  {t('nav.followups')}
                 </a>
 
                 <a
@@ -129,7 +131,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
                   onClick={() => setMenuOpen(false)}
                 >
                   <Crown className="h-4 w-4 text-amber-500" />
-                  Abonnement
+                  {t('nav.subscription')}
                 </a>
 
                 <a
@@ -138,7 +140,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
                   onClick={() => setMenuOpen(false)}
                 >
                   <Settings className="h-4 w-4 text-slate-400" />
-                  Paramètres
+                  {t('nav.settings')}
                 </a>
 
                 <div className="border-t border-slate-100">
@@ -148,7 +150,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
                       className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50"
                     >
                       <LogOut className="h-4 w-4" />
-                      Déconnexion
+                      {t('nav.logout')}
                     </button>
                   </form>
                 </div>
