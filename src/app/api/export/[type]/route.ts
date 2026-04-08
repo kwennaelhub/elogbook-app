@@ -148,6 +148,127 @@ export async function GET(
       break
     }
 
+    case 'user-stats': {
+      // Export fiche récapitulative d'un utilisateur
+      const userId = searchParams.get('userId')
+      if (!userId) {
+        return Response.json({ error: 'userId requis' }, { status: 400 })
+      }
+
+      // Profil
+      const { data: targetProfile } = await supabase
+        .from('profiles')
+        .select('*, hospital:hospitals(name)')
+        .eq('id', userId)
+        .single()
+
+      if (!targetProfile) {
+        return Response.json({ error: 'Utilisateur non trouvé' }, { status: 404 })
+      }
+
+      // Entrées
+      const { data: userEntries } = await supabase
+        .from('entries')
+        .select(`
+          *,
+          hospital:hospitals!entries_hospital_id_fkey(name),
+          specialty:specialties!entries_specialty_id_fkey(name),
+          procedure:procedures!entries_procedure_id_fkey(name),
+          supervisor:profiles!entries_supervisor_id_fkey(first_name, last_name, title)
+        `)
+        .eq('user_id', userId)
+        .order('intervention_date', { ascending: false })
+        .limit(5000)
+
+      // Gardes
+      const { data: userGardes } = await supabase
+        .from('gardes')
+        .select('*, hospital:hospitals(name)')
+        .eq('user_id', userId)
+        .order('date', { ascending: false })
+        .limit(5000)
+
+      // Sheet 1 — Profil
+      const profileData = [{
+        'Nom': targetProfile.last_name,
+        'Prénom': targetProfile.first_name,
+        'Email': targetProfile.email,
+        'Rôle': targetProfile.role,
+        'Niveau DES': targetProfile.des_level ? DES_LEVEL_LABELS[targetProfile.des_level as DesLevel] : '',
+        'Hôpital': (targetProfile.hospital as { name: string } | null)?.name || '',
+        'Matricule': targetProfile.matricule || '',
+        'Total interventions': userEntries?.length ?? 0,
+        'Total gardes': userGardes?.length ?? 0,
+      }]
+
+      // Sheet 2 — Statistiques
+      const roleCounts: Record<string, number> = {}
+      const hospitalCounts: Record<string, number> = {}
+      const specCounts: Record<string, number> = {}
+      userEntries?.forEach(e => {
+        const role = OPERATOR_ROLE_LABELS[e.operator_role as OperatorRole] || e.operator_role
+        roleCounts[role] = (roleCounts[role] || 0) + 1
+        const hName = (e.hospital as { name: string } | null)?.name || 'Autre'
+        hospitalCounts[hName] = (hospitalCounts[hName] || 0) + 1
+        const sName = (e.specialty as { name: string } | null)?.name || 'Autre'
+        specCounts[sName] = (specCounts[sName] || 0) + 1
+      })
+
+      const statsData = [
+        ...Object.entries(roleCounts).map(([k, v]) => ({ 'Catégorie': 'Rôle', 'Élément': k, 'Nombre': v })),
+        ...Object.entries(hospitalCounts).map(([k, v]) => ({ 'Catégorie': 'Hôpital', 'Élément': k, 'Nombre': v })),
+        ...Object.entries(specCounts).map(([k, v]) => ({ 'Catégorie': 'Spécialité', 'Élément': k, 'Nombre': v })),
+      ]
+
+      // Sheet 3 — Interventions
+      const entriesData = (userEntries ?? []).map(e => ({
+        'Date': e.intervention_date,
+        'Contexte': e.context === 'programmed' ? 'Programmé' : 'Urgence',
+        'Rôle': OPERATOR_ROLE_LABELS[e.operator_role as OperatorRole] || e.operator_role,
+        'Hôpital': (e.hospital as { name: string } | null)?.name || '',
+        'Spécialité': (e.specialty as { name: string } | null)?.name || '',
+        'Geste': (e.procedure as { name: string } | null)?.name || '',
+        'Superviseur': e.supervisor ? `${(e.supervisor as { last_name: string }).last_name} ${(e.supervisor as { first_name: string }).first_name}` : '',
+        'Validé': e.is_validated ? 'Oui' : 'Non',
+        'Notes': e.notes || '',
+      }))
+
+      // Sheet 4 — Gardes
+      const gardesData = (userGardes ?? []).map(g => ({
+        'Date': g.date,
+        'Type': GARDE_TYPE_LABELS[g.type as GardeType] || g.type,
+        'Hôpital': (g.hospital as { name: string } | null)?.name || '',
+        'Service': g.service || '',
+        'Senior': g.senior_name || '',
+        'Notes': g.notes || '',
+      }))
+
+      // Générer le workbook multi-onglets
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(profileData), 'Profil')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(statsData.length > 0 ? statsData : [{ 'Info': 'Aucune donnée' }]), 'Statistiques')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(entriesData.length > 0 ? entriesData : [{ 'Info': 'Aucune intervention' }]), 'Interventions')
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(gardesData.length > 0 ? gardesData : [{ 'Info': 'Aucune garde' }]), 'Gardes')
+
+      const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+      const fileName = `fiche_${targetProfile.last_name}_${targetProfile.first_name}_${new Date().toISOString().split('T')[0]}.xlsx`
+
+      await supabase.from('audit_log').insert({
+        user_id: user.id,
+        action: 'export_user_stats',
+        table_name: 'profiles',
+        record_id: userId,
+        new_data: { entries: userEntries?.length, gardes: userGardes?.length },
+      })
+
+      return new Response(buf, {
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.document',
+          'Content-Disposition': `attachment; filename="${fileName}"`,
+        },
+      })
+    }
+
     default:
       return Response.json({ error: 'Type invalide' }, { status: 400 })
   }
