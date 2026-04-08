@@ -13,7 +13,7 @@ export default async function AdminPage() {
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
+  if (!profile || !['admin', 'superadmin', 'developer'].includes(profile.role)) {
     redirect('/logbook')
   }
 
@@ -22,11 +22,17 @@ export default async function AdminPage() {
     { data: users, count: usersCount },
     { data: supervisors, count: supervisorsCount },
     { data: hospitals },
+    { data: specialties },
+    { data: procedures },
+    { data: desObjectives },
   ] = await Promise.all([
     supabase.from('des_registry').select('*', { count: 'exact' }).order('last_name').limit(500),
     supabase.from('profiles').select('*, hospital:hospitals(name)', { count: 'exact' }).order('last_name').limit(500),
     supabase.from('profiles').select('*, hospital:hospitals(name)', { count: 'exact' }).eq('role', 'supervisor').order('last_name').limit(500),
-    supabase.from('hospitals').select('*').eq('is_active', true).order('name'),
+    supabase.from('hospitals').select('*').order('name'),
+    supabase.from('specialties').select('*').eq('is_active', true).eq('level', 0).order('name'),
+    supabase.from('procedures').select('*, specialty:specialties(name)').eq('is_active', true).order('sort_order'),
+    supabase.from('des_objectives').select('*').order('des_level, category'),
   ])
 
   return (
@@ -40,6 +46,10 @@ export default async function AdminPage() {
         supervisors={supervisors ?? []}
         supervisorsCount={supervisorsCount ?? 0}
         hospitals={hospitals ?? []}
+        specialties={specialties ?? []}
+        procedures={procedures ?? []}
+        desObjectives={desObjectives ?? []}
+        currentUserRole={profile.role}
       />
     </div>
   )

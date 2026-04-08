@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Users, BookCheck, Upload, Stethoscope, Search, Download, Plus, X, FileSpreadsheet, UserPlus, AlertCircle, CheckCircle, Settings2 } from 'lucide-react'
+import { Users, BookCheck, Upload, Stethoscope, Search, Download, Plus, X, FileSpreadsheet, UserPlus, AlertCircle, CheckCircle, Settings2, Shield } from 'lucide-react'
 import type { DesRegistry, Profile, Hospital, DesLevel } from '@/types/database'
-import { DES_LEVEL_LABELS, SUPERVISOR_TITLE_LABELS } from '@/types/database'
-import type { SupervisorTitle } from '@/types/database'
+import { DES_LEVEL_LABELS, SUPERVISOR_TITLE_LABELS, ROLE_LABELS } from '@/types/database'
+import type { SupervisorTitle, UserRole } from '@/types/database'
 import { createSupervisor, updateSupervisor, addDesRegistryEntry, importDesRegistryBatch } from '@/lib/actions/data'
+import { updateUserRole } from '@/lib/actions/admin'
+import { ConfigTab } from './config-tab'
 
 interface AdminPanelProps {
   registryEntries: DesRegistry[]
@@ -15,16 +17,40 @@ interface AdminPanelProps {
   supervisors: (Profile & { hospital?: { name: string } | null })[]
   supervisorsCount: number
   hospitals: Hospital[]
+  specialties: { id: string; name: string; is_active: boolean }[]
+  procedures: { id: string; name: string; specialty_id: string; specialty?: { name: string } | null }[]
+  desObjectives: { id: string; des_level: string; category: string; label: string; target_count: number; description?: string | null; specialty_name?: string | null; procedure_name?: string | null }[]
+  currentUserRole: string
 }
 
 export function AdminPanel({
   registryEntries, registryCount,
   users, usersCount,
   supervisors, supervisorsCount,
-  hospitals,
+  hospitals, specialties, procedures, desObjectives,
+  currentUserRole,
 }: AdminPanelProps) {
   const [tab, setTab] = useState<'registry' | 'users' | 'supervisors' | 'config'>('registry')
   const [search, setSearch] = useState('')
+  // Gestion des rôles (Users tab)
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null)
+  const [selectedRole, setSelectedRole] = useState('')
+  const [roleLoading, setRoleLoading] = useState(false)
+  const [roleResult, setRoleResult] = useState<{ error?: string; success?: boolean } | null>(null)
+
+  const handleRoleChange = async (userId: string) => {
+    setRoleLoading(true)
+    setRoleResult(null)
+    const result = await updateUserRole(userId, selectedRole)
+    setRoleResult(result)
+    setRoleLoading(false)
+    if (result.success) {
+      setEditingRoleId(null)
+      setTimeout(() => setRoleResult(null), 3000)
+    }
+  }
+
+  const canManageRoles = ['developer', 'superadmin'].includes(currentUserRole)
   // Superviseur
   const [showAddSupervisor, setShowAddSupervisor] = useState(false)
   const [addForm, setAddForm] = useState({ first_name: '', last_name: '', email: '', title: 'Pr' as string, hospital_id: '', phone: '' })
@@ -561,6 +587,14 @@ export function AdminPanel({
       )}
 
       {/* Utilisateurs */}
+      {tab === 'users' && roleResult && (
+        <div className={`mb-2 flex items-center gap-2 rounded-lg p-2 text-sm ${
+          roleResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+        }`}>
+          {roleResult.success ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+          {roleResult.success ? 'Rôle mis à jour. Rechargez pour voir.' : roleResult.error}
+        </div>
+      )}
       {tab === 'users' && (
         <div className="overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
           <table className="w-full text-left text-sm">
@@ -585,14 +619,52 @@ export function AdminPanel({
                   </td>
                   <td className="px-3 py-2 text-xs text-slate-500">{u.email}</td>
                   <td className="px-3 py-2">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      u.role === 'superadmin' ? 'bg-red-100 text-red-700' :
-                      u.role === 'admin' ? 'bg-purple-100 text-purple-700' :
-                      u.role === 'supervisor' ? 'bg-amber-100 text-amber-700' :
-                      'bg-blue-100 text-blue-700'
-                    }`}>
-                      {u.role}
-                    </span>
+                    {editingRoleId === u.id ? (
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={selectedRole}
+                          onChange={e => setSelectedRole(e.target.value)}
+                          className="rounded border border-slate-300 px-1 py-0.5 text-[10px]"
+                        >
+                          {(['student', 'supervisor', 'admin', 'superadmin'] as UserRole[])
+                            .filter(r => currentUserRole === 'developer' || r !== 'superadmin')
+                            .map(r => (
+                              <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                            ))}
+                          {currentUserRole === 'developer' && (
+                            <option value="developer">{ROLE_LABELS.developer}</option>
+                          )}
+                        </select>
+                        <button
+                          onClick={() => handleRoleChange(u.id)}
+                          disabled={roleLoading}
+                          className="rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] text-white"
+                        >
+                          OK
+                        </button>
+                        <button onClick={() => setEditingRoleId(null)} className="text-xs text-slate-400">✕</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (canManageRoles && u.role !== 'developer') {
+                            setEditingRoleId(u.id)
+                            setSelectedRole(u.role)
+                          }
+                        }}
+                        disabled={!canManageRoles || u.role === 'developer'}
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          u.role === 'developer' ? 'bg-emerald-100 text-emerald-800' :
+                          u.role === 'superadmin' ? 'bg-red-100 text-red-700' :
+                          u.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                          u.role === 'supervisor' ? 'bg-amber-100 text-amber-700' :
+                          'bg-blue-100 text-blue-700'
+                        } ${canManageRoles && u.role !== 'developer' ? 'cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-slate-300' : ''}`}
+                        title={canManageRoles && u.role !== 'developer' ? 'Cliquer pour modifier le rôle' : u.role === 'developer' ? 'Rôle irrevocable' : ''}
+                      >
+                        {u.role === 'developer' ? '🔒 ' : ''}{ROLE_LABELS[u.role as UserRole] || u.role}
+                      </button>
+                    )}
                   </td>
                   <td className="px-3 py-2 text-xs">{u.des_level || '—'}</td>
                   <td className="px-3 py-2 text-xs text-slate-500">{u.hospital?.name || '—'}</td>
@@ -676,57 +748,13 @@ export function AdminPanel({
 
       {/* Configuration */}
       {tab === 'config' && (
-        <div className="space-y-4">
-          {/* Gestion des hôpitaux */}
-          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <h3 className="mb-3 text-sm font-semibold text-slate-700">Hôpitaux</h3>
-            <div className="space-y-1.5">
-              {hospitals.map(h => (
-                <div key={h.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                  <span className="font-medium text-slate-700">{h.name}</span>
-                  <span className="text-xs text-slate-400">{h.city}</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-2 text-[10px] text-slate-400">
-              Pour ajouter/modifier des hôpitaux, spécialités, procédures ou objectifs DES : contactez le support ou utilisez le panneau Supabase.
-              Ces fonctionnalités de configuration avancée seront bientôt disponibles dans l&apos;interface.
-            </p>
-          </div>
-
-          {/* Objectifs DES — info */}
-          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <h3 className="mb-2 text-sm font-semibold text-slate-700">Objectifs DES</h3>
-            <p className="text-xs text-slate-500">
-              Les objectifs quantitatifs et qualitatifs par année DES sont configurables.
-              Vous pouvez définir le nombre d&apos;interventions attendu et les types spécifiques de gestes à maîtriser pour chaque niveau.
-            </p>
-            <div className="mt-3 rounded-lg bg-emerald-50 p-3">
-              <p className="text-xs font-medium text-emerald-800">Objectifs par défaut (modifiables) :</p>
-              <div className="mt-2 space-y-1 text-[10px] text-emerald-700">
-                <p>DES1 : 30 interventions (5 opérateur, 15 assistant, 10 observateur)</p>
-                <p>DES2 : 50 interventions (15 opérateur, 25 assistant, 10 observateur)</p>
-                <p>DES3 : 70 interventions (30 opérateur, 30 assistant, 10 observateur)</p>
-                <p>DES4 : 80 interventions (45 opérateur, 25 assistant, 10 observateur)</p>
-                <p>DES5 : 100 interventions (60 opérateur, 30 assistant, 10 observateur)</p>
-              </div>
-            </div>
-            <p className="mt-2 text-[10px] text-slate-400">
-              La gestion complète des objectifs (ajout/modification/suppression, objectifs qualitatifs par type d&apos;intervention)
-              sera disponible dans une prochaine mise à jour. Les données sont déjà structurées dans la base.
-            </p>
-          </div>
-
-          {/* Référentiel — info */}
-          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <h3 className="mb-2 text-sm font-semibold text-slate-700">Référentiel médical</h3>
-            <p className="text-xs text-slate-500">
-              Ajoutez des techniques opératoires, CRO, ordonnances types, bilans pré-op et instruments
-              directement depuis l&apos;onglet <strong>Référentiel</strong> dans la navigation principale.
-              Seuls les administrateurs peuvent ajouter/modifier le contenu.
-            </p>
-          </div>
-        </div>
+        <ConfigTab
+          hospitals={hospitals}
+          specialties={specialties}
+          procedures={procedures}
+          desObjectives={desObjectives}
+          currentUserRole={currentUserRole}
+        />
       )}
     </div>
   )

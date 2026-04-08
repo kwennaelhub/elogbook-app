@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { User, LogOut, Shield, Settings } from 'lucide-react'
+import { User, LogOut, Shield, Settings, Crown, ClipboardCheck } from 'lucide-react'
 import { logout } from '@/lib/actions/auth'
 import type { ProfileWithSubscription } from '@/types/database'
 
@@ -18,8 +18,8 @@ export function AppHeader({ profile }: { profile: ProfileWithSubscription | null
             </svg>
           </div>
           <div>
-            <span className="text-sm font-bold tracking-tight">LogChir</span>
-            <span className="ml-1.5 hidden text-[10px] font-normal text-slate-400 sm:inline">DES Bénin</span>
+            <span className="text-sm font-bold tracking-tight">InternLog</span>
+            <span className="ml-1.5 hidden text-[10px] font-normal text-slate-400 sm:inline">Logbook DES</span>
           </div>
         </div>
 
@@ -28,9 +28,13 @@ export function AppHeader({ profile }: { profile: ProfileWithSubscription | null
             onClick={() => setMenuOpen(!menuOpen)}
             className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs backdrop-blur-sm transition-colors hover:bg-white/20"
           >
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">
-              {profile?.first_name?.charAt(0)}{profile?.last_name?.charAt(0)}
-            </div>
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">
+                {profile?.first_name?.charAt(0)}{profile?.last_name?.charAt(0)}
+              </div>
+            )}
             <span className="hidden sm:inline">
               {profile?.first_name} {profile?.last_name?.charAt(0)}.
             </span>
@@ -50,7 +54,18 @@ export function AppHeader({ profile }: { profile: ProfileWithSubscription | null
                   )}
                 </div>
 
-                {(profile?.role === 'admin' || profile?.role === 'superadmin') && (
+                {(profile?.role === 'supervisor' || profile?.role === 'admin' || profile?.role === 'superadmin' || profile?.role === 'developer') && (
+                  <a
+                    href="/supervision"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-slate-50"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <ClipboardCheck className="h-4 w-4 text-emerald-500" />
+                    Supervision
+                  </a>
+                )}
+
+                {(profile?.role === 'admin' || profile?.role === 'superadmin' || profile?.role === 'developer') && (
                   <a
                     href="/admin"
                     className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-slate-50"
@@ -60,6 +75,15 @@ export function AppHeader({ profile }: { profile: ProfileWithSubscription | null
                     Administration
                   </a>
                 )}
+
+                <a
+                  href="/subscription"
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-slate-50"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <Crown className="h-4 w-4 text-amber-500" />
+                  Abonnement
+                </a>
 
                 <a
                   href="/settings"

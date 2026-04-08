@@ -111,6 +111,17 @@ export async function validateEntry(entryId: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Non authentifié' }
 
+  // Vérifier que l'utilisateur est superviseur, admin ou developer
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !['supervisor', 'admin', 'superadmin', 'developer'].includes(profile.role)) {
+    return { error: 'Vous n\'avez pas le droit de valider des actes' }
+  }
+
   const { error } = await supabase
     .from('entries')
     .update({
@@ -123,7 +134,91 @@ export async function validateEntry(entryId: string) {
   if (error) return { error: error.message }
 
   revalidatePath('/logbook')
+  revalidatePath('/supervision')
   return { success: true }
+}
+
+export async function rejectEntry(entryId: string, reason?: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non authentifié' }
+
+  // Vérifier que l'utilisateur est superviseur, admin ou developer
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !['supervisor', 'admin', 'superadmin', 'developer'].includes(profile.role)) {
+    return { error: 'Vous n\'avez pas le droit de rejeter des actes' }
+  }
+
+  const { error } = await supabase
+    .from('entries')
+    .update({
+      is_validated: false,
+      validated_at: new Date().toISOString(),
+      validated_by: user.id,
+      notes: reason ? `[REJETÉ] ${reason}` : null,
+    })
+    .eq('id', entryId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/logbook')
+  revalidatePath('/supervision')
+  return { success: true }
+}
+
+export async function getEntriesForSupervisor() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { pending: [], validated: [], rejected: [] }
+
+  // Vérifier le rôle
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, hospital_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || !['supervisor', 'admin', 'superadmin', 'developer'].includes(profile.role)) {
+    return { pending: [], validated: [], rejected: [] }
+  }
+
+  // Requête de base : entrées où ce superviseur est assigné OU entrées de son hôpital (pour admin/superadmin/developer)
+  let query = supabase
+    .from('entries')
+    .select(`
+      *,
+      hospital:hospitals(id, name),
+      specialty:specialties!entries_specialty_id_fkey(id, name),
+      segment:specialties!entries_segment_id_fkey(id, name),
+      procedure:procedures(id, name),
+      supervisor:profiles!entries_supervisor_id_fkey(id, first_name, last_name, title),
+      student:profiles!entries_user_id_fkey(id, first_name, last_name, des_level, matricule)
+    `)
+    .order('intervention_date', { ascending: false })
+
+  if (profile.role === 'supervisor') {
+    // Superviseur : voit uniquement les entrées où il est assigné
+    query = query.eq('supervisor_id', user.id)
+  } else if (profile.role === 'admin' && profile.hospital_id) {
+    // Admin : voit les entrées de son hôpital
+    query = query.eq('hospital_id', profile.hospital_id)
+  }
+  // superadmin/developer : voit tout (pas de filtre)
+
+  const { data } = await query
+
+  const entries = data ?? []
+
+  return {
+    pending: entries.filter(e => !e.is_validated && !e.validated_at),
+    validated: entries.filter(e => e.is_validated),
+    rejected: entries.filter(e => !e.is_validated && e.validated_at),
+  }
 }
 
 export async function deleteEntry(entryId: string) {

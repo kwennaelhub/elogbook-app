@@ -12,7 +12,7 @@ export default async function TemplatesPage() {
     .eq('id', user?.id ?? '')
     .single()
 
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin'
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'superadmin' || profile?.role === 'developer'
 
   const [
     { data: croTemplates },

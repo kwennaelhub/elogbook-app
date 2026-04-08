@@ -15,8 +15,25 @@ async function requireAdmin() {
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
+  if (!profile || !['admin', 'superadmin', 'developer'].includes(profile.role)) {
     throw new Error('Accès refusé')
+  }
+  return { supabase, user, role: profile.role }
+}
+
+async function requireDeveloper() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Non authentifié')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile || profile.role !== 'developer') {
+    throw new Error('Accès réservé au développeur')
   }
   return { supabase, user }
 }
@@ -229,4 +246,147 @@ export async function getTechniques(specialtyId?: string) {
 
   const { data } = await query
   return data ?? []
+}
+
+// ========== GESTION DES RÔLES ==========
+
+export async function updateUserRole(userId: string, newRole: string) {
+  const { supabase, role: callerRole } = await requireAdmin()
+
+  // Vérifier que le rôle cible est valide
+  const validRoles = ['student', 'supervisor', 'admin', 'superadmin', 'developer']
+  if (!validRoles.includes(newRole)) {
+    return { error: 'Rôle invalide' }
+  }
+
+  // Seul le developer peut créer d'autres developers ou superadmins
+  if (['developer', 'superadmin'].includes(newRole) && callerRole !== 'developer') {
+    return { error: 'Seul le développeur peut attribuer ce rôle' }
+  }
+
+  // Le rôle developer est irrevocable — on ne peut pas le retirer
+  const { data: target } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .single()
+
+  if (target?.role === 'developer') {
+    return { error: 'Le rôle développeur est irrevocable' }
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ role: newRole })
+    .eq('id', userId)
+
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+// ========== PROFIL UTILISATEUR ==========
+
+export async function updateProfile(data: {
+  first_name?: string
+  last_name?: string
+  phone?: string
+  hospital_id?: string
+  des_level?: string
+  date_of_birth?: string
+  avatar_url?: string
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non authentifié' }
+
+  const updates: Record<string, unknown> = {}
+  if (data.first_name !== undefined) updates.first_name = data.first_name
+  if (data.last_name !== undefined) updates.last_name = data.last_name
+  if (data.phone !== undefined) updates.phone = data.phone || null
+  if (data.hospital_id !== undefined) updates.hospital_id = data.hospital_id || null
+  if (data.des_level !== undefined) updates.des_level = data.des_level || null
+  if (data.date_of_birth !== undefined) updates.date_of_birth = data.date_of_birth || null
+  if (data.avatar_url !== undefined) updates.avatar_url = data.avatar_url || null
+
+  const { error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', user.id)
+
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+// ========== GESTION SPÉCIALITÉS & PROCÉDURES (config admin) ==========
+
+export async function getSpecialtiesWithProcedures() {
+  const supabase = await createClient()
+  const { data: specialties } = await supabase
+    .from('specialties')
+    .select('*')
+    .eq('is_active', true)
+    .eq('level', 0)
+    .order('name')
+
+  const { data: procedures } = await supabase
+    .from('procedures')
+    .select('*')
+    .eq('is_active', true)
+    .order('sort_order')
+
+  return {
+    specialties: specialties ?? [],
+    procedures: procedures ?? [],
+  }
+}
+
+export async function deleteHospital(id: string) {
+  const { supabase } = await requireAdmin()
+  const { error } = await supabase
+    .from('hospitals')
+    .update({ is_active: false })
+    .eq('id', id)
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function deleteProcedure(id: string) {
+  const { supabase } = await requireAdmin()
+  const { error } = await supabase
+    .from('procedures')
+    .update({ is_active: false })
+    .eq('id', id)
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function deleteSpecialty(id: string) {
+  const { supabase } = await requireAdmin()
+  const { error } = await supabase
+    .from('specialties')
+    .update({ is_active: false })
+    .eq('id', id)
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+// ========== EMAIL DE BIENVENUE ==========
+
+export async function sendWelcomeEmail(email: string, firstName: string) {
+  // Envoie l'email de bienvenue via l'API route locale
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000'
+    const response = await fetch(`${baseUrl}/api/send-welcome`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, firstName }),
+    })
+    if (!response.ok) {
+      console.log('Welcome email skipped')
+    }
+  } catch {
+    console.log('Welcome email skipped (not available)')
+  }
 }

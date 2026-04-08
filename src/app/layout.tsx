@@ -8,8 +8,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'LogChir — Logbook Chirurgical DES',
-  description: 'Logbook électronique pour le suivi des compétences chirurgicales des étudiants DES du Bénin',
+  title: 'InternLog — Logbook Médical DES',
+  description: 'Logbook électronique pour le suivi des compétences médicales des étudiants DES',
   manifest: '/manifest.json',
   icons: {
     icon: '/icons/favicon-32.png',
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'LogChir',
+    title: 'InternLog',
   },
 }
 

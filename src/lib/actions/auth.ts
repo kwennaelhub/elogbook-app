@@ -86,6 +86,15 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     return { error: 'Erreur lors de la création du compte : ' + error.message }
   }
 
+  // Envoyer l'email de bienvenue (non-bloquant)
+  try {
+    const { sendWelcomeEmail } = await import('@/lib/actions/admin')
+    await sendWelcomeEmail(parsed.data.email, parsed.data.first_name)
+  } catch {
+    // Ne pas bloquer l'inscription si l'email échoue
+    console.log('Welcome email failed silently')
+  }
+
   return { success: true }
 }
 

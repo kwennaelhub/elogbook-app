@@ -1,9 +1,9 @@
-// Types TypeScript — E-Logbook Chirurgical CNHU-HKM
+// Types TypeScript — InternLog — Logbook Médical DES
 // Générés depuis schema.sql v2 (avril 2026)
 
 // ========== ENUMS ==========
 
-export type UserRole = 'student' | 'supervisor' | 'admin' | 'superadmin'
+export type UserRole = 'student' | 'supervisor' | 'admin' | 'superadmin' | 'developer'
 export type DesLevel = 'DES1' | 'DES2' | 'DES3' | 'DES4' | 'DES5'
 export type SurgeryContext = 'programmed' | 'emergency'
 export type PatientType = 'real' | 'simulation'
@@ -12,7 +12,7 @@ export type GardeType = 'day' | 'night' | '24h' | 'weekend'
 export type GardeSource = 'user' | 'admin'
 export type EntryMode = 'prospective' | 'retrospective'
 export type SubscriptionPlan = 'free' | 'premium' | 'institutional'
-export type SubscriptionStatus = 'active' | 'expired' | 'cancelled'
+export type SubscriptionStatus = 'pending' | 'active' | 'expired' | 'cancelled'
 
 // ========== TABLES ==========
 
@@ -54,6 +54,8 @@ export interface Profile {
   title: string | null // titre académique : Pr, Pr Ag, Dr, MC, CC
   matricule: string | null
   registry_id: string | null
+  avatar_url: string | null
+  date_of_birth: string | null
   is_active: boolean
   created_at: string
   updated_at: string
@@ -216,7 +218,7 @@ export type EntryInsert = Omit<Entry, 'id' | 'submitted_at' | 'entry_mode' | 'is
 
 export type GardeInsert = Omit<Garde, 'id' | 'created_at' | 'updated_at'>
 
-export type ProfileUpdate = Partial<Pick<Profile, 'first_name' | 'last_name' | 'phone' | 'hospital_id' | 'des_level' | 'title'>>
+export type ProfileUpdate = Partial<Pick<Profile, 'first_name' | 'last_name' | 'phone' | 'hospital_id' | 'des_level' | 'title' | 'avatar_url' | 'date_of_birth'>>
 
 // ========== TYPES ENRICHIS (avec jointures) ==========
 
@@ -226,6 +228,15 @@ export interface EntryWithDetails extends Entry {
   segment?: Specialty
   procedure?: Procedure
   supervisor?: Pick<Profile, 'id' | 'first_name' | 'last_name'>
+}
+
+export interface SupervisionEntry extends Entry {
+  hospital?: Hospital
+  specialty?: Specialty
+  segment?: Specialty
+  procedure?: Procedure
+  supervisor?: Pick<Profile, 'id' | 'first_name' | 'last_name' | 'title'>
+  student?: Pick<Profile, 'id' | 'first_name' | 'last_name' | 'des_level' | 'matricule'>
 }
 
 export interface GardeWithDetails extends Garde {
@@ -272,6 +283,23 @@ export const SUPERVISOR_TITLE_LABELS: Record<SupervisorTitle, string> = {
   'CC': 'Chef de Clinique',
 }
 
+// Hiérarchie des rôles : developer (irrevocable) > superadmin > admin > supervisor > student
+export const ROLE_HIERARCHY: Record<UserRole, number> = {
+  student: 0,
+  supervisor: 1,
+  admin: 2,
+  superadmin: 3,
+  developer: 4,
+}
+
+export const ROLE_LABELS: Record<UserRole, string> = {
+  student: 'Étudiant',
+  supervisor: 'Superviseur',
+  admin: 'Administrateur',
+  superadmin: 'Super Admin',
+  developer: 'Développeur',
+}
+
 export const SUBSCRIPTION_FEATURES: Record<SubscriptionPlan, string[]> = {
   free: [
     'Saisie d\'interventions (max 50/mois)',
@@ -279,20 +307,38 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionPlan, string[]> = {
     'Calendrier de gardes',
   ],
   premium: [
-    'Saisie illimitée',
-    'Export PDF certifié',
+    'Saisie illimitée d\'interventions',
+    'Export PDF/Excel certifié',
     'Dashboard avancé + graphiques',
     'Templates CRO complets',
-    'Ordonnances type',
-    'Bilans pré-opératoires',
-    'Atlas instruments',
+    'Ordonnances type + bilans pré-opératoires',
+    'Atlas instruments chirurgicaux',
+    'Notes de cours classables',
+    'Newsletter scientifique mensuelle',
     'Mode hors-ligne complet',
+    'Mode bilingue FR/EN',
   ],
   institutional: [
     'Tout le plan Premium',
-    'Dashboard coordinateur',
-    'Gestion des DES',
-    'Statistiques par promotion',
+    '20 postes inclus (chefs de service)',
+    'Dashboard coordinateur hôpital',
+    'Gestion complète des DES',
+    'Statistiques par promotion et spécialité',
+    'Validation des actes par superviseurs',
     'Support prioritaire',
   ],
+}
+
+export const SUBSCRIPTION_PRICES = {
+  free: { eur: 0, fcfa: 0, label: 'Gratuit' },
+  premium: { eur: 7.99, fcfa: 4999, label: '7,99 €/mois' },
+  institutional: { eur: 45.99, fcfa: 29999, label: '45,99 €/mois' },
+} as const
+
+export interface InstitutionalSeat {
+  id: string
+  subscription_id: string
+  max_seats: number
+  used_seats: number
+  created_at: string
 }
