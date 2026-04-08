@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Users, BookCheck, Upload, Stethoscope, Search, Download, Plus, X, FileSpreadsheet, UserPlus, AlertCircle, CheckCircle } from 'lucide-react'
+import { Users, BookCheck, Upload, Stethoscope, Search, Download, Plus, X, FileSpreadsheet, UserPlus, AlertCircle, CheckCircle, Settings2 } from 'lucide-react'
 import type { DesRegistry, Profile, Hospital, DesLevel } from '@/types/database'
 import { DES_LEVEL_LABELS, SUPERVISOR_TITLE_LABELS } from '@/types/database'
 import type { SupervisorTitle } from '@/types/database'
@@ -23,7 +23,7 @@ export function AdminPanel({
   supervisors, supervisorsCount,
   hospitals,
 }: AdminPanelProps) {
-  const [tab, setTab] = useState<'registry' | 'users' | 'supervisors'>('registry')
+  const [tab, setTab] = useState<'registry' | 'users' | 'supervisors' | 'config'>('registry')
   const [search, setSearch] = useState('')
   // Superviseur
   const [showAddSupervisor, setShowAddSupervisor] = useState(false)
@@ -203,6 +203,7 @@ export function AdminPanel({
     { key: 'registry' as const, label: `Registre DES (${registryCount})`, icon: BookCheck },
     { key: 'users' as const, label: `Utilisateurs (${usersCount})`, icon: Users },
     { key: 'supervisors' as const, label: `Superviseurs (${supervisorsCount})`, icon: Stethoscope },
+    { key: 'config' as const, label: 'Configuration', icon: Settings2 },
   ]
 
   return (
@@ -670,6 +671,61 @@ export function AdminPanel({
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Configuration */}
+      {tab === 'config' && (
+        <div className="space-y-4">
+          {/* Gestion des hôpitaux */}
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <h3 className="mb-3 text-sm font-semibold text-slate-700">Hôpitaux</h3>
+            <div className="space-y-1.5">
+              {hospitals.map(h => (
+                <div key={h.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
+                  <span className="font-medium text-slate-700">{h.name}</span>
+                  <span className="text-xs text-slate-400">{h.city}</span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] text-slate-400">
+              Pour ajouter/modifier des hôpitaux, spécialités, procédures ou objectifs DES : contactez le support ou utilisez le panneau Supabase.
+              Ces fonctionnalités de configuration avancée seront bientôt disponibles dans l&apos;interface.
+            </p>
+          </div>
+
+          {/* Objectifs DES — info */}
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <h3 className="mb-2 text-sm font-semibold text-slate-700">Objectifs DES</h3>
+            <p className="text-xs text-slate-500">
+              Les objectifs quantitatifs et qualitatifs par année DES sont configurables.
+              Vous pouvez définir le nombre d&apos;interventions attendu et les types spécifiques de gestes à maîtriser pour chaque niveau.
+            </p>
+            <div className="mt-3 rounded-lg bg-emerald-50 p-3">
+              <p className="text-xs font-medium text-emerald-800">Objectifs par défaut (modifiables) :</p>
+              <div className="mt-2 space-y-1 text-[10px] text-emerald-700">
+                <p>DES1 : 30 interventions (5 opérateur, 15 assistant, 10 observateur)</p>
+                <p>DES2 : 50 interventions (15 opérateur, 25 assistant, 10 observateur)</p>
+                <p>DES3 : 70 interventions (30 opérateur, 30 assistant, 10 observateur)</p>
+                <p>DES4 : 80 interventions (45 opérateur, 25 assistant, 10 observateur)</p>
+                <p>DES5 : 100 interventions (60 opérateur, 30 assistant, 10 observateur)</p>
+              </div>
+            </div>
+            <p className="mt-2 text-[10px] text-slate-400">
+              La gestion complète des objectifs (ajout/modification/suppression, objectifs qualitatifs par type d&apos;intervention)
+              sera disponible dans une prochaine mise à jour. Les données sont déjà structurées dans la base.
+            </p>
+          </div>
+
+          {/* Référentiel — info */}
+          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+            <h3 className="mb-2 text-sm font-semibold text-slate-700">Référentiel médical</h3>
+            <p className="text-xs text-slate-500">
+              Ajoutez des techniques opératoires, CRO, ordonnances types, bilans pré-op et instruments
+              directement depuis l&apos;onglet <strong>Référentiel</strong> dans la navigation principale.
+              Seuls les administrateurs peuvent ajouter/modifier le contenu.
+            </p>
+          </div>
         </div>
       )}
     </div>

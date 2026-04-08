@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { User, LogOut, Shield } from 'lucide-react'
+import { User, LogOut, Shield, Settings } from 'lucide-react'
 import { logout } from '@/lib/actions/auth'
 import type { ProfileWithSubscription } from '@/types/database'
 
@@ -9,21 +9,28 @@ export function AppHeader({ profile }: { profile: ProfileWithSubscription | null
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-blue-700 text-white">
+    <header className="sticky top-0 z-40 bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-lg">
       <div className="flex h-14 items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
-          </svg>
-          <span className="text-sm font-semibold">E-Logbook</span>
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20">
+            <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+            </svg>
+          </div>
+          <div>
+            <span className="text-sm font-bold tracking-tight">LogChir</span>
+            <span className="ml-1.5 hidden text-[10px] font-normal text-slate-400 sm:inline">DES Bénin</span>
+          </div>
         </div>
 
         <div className="relative">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center gap-2 rounded-full bg-blue-600 px-3 py-1.5 text-xs transition-colors hover:bg-blue-500"
+            className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs backdrop-blur-sm transition-colors hover:bg-white/20"
           >
-            <User className="h-4 w-4" />
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">
+              {profile?.first_name?.charAt(0)}{profile?.last_name?.charAt(0)}
+            </div>
             <span className="hidden sm:inline">
               {profile?.first_name} {profile?.last_name?.charAt(0)}.
             </span>
@@ -32,12 +39,12 @@ export function AppHeader({ profile }: { profile: ProfileWithSubscription | null
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg bg-white py-1 text-slate-700 shadow-lg ring-1 ring-slate-200">
-                <div className="border-b border-slate-100 px-4 py-3">
-                  <p className="text-sm font-medium">{profile?.first_name} {profile?.last_name}</p>
+              <div className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl bg-white text-slate-700 shadow-xl ring-1 ring-slate-200/60">
+                <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-4 py-3">
+                  <p className="text-sm font-semibold text-slate-900">{profile?.first_name} {profile?.last_name}</p>
                   <p className="text-xs text-slate-500">{profile?.email}</p>
                   {profile?.des_level && (
-                    <span className="mt-1 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                    <span className="mt-1.5 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
                       {profile.des_level}
                     </span>
                   )}
@@ -46,23 +53,34 @@ export function AppHeader({ profile }: { profile: ProfileWithSubscription | null
                 {(profile?.role === 'admin' || profile?.role === 'superadmin') && (
                   <a
                     href="/admin"
-                    className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50"
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-slate-50"
                     onClick={() => setMenuOpen(false)}
                   >
-                    <Shield className="h-4 w-4" />
+                    <Shield className="h-4 w-4 text-slate-400" />
                     Administration
                   </a>
                 )}
 
-                <form action={logout}>
-                  <button
-                    type="submit"
-                    className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Déconnexion
-                  </button>
-                </form>
+                <a
+                  href="/settings"
+                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors hover:bg-slate-50"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <Settings className="h-4 w-4 text-slate-400" />
+                  Paramètres
+                </a>
+
+                <div className="border-t border-slate-100">
+                  <form action={logout}>
+                    <button
+                      type="submit"
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Déconnexion
+                    </button>
+                  </form>
+                </div>
               </div>
             </>
           )}

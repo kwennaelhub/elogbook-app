@@ -8,7 +8,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'E-Logbook Chirurgical',
+  title: 'LogChir — Logbook Chirurgical DES',
   description: 'Logbook électronique pour le suivi des compétences chirurgicales des étudiants DES du Bénin',
   manifest: '/manifest.json',
   icons: {
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'E-Logbook',
+    title: 'LogChir',
   },
 }
 
@@ -27,7 +27,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#1e40af',
+  themeColor: '#0f172a',
 }
 
 export default function RootLayout({

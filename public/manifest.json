@@ -1,11 +1,11 @@
 {
-  "name": "E-Logbook Chirurgical CNHU-HKM",
-  "short_name": "E-Logbook",
+  "name": "LogChir — Logbook Chirurgical DES",
+  "short_name": "LogChir",
   "description": "Logbook électronique pour le suivi des compétences chirurgicales des étudiants DES du Bénin",
   "start_url": "/logbook",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#1e40af",
+  "theme_color": "#0f172a",
   "background_color": "#f8fafc",
   "lang": "fr",
   "icons": [
