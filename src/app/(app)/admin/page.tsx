@@ -20,9 +20,13 @@ export default async function AdminPage() {
   const [
     { data: registryEntries, count: registryCount },
     { data: users, count: usersCount },
+    { data: supervisors, count: supervisorsCount },
+    { data: hospitals },
   ] = await Promise.all([
-    supabase.from('des_registry').select('*', { count: 'exact' }).order('last_name').limit(50),
-    supabase.from('profiles').select('*, hospital:hospitals(name)', { count: 'exact' }).order('last_name').limit(50),
+    supabase.from('des_registry').select('*', { count: 'exact' }).order('last_name').limit(500),
+    supabase.from('profiles').select('*, hospital:hospitals(name)', { count: 'exact' }).order('last_name').limit(500),
+    supabase.from('profiles').select('*, hospital:hospitals(name)', { count: 'exact' }).eq('role', 'supervisor').order('last_name').limit(500),
+    supabase.from('hospitals').select('*').eq('is_active', true).order('name'),
   ])
 
   return (
@@ -33,6 +37,9 @@ export default async function AdminPage() {
         registryCount={registryCount ?? 0}
         users={users ?? []}
         usersCount={usersCount ?? 0}
+        supervisors={supervisors ?? []}
+        supervisorsCount={supervisorsCount ?? 0}
+        hospitals={hospitals ?? []}
       />
     </div>
   )

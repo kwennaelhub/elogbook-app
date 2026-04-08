@@ -74,6 +74,25 @@ export const profileUpdateSchema = z.object({
   des_level: z.enum(['DES1', 'DES2', 'DES3', 'DES4', 'DES5']).optional(),
 })
 
+// ========== SUPERVISEUR (admin) ==========
+
+export const supervisorSchema = z.object({
+  first_name: z.string().min(2, 'Le prénom est obligatoire'),
+  last_name: z.string().min(2, 'Le nom est obligatoire'),
+  email: z.string().email('Adresse email invalide'),
+  title: z.enum(['Pr', 'Pr Ag', 'Dr', 'MC', 'CC']),
+  hospital_id: z.string().uuid('Hôpital invalide'),
+  phone: z.string().optional(),
+})
+
+export const supervisorAssignmentSchema = z.object({
+  supervisor_id: z.string().uuid(),
+  student_id: z.string().uuid(),
+  hospital_id: z.string().uuid(),
+  start_date: z.string().min(1, 'La date de début est obligatoire'),
+  end_date: z.string().optional(),
+})
+
 // ========== DES REGISTRY (admin) ==========
 
 export const desRegistrySchema = z.object({

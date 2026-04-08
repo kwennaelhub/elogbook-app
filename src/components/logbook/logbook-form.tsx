@@ -455,13 +455,22 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
             </>
           )}
 
-          <button
-            type="submit"
-            disabled={isPending || (isRetrospective && !formData.attestation_checked)}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-          >
-            {isPending ? 'Enregistrement...' : 'Enregistrer l\'intervention'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-300 px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            >
+              <ChevronLeft className="h-4 w-4" /> Précédent
+            </button>
+            <button
+              type="submit"
+              disabled={isPending || (isRetrospective && !formData.attestation_checked)}
+              className="flex-[2] rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isPending ? 'Enregistrement...' : 'Enregistrer l\'intervention'}
+            </button>
+          </div>
         </form>
       )}
 

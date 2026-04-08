@@ -40,6 +40,8 @@ export interface DesRegistry {
   updated_at: string
 }
 
+export type SupervisorTitle = 'Pr' | 'Pr Ag' | 'Dr' | 'MC' | 'CC'
+
 export interface Profile {
   id: string
   first_name: string
@@ -49,6 +51,7 @@ export interface Profile {
   des_level: DesLevel | null
   hospital_id: string | null
   phone: string | null
+  title: string | null // titre académique : Pr, Pr Ag, Dr, MC, CC
   matricule: string | null
   registry_id: string | null
   is_active: boolean
@@ -213,7 +216,7 @@ export type EntryInsert = Omit<Entry, 'id' | 'submitted_at' | 'entry_mode' | 'is
 
 export type GardeInsert = Omit<Garde, 'id' | 'created_at' | 'updated_at'>
 
-export type ProfileUpdate = Partial<Pick<Profile, 'first_name' | 'last_name' | 'phone' | 'hospital_id' | 'des_level'>>
+export type ProfileUpdate = Partial<Pick<Profile, 'first_name' | 'last_name' | 'phone' | 'hospital_id' | 'des_level' | 'title'>>
 
 // ========== TYPES ENRICHIS (avec jointures) ==========
 
@@ -259,6 +262,14 @@ export const GARDE_TYPE_LABELS: Record<GardeType, string> = {
   night: 'Nuit',
   '24h': '24h',
   weekend: 'Week-end',
+}
+
+export const SUPERVISOR_TITLE_LABELS: Record<SupervisorTitle, string> = {
+  'Pr': 'Professeur',
+  'Pr Ag': 'Professeur Agrégé',
+  'Dr': 'Docteur',
+  'MC': 'Maître de Conférences',
+  'CC': 'Chef de Clinique',
 }
 
 export const SUBSCRIPTION_FEATURES: Record<SubscriptionPlan, string[]> = {

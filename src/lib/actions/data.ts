@@ -42,7 +42,7 @@ export async function getSupervisors(hospitalId?: string) {
   const supabase = await createClient()
   let query = supabase
     .from('profiles')
-    .select('id, first_name, last_name')
+    .select('id, first_name, last_name, title')
     .eq('role', 'supervisor')
     .eq('is_active', true)
     .order('last_name')
@@ -53,6 +53,92 @@ export async function getSupervisors(hospitalId?: string) {
 
   const { data } = await query
   return data ?? []
+}
+
+export async function getSupervisorsWithDetails() {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('profiles')
+    .select('*, hospital:hospitals(id, name)')
+    .eq('role', 'supervisor')
+    .order('last_name')
+  return data ?? []
+}
+
+export async function updateSupervisor(supervisorId: string, updates: {
+  title?: string
+  first_name?: string
+  last_name?: string
+  phone?: string
+  hospital_id?: string
+}) {
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', supervisorId)
+    .eq('role', 'supervisor')
+
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
+export async function createSupervisor(data: {
+  email: string
+  first_name: string
+  last_name: string
+  title: string
+  hospital_id: string
+  phone?: string
+}) {
+  const supabase = await createClient()
+
+  // Créer le compte auth via l'API admin (mot de passe temporaire)
+  const tempPassword = `ELog${Date.now().toString(36).toUpperCase()}!`
+
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/signup`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      },
+      body: JSON.stringify({
+        email: data.email,
+        password: tempPassword,
+        options: {
+          data: {
+            first_name: data.first_name,
+            last_name: data.last_name,
+          },
+        },
+      }),
+    }
+  )
+
+  if (!response.ok) {
+    const err = await response.json()
+    return { error: err.msg || err.message || 'Erreur lors de la création du compte' }
+  }
+
+  const authData = await response.json()
+  const userId = authData.id
+
+  // Mettre à jour le profil (créé par le trigger) avec le rôle et le titre
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      role: 'supervisor',
+      title: data.title,
+      hospital_id: data.hospital_id,
+      phone: data.phone || null,
+    })
+    .eq('id', userId)
+
+  if (error) return { error: error.message }
+
+  return { success: true, tempPassword }
 }
 
 export async function getDashboardStats() {
