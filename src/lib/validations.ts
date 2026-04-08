@@ -24,6 +24,12 @@ export const registerSchema = z.object({
 
 // ========== ENTRIES ==========
 
+// Transforme les chaînes vides en undefined pour les champs UUID optionnels
+const optionalUuid = z.preprocess(
+  (val) => (val === '' ? undefined : val),
+  z.string().uuid().optional()
+)
+
 export const entrySchema = z.object({
   intervention_date: z.string().min(1, 'La date est obligatoire'),
   context: z.enum(['programmed', 'emergency']),
@@ -31,13 +37,13 @@ export const entrySchema = z.object({
   operator_role: z.enum(['observer', 'assistant', 'supervised_operator', 'autonomous_operator']),
   hospital_id: z.string().uuid('Hôpital invalide'),
   other_hospital: z.string().optional(),
-  specialty_id: z.string().uuid().optional(),
-  segment_id: z.string().uuid().optional(),
-  procedure_id: z.string().uuid().optional(),
+  specialty_id: optionalUuid,
+  segment_id: optionalUuid,
+  procedure_id: optionalUuid,
   other_specialty: z.string().optional(),
   other_procedure: z.string().optional(),
   notes: z.string().optional(),
-  supervisor_id: z.string().uuid().optional(),
+  supervisor_id: optionalUuid,
   // Géolocalisation (optionnelle)
   geo_latitude: z.number().optional(),
   geo_longitude: z.number().optional(),
@@ -53,8 +59,8 @@ export const gardeSchema = z.object({
   type: z.enum(['day', 'night', '24h', 'weekend']),
   service: z.string().optional(),
   senior_name: z.string().optional(),
-  senior_id: z.string().uuid().optional(),
-  hospital_id: z.string().uuid().optional(),
+  senior_id: optionalUuid,
+  hospital_id: optionalUuid,
   notes: z.string().optional(),
 })
 
