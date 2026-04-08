@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BookOpen, BarChart3, Calendar, FileText } from 'lucide-react'
+import { BookOpen, BarChart3, Calendar, FileText, MessageSquare } from 'lucide-react'
 
 const navItems = [
   { href: '/logbook', label: 'Logbook', icon: BookOpen },
   { href: '/dashboard', label: 'Stats', icon: BarChart3 },
   { href: '/calendar', label: 'Gardes', icon: Calendar },
   { href: '/templates', label: 'Templates', icon: FileText },
+  { href: '/feedback', label: 'Feedback', icon: MessageSquare },
 ]
 
 export function BottomNav() {
