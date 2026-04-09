@@ -22,7 +22,7 @@ export default function RegisterPage() {
           </p>
           <Link
             href="/login"
-            className="inline-block rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+            className="inline-block rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700"
           >
             Se connecter
           </Link>
@@ -53,7 +53,7 @@ export default function RegisterPage() {
           name="matricule"
           type="text"
           required
-          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
           placeholder="Votre matricule DES"
         />
         <p className="mt-1 text-xs text-slate-400">
@@ -71,7 +71,7 @@ export default function RegisterPage() {
             name="last_name"
             type="text"
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
           />
         </div>
         <div>
@@ -83,7 +83,7 @@ export default function RegisterPage() {
             name="first_name"
             type="text"
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
           />
         </div>
       </div>
@@ -98,7 +98,7 @@ export default function RegisterPage() {
           type="email"
           required
           autoComplete="email"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
           placeholder="prenom.nom@example.com"
         />
       </div>
@@ -114,7 +114,7 @@ export default function RegisterPage() {
           required
           autoComplete="new-password"
           minLength={8}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
           placeholder="Min. 8 caractères, 1 majuscule, 1 chiffre"
         />
       </div>
@@ -129,21 +129,21 @@ export default function RegisterPage() {
           type="password"
           required
           autoComplete="new-password"
-          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
         />
       </div>
 
       <button
         type="submit"
         disabled={isPending}
-        className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+        className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
       >
         {isPending ? 'Vérification...' : 'Créer mon compte'}
       </button>
 
       <p className="mt-4 text-center text-sm text-slate-500">
         Déjà un compte ?{' '}
-        <Link href="/login" className="font-medium text-blue-600 hover:text-blue-700">
+        <Link href="/login" className="font-medium text-emerald-600 hover:text-emerald-700">
           Se connecter
         </Link>
       </p>

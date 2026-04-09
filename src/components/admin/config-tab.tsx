@@ -449,7 +449,7 @@ function ObjectivesManager({
                     <div className="space-y-1">
                       {g.quantitative.length > 0 && (
                         <div>
-                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-blue-600">Quantitatifs</p>
+                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600">Quantitatifs</p>
                           {g.quantitative.map(o => (
                             <div key={o.id} className="flex items-center justify-between rounded bg-blue-50 px-2 py-1.5 text-xs">
                               <div>
@@ -585,7 +585,7 @@ function SpecialtiesManager({
           </button>
           <button
             onClick={() => { setShowAddProc(!showAddProc); setShowAddSpec(false) }}
-            className="flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+            className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
           >
             <Plus className="h-3.5 w-3.5" /> Procédure
           </button>
@@ -626,7 +626,7 @@ function SpecialtiesManager({
               <select
                 value={procSpecId}
                 onChange={e => setProcSpecId(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
               >
                 <option value="">— Sélectionner —</option>
                 {specialties.map(s => (
@@ -640,7 +640,7 @@ function SpecialtiesManager({
                 value={procName}
                 onChange={e => setProcName(e.target.value)}
                 placeholder="Ex: Appendicectomie"
-                className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
           </div>
@@ -648,7 +648,7 @@ function SpecialtiesManager({
             <button
               onClick={handleAddProcedure}
               disabled={loading || !procName.trim() || !procSpecId}
-              className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
             >
               {loading ? 'Ajout...' : 'Ajouter'}
             </button>

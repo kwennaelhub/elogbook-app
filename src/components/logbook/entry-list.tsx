@@ -16,7 +16,10 @@ export function EntryList({ entries, totalCount }: EntryListProps) {
   if (entries.length === 0) {
     return (
       <div className="rounded-xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
-        <p className="text-sm text-slate-500">Aucune intervention enregistrée</p>
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+          <Clock className="h-6 w-6 text-slate-400" />
+        </div>
+        <p className="text-sm font-medium text-slate-600">Aucune intervention enregistrée</p>
         <p className="mt-1 text-xs text-slate-400">Utilisez le formulaire ci-dessus pour commencer</p>
       </div>
     )

@@ -29,13 +29,14 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] transition-all ${
+              className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-[11px] transition-all touch-manipulation ${
                 isActive
                   ? 'text-emerald-600'
                   : 'text-slate-400 hover:text-slate-600'
               }`}
+              style={{ minHeight: '56px' }}
             >
-              <div className={`rounded-lg p-1 transition-all ${isActive ? 'bg-emerald-50' : ''}`}>
+              <div className={`rounded-lg p-1.5 transition-all ${isActive ? 'bg-emerald-50' : ''}`}>
                 <Icon className={`h-5 w-5 ${isActive ? 'stroke-[2.5]' : ''}`} />
               </div>
               <span className={isActive ? 'font-semibold' : 'font-medium'}>{item.label}</span>

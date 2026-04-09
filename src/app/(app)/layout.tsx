@@ -33,9 +33,9 @@ export default async function AppLayout({
 
   return (
     <I18nProvider initialLocale={locale}>
-      <div className="flex min-h-full flex-col pb-16">
+      <div className="flex min-h-full flex-col bg-slate-50 pb-16">
         <AppHeader profile={profile} otherSessionsCount={sessionCount > 1 ? sessionCount - 1 : 0} />
-        <main className="flex-1">
+        <main className="flex-1 pb-4">
           {children}
         </main>
         <BottomNav />

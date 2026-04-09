@@ -34,7 +34,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
           >
             {disconnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : t('header.sessions.disconnect')}
           </button>
-          <button onClick={() => setShowSessionAlert(false)} className="hover:text-white/80">
+          <button onClick={() => setShowSessionAlert(false)} className="hover:text-white/80" aria-label="Fermer l'alerte">
             ✕
           </button>
         </div>
@@ -57,6 +57,8 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
         <div className="relative">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Menu utilisateur"
+            aria-expanded={menuOpen}
             className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs backdrop-blur-sm transition-colors hover:bg-white/20"
           >
             {profile?.avatar_url ? (
@@ -73,7 +75,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
 
           {menuOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+              <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} aria-hidden="true" />
               <div className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl bg-white text-slate-700 shadow-xl ring-1 ring-slate-200/60">
                 <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-4 py-3">
                   <p className="text-sm font-semibold text-slate-900">{profile?.first_name} {profile?.last_name}</p>

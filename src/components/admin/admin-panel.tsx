@@ -245,7 +245,7 @@ export function AdminPanel({
             key={t.key}
             onClick={() => { setTab(t.key); setSearch('') }}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-              tab === t.key ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              tab === t.key ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
             <t.icon className="h-4 w-4" /> {t.label}
@@ -262,7 +262,7 @@ export function AdminPanel({
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Rechercher par nom, email, matricule..."
-            className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
           />
         </div>
         <button
@@ -289,7 +289,7 @@ export function AdminPanel({
             </button>
             <button
               onClick={() => { setShowAddStudent(!showAddStudent); setStudentResult(null) }}
-              className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
             >
               <UserPlus className="h-4 w-4" /> Ajouter
             </button>
@@ -298,7 +298,7 @@ export function AdminPanel({
         {tab === 'supervisors' && (
           <button
             onClick={() => setShowAddSupervisor(true)}
-            className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
           >
             <Plus className="h-4 w-4" /> Ajouter
           </button>
@@ -332,7 +332,7 @@ export function AdminPanel({
               <select
                 value={addForm.title}
                 onChange={e => setAddForm(p => ({ ...p, title: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               >
                 {(Object.entries(SUPERVISOR_TITLE_LABELS) as [string, string][]).map(([k, v]) => (
                   <option key={k} value={k}>{v} ({k})</option>
@@ -344,7 +344,7 @@ export function AdminPanel({
               <select
                 value={addForm.hospital_id}
                 onChange={e => setAddForm(p => ({ ...p, hospital_id: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               >
                 <option value="">— Sélectionner —</option>
                 {hospitals.map(h => (
@@ -357,7 +357,7 @@ export function AdminPanel({
               <input
                 value={addForm.last_name}
                 onChange={e => setAddForm(p => ({ ...p, last_name: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
             <div>
@@ -365,7 +365,7 @@ export function AdminPanel({
               <input
                 value={addForm.first_name}
                 onChange={e => setAddForm(p => ({ ...p, first_name: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
             <div>
@@ -374,7 +374,7 @@ export function AdminPanel({
                 type="email"
                 value={addForm.email}
                 onChange={e => setAddForm(p => ({ ...p, email: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
             <div>
@@ -382,14 +382,14 @@ export function AdminPanel({
               <input
                 value={addForm.phone}
                 onChange={e => setAddForm(p => ({ ...p, phone: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
           </div>
           <button
             onClick={handleAddSupervisor}
             disabled={addLoading || !addForm.email || !addForm.last_name || !addForm.first_name || !addForm.hospital_id}
-            className="mt-3 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="mt-3 w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
           >
             {addLoading ? 'Création...' : 'Créer le superviseur'}
           </button>
@@ -463,7 +463,7 @@ export function AdminPanel({
                 value={studentForm.matricule}
                 onChange={e => setStudentForm(p => ({ ...p, matricule: e.target.value }))}
                 placeholder="Ex: DES-2024-001"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
             <div>
@@ -471,7 +471,7 @@ export function AdminPanel({
               <select
                 value={studentForm.des_level}
                 onChange={e => setStudentForm(p => ({ ...p, des_level: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               >
                 {(Object.entries(DES_LEVEL_LABELS) as [DesLevel, string][]).map(([k, v]) => (
                   <option key={k} value={k}>{v} ({k})</option>
@@ -483,7 +483,7 @@ export function AdminPanel({
               <input
                 value={studentForm.last_name}
                 onChange={e => setStudentForm(p => ({ ...p, last_name: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
             <div>
@@ -491,7 +491,7 @@ export function AdminPanel({
               <input
                 value={studentForm.first_name}
                 onChange={e => setStudentForm(p => ({ ...p, first_name: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
             <div>
@@ -500,7 +500,7 @@ export function AdminPanel({
                 type="email"
                 value={studentForm.email}
                 onChange={e => setStudentForm(p => ({ ...p, email: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
             <div>
@@ -509,7 +509,7 @@ export function AdminPanel({
                 type="number"
                 value={studentForm.promotion_year}
                 onChange={e => setStudentForm(p => ({ ...p, promotion_year: parseInt(e.target.value) || new Date().getFullYear() }))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
             <div>
@@ -517,7 +517,7 @@ export function AdminPanel({
               <input
                 value={studentForm.university}
                 onChange={e => setStudentForm(p => ({ ...p, university: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
             <div>
@@ -526,14 +526,14 @@ export function AdminPanel({
                 value={studentForm.specialty}
                 onChange={e => setStudentForm(p => ({ ...p, specialty: e.target.value }))}
                 placeholder="Ex: Chirurgie Générale"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
             </div>
           </div>
           <button
             onClick={handleAddStudent}
             disabled={studentLoading || !studentForm.matricule || !studentForm.last_name || !studentForm.first_name}
-            className="mt-3 w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="mt-3 w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
           >
             {studentLoading ? 'Ajout en cours...' : 'Ajouter l\'étudiant'}
           </button>
@@ -721,7 +721,7 @@ export function AdminPanel({
                             <option key={k} value={k}>{k}</option>
                           ))}
                         </select>
-                        <button onClick={() => handleUpdateTitle(s.id)} className="rounded bg-blue-600 px-1.5 py-0.5 text-[10px] text-white">OK</button>
+                        <button onClick={() => handleUpdateTitle(s.id)} className="rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] text-white">OK</button>
                         <button onClick={() => setEditingId(null)} className="text-xs text-slate-400">x</button>
                       </div>
                     ) : (

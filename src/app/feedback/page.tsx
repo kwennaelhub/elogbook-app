@@ -4,7 +4,7 @@ export default function FeedbackPage() {
   return (
     <div className="min-h-dvh bg-slate-50">
       {/* Header */}
-      <header className="bg-blue-600 px-4 py-6 text-white">
+      <header className="bg-emerald-600 px-4 py-6 text-white">
         <div className="mx-auto max-w-lg text-center">
           <div className="mb-2 text-3xl">📋</div>
           <h1 className="text-xl font-bold">InternLog</h1>
@@ -19,7 +19,7 @@ export default function FeedbackPage() {
             Merci de tester InternLog ! Vos retours sont essentiels pour améliorer
             cette application destinée au suivi des compétences médicales des étudiants DES.
           </p>
-          <p className="mt-1 text-xs text-blue-600">
+          <p className="mt-1 text-xs text-emerald-600">
             Ce formulaire est anonyme. Temps estimé : 2 minutes.
           </p>
         </div>

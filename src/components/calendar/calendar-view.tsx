@@ -128,7 +128,7 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
             </h3>
             <button
               onClick={() => { setShowModal(true) }}
-              className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+              className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
             >
               <Plus className="h-3 w-3" /> Garde
             </button>
@@ -259,7 +259,7 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
             <div className="space-y-3">
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">Type</label>
-                <select name="type" required className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+                <select name="type" required className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
                   {Object.entries(GARDE_TYPE_LABELS).map(([k, v]) => (
                     <option key={k} value={k}>{v}</option>
                   ))}
@@ -268,7 +268,7 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">Hôpital</label>
-                <select name="hospital_id" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+                <select name="hospital_id" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
                   <option value="">— Sélectionner —</option>
                   {hospitals.map((h) => (
                     <option key={h.id} value={h.id}>{h.name}</option>
@@ -278,12 +278,12 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">Service</label>
-                <input name="service" type="text" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" placeholder="Ex : Urgences chirurgicales" />
+                <input name="service" type="text" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" placeholder="Ex : Urgences chirurgicales" />
               </div>
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">Senior de garde</label>
-                <select name="senior_id" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+                <select name="senior_id" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
                   <option value="">— Sélectionner —</option>
                   {supervisors.map((s) => (
                     <option key={s.id} value={s.id}>Dr {s.last_name} {s.first_name}</option>
@@ -293,14 +293,14 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-700">Notes</label>
-                <textarea name="notes" rows={2} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
+                <textarea name="notes" rows={2} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" />
               </div>
             </div>
 
             <button
               type="submit"
               disabled={isPending}
-              className="mt-4 w-full rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="mt-4 w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
             >
               {isPending ? 'Enregistrement...' : 'Enregistrer'}
             </button>

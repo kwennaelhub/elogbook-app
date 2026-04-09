@@ -2,6 +2,7 @@
 
 @theme inline {
   --font-sans: var(--font-inter);
+  --color-brand: #10b981;
 }
 
 /* Safe area pour les appareils avec notch */
@@ -16,15 +17,44 @@
   }
 }
 
-/* PWA : cacher la scrollbar sur mobile quand c'est propre */
+/* PWA : optimisation scroll mobile */
 @media (max-width: 640px) {
   body {
     -webkit-overflow-scrolling: touch;
   }
 }
 
-/* Focus ring accessible */
+/* Focus ring accessible — emerald brand */
 *:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #10b981;
   outline-offset: 2px;
+}
+
+/* Transitions globales pour les cartes et boutons */
+.transition-card {
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+.transition-card:active {
+  transform: scale(0.98);
+}
+
+/* Skeleton loading animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.5rem;
+}
+
+/* Hide scrollbar but keep scrollable */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

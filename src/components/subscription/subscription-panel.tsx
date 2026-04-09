@@ -295,7 +295,7 @@ function PlanCard({
           className={`mt-4 w-full rounded-lg py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${
             color === 'amber'
               ? 'bg-amber-500 text-white hover:bg-amber-600'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
+              : 'bg-emerald-600 text-white hover:bg-emerald-700'
           }`}
         >
           {loading ? (

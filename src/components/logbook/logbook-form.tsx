@@ -149,11 +149,11 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
           <div key={label} className="flex-1">
             <div
               className={`h-1 rounded-full ${
-                i <= step ? 'bg-blue-600' : 'bg-slate-200'
+                i <= step ? 'bg-emerald-600' : 'bg-slate-200'
               }`}
             />
             <p className={`mt-1 text-center text-[10px] ${
-              i === step ? 'font-medium text-blue-600' : 'text-slate-400'
+              i === step ? 'font-medium text-emerald-600' : 'text-slate-400'
             }`}>
               {label}
             </p>
@@ -175,7 +175,7 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
               value={formData.intervention_date}
               max={new Date().toISOString().split('T')[0]}
               onChange={(e) => updateField('intervention_date', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
             />
           </div>
 
@@ -189,7 +189,7 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
                   onClick={() => updateField('context', ctx)}
                   className={`rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all ${
                     formData.context === ctx
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
                       : 'border-slate-200 text-slate-600 hover:border-slate-300'
                   }`}
                 >
@@ -209,7 +209,7 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
                   onClick={() => updateField('patient_type', pt)}
                   className={`rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all ${
                     formData.patient_type === pt
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
                       : 'border-slate-200 text-slate-600 hover:border-slate-300'
                   }`}
                 >
@@ -229,7 +229,7 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
                   onClick={() => updateField('operator_role', key)}
                   className={`rounded-lg border-2 px-3 py-2 text-xs font-medium transition-all ${
                     formData.operator_role === key
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
                       : 'border-slate-200 text-slate-600 hover:border-slate-300'
                   }`}
                 >
@@ -254,7 +254,7 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
                   onClick={() => updateField('hospital_id', h.id)}
                   className={`flex w-full items-center justify-between rounded-lg border-2 px-3 py-2.5 text-left text-sm transition-all ${
                     formData.hospital_id === h.id
-                      ? 'border-blue-600 bg-blue-50 text-blue-700 font-medium'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-700 font-medium'
                       : 'border-slate-200 text-slate-600 hover:border-slate-300'
                   }`}
                 >
@@ -271,7 +271,7 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
               type="text"
               value={formData.other_hospital}
               onChange={(e) => updateField('other_hospital', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
               placeholder="Nom de l'hôpital..."
             />
           </div>
@@ -286,7 +286,7 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
               <button
                 type="button"
                 onClick={captureLocation}
-                className="rounded-md bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700"
+                className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700"
               >
                 {geoLocation ? 'Recapturer' : 'Capturer'}
               </button>
@@ -305,7 +305,7 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
             <select
               value={formData.supervisor_id}
               onChange={(e) => updateField('supervisor_id', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
             >
               <option value="">— Sélectionner —</option>
               {supervisors.map((s) => (
@@ -326,7 +326,7 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
             <select
               value={formData.specialty_id}
               onChange={(e) => updateField('specialty_id', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
             >
               <option value="">— Sélectionner —</option>
               {topSpecialties.map((s) => (
@@ -341,7 +341,7 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
               <select
                 value={formData.segment_id}
                 onChange={(e) => updateField('segment_id', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
               >
                 <option value="">— Sélectionner —</option>
                 {segments.map((s) => (
@@ -357,7 +357,7 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
               <select
                 value={formData.procedure_id}
                 onChange={(e) => updateField('procedure_id', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
               >
                 <option value="">— Sélectionner —</option>
                 {filteredProcedures.map((p) => (
@@ -373,7 +373,7 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
               value={formData.notes}
               onChange={(e) => updateField('notes', e.target.value)}
               rows={3}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
               placeholder="Notes complémentaires..."
             />
           </div>
@@ -466,7 +466,7 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
             <button
               type="submit"
               disabled={isPending || (isRetrospective && !formData.attestation_checked)}
-              className="flex-[2] rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              className="flex-[2] rounded-lg bg-emerald-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
             >
               {isPending ? 'Enregistrement...' : 'Enregistrer l\'intervention'}
             </button>
@@ -490,7 +490,7 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
             type="button"
             onClick={() => setStep(step + 1)}
             disabled={!canGoNext()}
-            className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
           >
             Suivant <ChevronRight className="h-4 w-4" />
           </button>

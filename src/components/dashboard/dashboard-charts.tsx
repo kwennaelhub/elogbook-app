@@ -267,7 +267,7 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
       {Object.keys(roleCounts).length === 0 && hospitalStats.length === 0 && (
         <div className="rounded-xl bg-slate-50 p-6 text-center">
           <p className="text-sm text-slate-500">Commencez à enregistrer vos interventions pour voir vos statistiques ici.</p>
-          <a href="/logbook/new" className="mt-2 inline-block text-sm font-medium text-blue-600 hover:underline">
+          <a href="/logbook" className="mt-2 inline-block text-sm font-medium text-emerald-600 hover:underline">
             Ajouter une intervention
           </a>
         </div>
