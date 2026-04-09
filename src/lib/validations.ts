@@ -42,7 +42,7 @@ export const entrySchema = z.object({
   procedure_id: optionalUuid,
   other_specialty: z.string().optional(),
   other_procedure: z.string().optional(),
-  notes: z.string().optional(),
+  notes: z.string().max(5000).optional(),
   supervisor_id: optionalUuid,
   // Géolocalisation (optionnelle)
   geo_latitude: z.number().optional(),
@@ -50,6 +50,8 @@ export const entrySchema = z.object({
   geo_accuracy: z.number().optional(),
   // Attestation (obligatoire si rétrospectif — validé côté serveur)
   attestation_checked: z.boolean().default(false),
+  // Suivi post-opératoire (Premium)
+  enable_followup: z.boolean().default(false),
 })
 
 // ========== GARDES ==========
@@ -61,7 +63,7 @@ export const gardeSchema = z.object({
   senior_name: z.string().optional(),
   senior_id: optionalUuid,
   hospital_id: optionalUuid,
-  notes: z.string().optional(),
+  notes: z.string().max(5000).optional(),
 })
 
 // ========== PROFILE ==========

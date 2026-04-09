@@ -94,7 +94,8 @@ export async function createSupervisor(data: {
   const supabase = await createClient()
 
   // Créer le compte auth via l'API admin (mot de passe temporaire)
-  const tempPassword = `ELog${Date.now().toString(36).toUpperCase()}!`
+  const { randomBytes } = await import('crypto')
+  const tempPassword = `ELog${randomBytes(16).toString('base64url')}!`
 
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/signup`,

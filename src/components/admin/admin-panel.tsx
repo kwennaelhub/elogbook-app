@@ -3,8 +3,9 @@
 import { useState, useRef } from 'react'
 import { Users, BookCheck, Upload, Stethoscope, Search, Download, Plus, X, FileSpreadsheet, UserPlus, AlertCircle, CheckCircle, Settings2, Shield, Building2 } from 'lucide-react'
 import type { DesRegistry, Profile, Hospital, DesLevel } from '@/types/database'
-import { DES_LEVEL_LABELS, SUPERVISOR_TITLE_LABELS, ROLE_LABELS } from '@/types/database'
+import { SUPERVISOR_TITLE_LABELS } from '@/types/database'
 import type { SupervisorTitle, UserRole } from '@/types/database'
+import { useI18n } from '@/lib/i18n/context'
 import { createSupervisor, updateSupervisor, addDesRegistryEntry, importDesRegistryBatch } from '@/lib/actions/data'
 import { updateUserRole } from '@/lib/actions/admin'
 import { ConfigTab } from './config-tab'
@@ -33,6 +34,7 @@ export function AdminPanel({
   institutionalSeats,
   currentUserRole,
 }: AdminPanelProps) {
+  const { t } = useI18n()
   const [tab, setTab] = useState<'registry' | 'users' | 'supervisors' | 'seats' | 'config'>('registry')
   const [search, setSearch] = useState('')
   // Gestion des rôles (Users tab)
@@ -163,7 +165,7 @@ export function AdminPanel({
       const text = await file.text()
       const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
       if (lines.length < 2) {
-        setImportResult({ error: 'Le fichier est vide ou ne contient que l\'en-tête.' })
+        setImportResult({ error: t('admin.emptyFile') })
         setImportLoading(false)
         return
       }
@@ -213,7 +215,7 @@ export function AdminPanel({
       }).filter(e => e.matricule && e.last_name && e.first_name)
 
       if (entries.length === 0) {
-        setImportResult({ error: 'Aucune entrée valide trouvée dans le fichier.' })
+        setImportResult({ error: t('admin.noValidEntries') })
         setImportLoading(false)
         return
       }
@@ -221,7 +223,7 @@ export function AdminPanel({
       const result = await importDesRegistryBatch(entries)
       setImportResult({ imported: result.imported, errors: result.errors })
     } catch {
-      setImportResult({ error: 'Erreur lors de la lecture du fichier.' })
+      setImportResult({ error: t('admin.fileReadError') })
     }
     setImportLoading(false)
     // Reset file input
@@ -229,26 +231,26 @@ export function AdminPanel({
   }
 
   const tabs = [
-    { key: 'registry' as const, label: `Registre DES (${registryCount})`, icon: BookCheck },
-    { key: 'users' as const, label: `Utilisateurs (${usersCount})`, icon: Users },
-    { key: 'supervisors' as const, label: `Superviseurs (${supervisorsCount})`, icon: Stethoscope },
-    { key: 'seats' as const, label: `Sièges (${institutionalSeats.length})`, icon: Building2 },
-    { key: 'config' as const, label: 'Configuration', icon: Settings2 },
+    { key: 'registry' as const, label: `${t('admin.registryTab')} (${registryCount})`, icon: BookCheck },
+    { key: 'users' as const, label: `${t('admin.usersTab')} (${usersCount})`, icon: Users },
+    { key: 'supervisors' as const, label: `${t('admin.supervisorsTab')} (${supervisorsCount})`, icon: Stethoscope },
+    { key: 'seats' as const, label: `${t('admin.seatsTab')} (${institutionalSeats.length})`, icon: Building2 },
+    { key: 'config' as const, label: t('admin.configTab'), icon: Settings2 },
   ]
 
   return (
     <div>
       {/* Tabs */}
       <div className="mb-4 flex flex-wrap gap-2">
-        {tabs.map(t => (
+        {tabs.map(tb => (
           <button
-            key={t.key}
-            onClick={() => { setTab(t.key); setSearch('') }}
+            key={tb.key}
+            onClick={() => { setTab(tb.key); setSearch('') }}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
-              tab === t.key ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              tab === tb.key ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            <t.icon className="h-4 w-4" /> {t.label}
+            <tb.icon className="h-4 w-4" /> {tb.label}
           </button>
         ))}
       </div>
@@ -261,7 +263,7 @@ export function AdminPanel({
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher par nom, email, matricule..."
+            placeholder={t('admin.search')}
             className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
           />
         </div>
@@ -291,7 +293,7 @@ export function AdminPanel({
               onClick={() => { setShowAddStudent(!showAddStudent); setStudentResult(null) }}
               className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
             >
-              <UserPlus className="h-4 w-4" /> Ajouter
+              <UserPlus className="h-4 w-4" /> {t('admin.add')}
             </button>
           </>
         )}
@@ -300,7 +302,7 @@ export function AdminPanel({
             onClick={() => setShowAddSupervisor(true)}
             className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
           >
-            <Plus className="h-4 w-4" /> Ajouter
+            <Plus className="h-4 w-4" /> {t('admin.add')}
           </button>
         )}
       </div>
@@ -309,7 +311,7 @@ export function AdminPanel({
       {showAddSupervisor && (
         <div className="mb-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900">Nouveau superviseur</h3>
+            <h3 className="text-sm font-semibold text-slate-900">{t('admin.newSupervisor')}</h3>
             <button onClick={() => { setShowAddSupervisor(false); setAddResult(null) }} className="text-slate-400 hover:text-slate-600">
               <X className="h-4 w-4" />
             </button>
@@ -320,15 +322,15 @@ export function AdminPanel({
           )}
           {addResult?.success && (
             <div className="mb-3 rounded-lg bg-green-50 p-3 text-sm text-green-700">
-              <p className="font-medium">Superviseur créé avec succès !</p>
-              <p className="mt-1">Mot de passe temporaire : <code className="rounded bg-green-100 px-1.5 py-0.5 font-mono text-xs">{addResult.tempPassword}</code></p>
-              <p className="mt-1 text-xs">Communiquez ce mot de passe au superviseur. Il pourra le changer à la première connexion.</p>
+              <p className="font-medium">{t('admin.supervisorCreated')}</p>
+              <p className="mt-1">{t('admin.tempPassword')} : <code className="rounded bg-green-100 px-1.5 py-0.5 font-mono text-xs">{addResult.tempPassword}</code></p>
+              <p className="mt-1 text-xs">{t('admin.tempPasswordHint')}</p>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Titre</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">{t('admin.titleLabel')}</label>
               <select
                 value={addForm.title}
                 onChange={e => setAddForm(p => ({ ...p, title: e.target.value }))}
@@ -340,20 +342,20 @@ export function AdminPanel({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Hôpital</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">{t('admin.hospital')}</label>
               <select
                 value={addForm.hospital_id}
                 onChange={e => setAddForm(p => ({ ...p, hospital_id: e.target.value }))}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               >
-                <option value="">— Sélectionner —</option>
+                <option value="">{t('common.select')}</option>
                 {hospitals.map(h => (
                   <option key={h.id} value={h.id}>{h.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Nom</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">{t('admin.lastName')}</label>
               <input
                 value={addForm.last_name}
                 onChange={e => setAddForm(p => ({ ...p, last_name: e.target.value }))}
@@ -361,7 +363,7 @@ export function AdminPanel({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Prénom</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">{t('admin.firstName')}</label>
               <input
                 value={addForm.first_name}
                 onChange={e => setAddForm(p => ({ ...p, first_name: e.target.value }))}
@@ -369,7 +371,7 @@ export function AdminPanel({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Email</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">{t('admin.email')}</label>
               <input
                 type="email"
                 value={addForm.email}
@@ -378,7 +380,7 @@ export function AdminPanel({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Téléphone</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">{t('admin.phone')}</label>
               <input
                 value={addForm.phone}
                 onChange={e => setAddForm(p => ({ ...p, phone: e.target.value }))}
@@ -391,7 +393,7 @@ export function AdminPanel({
             disabled={addLoading || !addForm.email || !addForm.last_name || !addForm.first_name || !addForm.hospital_id}
             className="mt-3 w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
           >
-            {addLoading ? 'Création...' : 'Créer le superviseur'}
+            {addLoading ? t('admin.creating') : t('admin.createSupervisor')}
           </button>
         </div>
       )}
@@ -413,10 +415,10 @@ export function AdminPanel({
                 <p>{importResult.error}</p>
               ) : (
                 <>
-                  <p className="font-medium">{importResult.imported} étudiant(s) importé(s) avec succès</p>
+                  <p className="font-medium">{t('admin.imported', { count: importResult.imported ?? 0 })}</p>
                   {importResult.errors && importResult.errors.length > 0 && (
                     <details className="mt-1">
-                      <summary className="cursor-pointer text-xs text-amber-600">{importResult.errors.length} erreur(s)</summary>
+                      <summary className="cursor-pointer text-xs text-amber-600">{t('admin.importErrors', { count: importResult.errors.length })}</summary>
                       <ul className="mt-1 list-disc pl-4 text-xs">
                         {importResult.errors.map((err, i) => <li key={i}>{err}</li>)}
                       </ul>
@@ -430,7 +432,7 @@ export function AdminPanel({
             </button>
           </div>
           {!importResult.error && (
-            <p className="mt-1 text-xs text-slate-500">Rechargez la page pour voir les nouvelles entrées.</p>
+            <p className="mt-1 text-xs text-slate-500">{t('admin.reloadToSee')}</p>
           )}
         </div>
       )}
@@ -439,7 +441,7 @@ export function AdminPanel({
       {tab === 'registry' && showAddStudent && (
         <div className="mb-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900">Ajouter un étudiant au registre</h3>
+            <h3 className="text-sm font-semibold text-slate-900">{t('admin.addStudent')}</h3>
             <button onClick={() => { setShowAddStudent(false); setStudentResult(null) }} className="text-slate-400 hover:text-slate-600">
               <X className="h-4 w-4" />
             </button>
@@ -452,13 +454,13 @@ export function AdminPanel({
           )}
           {studentResult?.success && (
             <div className="mb-3 flex items-center gap-2 rounded-lg bg-green-50 p-2 text-sm text-green-700">
-              <CheckCircle className="h-4 w-4" /> Étudiant ajouté avec succès ! Rechargez pour voir.
+              <CheckCircle className="h-4 w-4" /> {t('admin.studentAdded')}
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Matricule *</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">{t('admin.matricule')} *</label>
               <input
                 value={studentForm.matricule}
                 onChange={e => setStudentForm(p => ({ ...p, matricule: e.target.value }))}
@@ -467,19 +469,19 @@ export function AdminPanel({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Niveau DES *</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">{t('admin.desLevel')} *</label>
               <select
                 value={studentForm.des_level}
                 onChange={e => setStudentForm(p => ({ ...p, des_level: e.target.value }))}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               >
-                {(Object.entries(DES_LEVEL_LABELS) as [DesLevel, string][]).map(([k, v]) => (
-                  <option key={k} value={k}>{v} ({k})</option>
+                {(['DES1', 'DES2', 'DES3', 'DES4', 'DES5'] as DesLevel[]).map(k => (
+                  <option key={k} value={k}>{t(`des.${k}`)} ({k})</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Nom *</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">{t('admin.lastName')} *</label>
               <input
                 value={studentForm.last_name}
                 onChange={e => setStudentForm(p => ({ ...p, last_name: e.target.value }))}
@@ -487,7 +489,7 @@ export function AdminPanel({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Prénom *</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">{t('admin.firstName')} *</label>
               <input
                 value={studentForm.first_name}
                 onChange={e => setStudentForm(p => ({ ...p, first_name: e.target.value }))}
@@ -495,7 +497,7 @@ export function AdminPanel({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Email</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">{t('admin.email')}</label>
               <input
                 type="email"
                 value={studentForm.email}
@@ -504,7 +506,7 @@ export function AdminPanel({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Promotion</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">{t('admin.promotion')}</label>
               <input
                 type="number"
                 value={studentForm.promotion_year}
@@ -513,7 +515,7 @@ export function AdminPanel({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Université</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">{t('admin.university')}</label>
               <input
                 value={studentForm.university}
                 onChange={e => setStudentForm(p => ({ ...p, university: e.target.value }))}
@@ -521,7 +523,7 @@ export function AdminPanel({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">Spécialité</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600">{t('admin.specialty')}</label>
               <input
                 value={studentForm.specialty}
                 onChange={e => setStudentForm(p => ({ ...p, specialty: e.target.value }))}
@@ -535,14 +537,14 @@ export function AdminPanel({
             disabled={studentLoading || !studentForm.matricule || !studentForm.last_name || !studentForm.first_name}
             className="mt-3 w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
           >
-            {studentLoading ? 'Ajout en cours...' : 'Ajouter l\'étudiant'}
+            {studentLoading ? t('admin.adding') : t('admin.addStudentBtn')}
           </button>
 
           {/* Aide format CSV */}
           <div className="mt-3 rounded-lg bg-slate-50 p-2 text-[10px] text-slate-500">
-            <p className="font-medium text-slate-600">Format CSV attendu :</p>
+            <p className="font-medium text-slate-600">{t('admin.csvFormat')}</p>
             <code className="block mt-1">matricule;nom;prenom;email;niveau;promo;universite;specialite</code>
-            <p className="mt-0.5">Séparateurs acceptés : <code>;</code> <code>,</code> <code>tab</code> — Colonnes obligatoires : matricule, nom, prénom</p>
+            <p className="mt-0.5">{t('admin.csvSeparators')}</p>
           </div>
         </div>
       )}
@@ -553,12 +555,12 @@ export function AdminPanel({
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-100 bg-slate-50">
               <tr>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Matricule</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Nom</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Prénom</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Niveau</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Promo</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Statut</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.matricule')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.lastName')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.firstName')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.level')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.promo')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.status')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -569,7 +571,7 @@ export function AdminPanel({
                   <td className="px-3 py-2">{entry.first_name}</td>
                   <td className="px-3 py-2">
                     <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                      {DES_LEVEL_LABELS[entry.des_level]}
+                      {t(`des.${entry.des_level}`)}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-xs text-slate-500">{entry.promotion_year}</td>
@@ -577,13 +579,13 @@ export function AdminPanel({
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                       entry.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                     }`}>
-                      {entry.is_active ? 'Actif' : 'Inactif'}
+                      {entry.is_active ? t('admin.active') : t('admin.inactive')}
                     </span>
                   </td>
                 </tr>
               ))}
               {filteredRegistry.length === 0 && (
-                <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">Aucun résultat</td></tr>
+                <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">{t('admin.noResults')}</td></tr>
               )}
             </tbody>
           </table>
@@ -596,7 +598,7 @@ export function AdminPanel({
           roleResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
         }`}>
           {roleResult.success ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          {roleResult.success ? 'Rôle mis à jour. Rechargez pour voir.' : roleResult.error}
+          {roleResult.success ? t('admin.roleUpdated') : roleResult.error}
         </div>
       )}
       {tab === 'users' && (
@@ -604,11 +606,11 @@ export function AdminPanel({
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-100 bg-slate-50">
               <tr>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Nom</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Email</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Rôle</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Niveau</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Hôpital</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.lastName')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.email')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.role')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.level')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.hospital')}</th>
                 <th className="px-3 py-2 text-xs font-medium text-slate-500">Actions</th>
               </tr>
             </thead>
@@ -633,10 +635,10 @@ export function AdminPanel({
                           {(['student', 'supervisor', 'admin', 'superadmin'] as UserRole[])
                             .filter(r => currentUserRole === 'developer' || r !== 'superadmin')
                             .map(r => (
-                              <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                              <option key={r} value={r}>{t(`userRole.${r}`)}</option>
                             ))}
                           {currentUserRole === 'developer' && (
-                            <option value="developer">{ROLE_LABELS.developer}</option>
+                            <option value="developer">{t('userRole.developer')}</option>
                           )}
                         </select>
                         <button
@@ -644,9 +646,9 @@ export function AdminPanel({
                           disabled={roleLoading}
                           className="rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] text-white"
                         >
-                          OK
+                          {roleLoading ? t('admin.saving') : t('admin.confirm')}
                         </button>
-                        <button onClick={() => setEditingRoleId(null)} className="text-xs text-slate-400">✕</button>
+                        <button onClick={() => setEditingRoleId(null)} className="text-xs text-slate-400">{t('admin.cancel')}</button>
                       </div>
                     ) : (
                       <button
@@ -664,9 +666,9 @@ export function AdminPanel({
                           u.role === 'supervisor' ? 'bg-amber-100 text-amber-700' :
                           'bg-blue-100 text-blue-700'
                         } ${canManageRoles && u.role !== 'developer' ? 'cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-slate-300' : ''}`}
-                        title={canManageRoles && u.role !== 'developer' ? 'Cliquer pour modifier le rôle' : u.role === 'developer' ? 'Rôle irrevocable' : ''}
+                        title={canManageRoles && u.role !== 'developer' ? t('admin.changeRole') : ''}
                       >
-                        {u.role === 'developer' ? '🔒 ' : ''}{ROLE_LABELS[u.role as UserRole] || u.role}
+                        {u.role === 'developer' ? '🔒 ' : ''}{t(`userRole.${u.role}`)}
                       </button>
                     )}
                   </td>
@@ -676,16 +678,16 @@ export function AdminPanel({
                     <button
                       onClick={() => handleExportUserStats(u.id)}
                       className="rounded bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-600 hover:bg-slate-200"
-                      title="Exporter la fiche récapitulative"
+                      title={t('admin.exportStats')}
                     >
                       <Download className="inline h-3 w-3 mr-0.5" />
-                      Fiche
+                      {t('admin.exportStats')}
                     </button>
                   </td>
                 </tr>
               ))}
               {filteredUsers.length === 0 && (
-                <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">Aucun résultat</td></tr>
+                <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">{t('admin.noResults')}</td></tr>
               )}
             </tbody>
           </table>
@@ -698,12 +700,12 @@ export function AdminPanel({
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-100 bg-slate-50">
               <tr>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Titre</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Nom complet</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Email</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Hôpital</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Téléphone</th>
-                <th className="px-3 py-2 text-xs font-medium text-slate-500">Statut</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.titleLabel')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.lastName')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.email')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.hospital')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.phone')}</th>
+                <th className="px-3 py-2 text-xs font-medium text-slate-500">{t('admin.status')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -743,7 +745,7 @@ export function AdminPanel({
                 </tr>
               ))}
               {filteredSupervisors.length === 0 && (
-                <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">Aucun superviseur enregistré</td></tr>
+                <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">{t('admin.noResults')}</td></tr>
               )}
             </tbody>
           </table>

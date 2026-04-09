@@ -133,6 +133,24 @@ export default function RegisterPage() {
         />
       </div>
 
+      <div className="mb-4">
+        <label className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            name="accept_cgu"
+            required
+            className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+          />
+          <span className="text-xs text-slate-500">
+            J&apos;accepte les{' '}
+            <a href="/legal/cgu" target="_blank" className="text-emerald-600 underline">CGU</a>,
+            la{' '}
+            <a href="/legal/confidentialite" target="_blank" className="text-emerald-600 underline">politique de confidentialité</a>
+            {' '}et je consens au traitement de mes données personnelles. <span className="text-red-500">*</span>
+          </span>
+        </label>
+      </div>
+
       <button
         type="submit"
         disabled={isPending}

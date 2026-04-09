@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Crown, Building2, Check, Zap, AlertCircle, Loader2, X } from 'lucide-react'
 import type { Profile, Subscription, SubscriptionPlan } from '@/types/database'
 import { SUBSCRIPTION_FEATURES, SUBSCRIPTION_PRICES } from '@/types/database'
+import { useI18n } from '@/lib/i18n/context'
 
 interface Props {
   profile: (Profile & { hospital?: { name: string } | null }) | null
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function SubscriptionPanel({ profile, subscription, paymentStatus }: Props) {
+  const { t, locale } = useI18n()
   const [loading, setLoading] = useState<PlanKey | null>(null)
   const [cancelling, setCancelling] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,26 +29,16 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
     setError(null)
 
     try {
-      const planIdEnv = planKey === 'premium'
-        ? process.env.NEXT_PUBLIC_PAYPAL_PLAN_PREMIUM
-        : process.env.NEXT_PUBLIC_PAYPAL_PLAN_INSTITUTIONAL
-
-      if (!planIdEnv) {
-        setError('Configuration PayPal manquante. Contactez l\'administrateur.')
-        setLoading(null)
-        return
-      }
-
       const res = await fetch('/api/paypal/create-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId: planIdEnv, planKey }),
+        body: JSON.stringify({ planKey }),
       })
 
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || 'Erreur lors de la souscription')
+        setError(data.error || t('subscription.connectionError'))
         setLoading(null)
         return
       }
@@ -54,13 +46,13 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
       // Redirection vers PayPal pour approbation
       window.location.href = data.approvalUrl
     } catch {
-      setError('Erreur de connexion. Réessayez.')
+      setError(t('subscription.connectionError'))
       setLoading(null)
     }
   }
 
   async function handleCancel() {
-    if (!confirm('Êtes-vous sûr de vouloir annuler votre abonnement ?')) return
+    if (!confirm(t('subscription.cancelConfirm'))) return
 
     setCancelling(true)
     setError(null)
@@ -74,12 +66,12 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
 
       if (!res.ok) {
         const data = await res.json()
-        setError(data.error || 'Erreur lors de l\'annulation')
+        setError(data.error || t('subscription.connectionError'))
       } else {
         window.location.reload()
       }
     } catch {
-      setError('Erreur de connexion. Réessayez.')
+      setError(t('subscription.connectionError'))
     } finally {
       setCancelling(false)
     }
@@ -92,8 +84,8 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
         <div className="mb-6 flex items-center gap-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">
           <Check className="h-5 w-5 flex-shrink-0" />
           <div>
-            <p className="font-semibold">Paiement en cours de traitement</p>
-            <p className="text-emerald-600">Votre abonnement sera activé dans quelques instants. Rechargez la page si nécessaire.</p>
+            <p className="font-semibold">{t('subscription.paymentProcessing')}</p>
+            <p className="text-emerald-600">{t('subscription.paymentProcessingDesc')}</p>
           </div>
         </div>
       )}
@@ -101,7 +93,7 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
       {paymentStatus === 'cancelled' && (
         <div className="mb-6 flex items-center gap-3 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
-          <p>Le paiement a été annulé. Vous pouvez réessayer à tout moment.</p>
+          <p>{t('subscription.paymentCancelled')}</p>
         </div>
       )}
 
@@ -112,8 +104,8 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
         </div>
       )}
 
-      {/* Abonnement actuel */}
-      {subscription?.status === 'active' && (
+      {/* Abonnement actuel (premium ou institutionnel uniquement) */}
+      {subscription?.status === 'active' && currentPlan !== 'free' && (
         <div className="mb-6 rounded-xl border-2 border-emerald-200 bg-emerald-50 p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -124,11 +116,11 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
               )}
               <div>
                 <h3 className="font-bold text-emerald-900">
-                  Plan {currentPlan === 'premium' ? 'Premium' : 'Institutionnel'} actif
+                  {t('subscription.planActive', { plan: currentPlan === 'premium' ? 'Premium' : 'Institutionnel' })}
                 </h3>
                 <p className="text-sm text-emerald-700">
-                  {SUBSCRIPTION_PRICES[currentPlan].label} · Depuis le{' '}
-                  {new Date(subscription.starts_at).toLocaleDateString('fr-FR')}
+                  {SUBSCRIPTION_PRICES[currentPlan].label} · {t('subscription.since')}{' '}
+                  {new Date(subscription.starts_at).toLocaleDateString(locale === 'en' ? 'en-GB' : 'fr-FR')}
                 </p>
               </div>
             </div>
@@ -137,7 +129,7 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
               disabled={cancelling}
               className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-red-600 shadow-sm ring-1 ring-red-200 transition-colors hover:bg-red-50"
             >
-              {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Annuler'}
+              {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : t('subscription.cancel')}
             </button>
           </div>
         </div>
@@ -145,9 +137,9 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
 
       {/* En-tête */}
       <div className="mb-6 text-center">
-        <h1 className="text-xl font-bold text-slate-900">Abonnement InternLog</h1>
+        <h1 className="text-xl font-bold text-slate-900">{t('subscription.title')}</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Choisissez le plan adapté à vos besoins
+          {t('subscription.subtitle')}
         </p>
       </div>
 
@@ -162,6 +154,7 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
           isCurrent={currentPlan === 'free'}
           icon={<Zap className="h-5 w-5 text-slate-400" />}
           color="slate"
+          t={t}
         />
 
         {/* Plan Premium */}
@@ -176,7 +169,8 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
           color="amber"
           onSubscribe={() => handleSubscribe('premium')}
           loading={loading === 'premium'}
-          disabled={currentPlan !== 'free'}
+          disabled={currentPlan === 'premium' || currentPlan === 'institutional'}
+          t={t}
         />
 
         {/* Plan Institutionnel */}
@@ -191,12 +185,13 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
           onSubscribe={() => handleSubscribe('institutional')}
           loading={loading === 'institutional'}
           disabled={currentPlan === 'institutional'}
+          t={t}
         />
       </div>
 
       {/* FAQ rapide */}
       <div className="mt-8 space-y-3">
-        <h2 className="text-sm font-bold text-slate-700">Questions fréquentes</h2>
+        <h2 className="text-sm font-bold text-slate-700">{t('subscription.faq')}</h2>
         <FaqItem
           q="Comment fonctionne le paiement ?"
           a="Le paiement est sécurisé via PayPal. Vous pouvez payer par carte bancaire ou compte PayPal. L'abonnement est mensuel et renouvelé automatiquement."
@@ -230,6 +225,7 @@ function PlanCard({
   onSubscribe,
   loading,
   disabled,
+  t,
 }: {
   name: string
   price: string
@@ -242,6 +238,7 @@ function PlanCard({
   onSubscribe?: () => void
   loading?: boolean
   disabled?: boolean
+  t: (key: string, params?: Record<string, string | number>) => string
 }) {
   const borderColor = isCurrent
     ? 'border-emerald-300 bg-emerald-50/50'
@@ -253,7 +250,7 @@ function PlanCard({
     <div className={`relative rounded-xl border-2 p-5 ${borderColor}`}>
       {isRecommended && !isCurrent && (
         <span className="absolute -top-2.5 right-4 rounded-full bg-amber-500 px-3 py-0.5 text-[10px] font-bold text-white">
-          RECOMMANDÉ
+          {t('subscription.recommended')}
         </span>
       )}
 
@@ -271,7 +268,7 @@ function PlanCard({
 
         {isCurrent && (
           <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-            Actif
+            {t('subscription.active')}
           </span>
         )}
       </div>
@@ -301,10 +298,10 @@ function PlanCard({
           {loading ? (
             <span className="flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Redirection vers PayPal…
+              {t('subscription.redirecting')}
             </span>
           ) : (
-            `Souscrire — ${price}`
+            t('subscription.subscribe', { price })
           )}
         </button>
       )}

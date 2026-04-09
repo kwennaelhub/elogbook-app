@@ -1,10 +1,12 @@
+import Link from 'next/link'
+
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-full items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 px-4 py-12">
+    <div className="flex min-h-full flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20 backdrop-blur">
@@ -16,6 +18,15 @@ export default function AuthLayout({
           <p className="mt-1 text-sm text-emerald-300/80">Logbook Médical DES</p>
         </div>
         {children}
+      </div>
+      <div className="mt-8 flex flex-wrap justify-center gap-3 text-[11px] text-slate-500">
+        <Link href="/legal/mentions" className="hover:text-emerald-400">Mentions légales</Link>
+        <span>·</span>
+        <Link href="/legal/cgu" className="hover:text-emerald-400">CGU</Link>
+        <span>·</span>
+        <Link href="/legal/confidentialite" className="hover:text-emerald-400">Confidentialité</Link>
+        <span>·</span>
+        <Link href="/legal/cookies" className="hover:text-emerald-400">Cookies</Link>
       </div>
     </div>
   )

@@ -3,8 +3,9 @@
 import { useState, useTransition } from 'react'
 import { Check, X, Clock, ChevronDown, AlertTriangle, MapPin, Loader2, Shield } from 'lucide-react'
 import { validateEntry, rejectEntry } from '@/lib/actions/entries'
-import { OPERATOR_ROLE_LABELS, SUPERVISOR_TITLE_LABELS } from '@/types/database'
+import { SUPERVISOR_TITLE_LABELS } from '@/types/database'
 import type { SupervisionEntry, SupervisorTitle } from '@/types/database'
+import { useI18n } from '@/lib/i18n/context'
 
 type Tab = 'pending' | 'validated' | 'rejected'
 
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function SupervisionPanel({ pending, validated, rejected }: Props) {
+  const { t, locale } = useI18n()
   const [tab, setTab] = useState<Tab>('pending')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
@@ -23,10 +25,12 @@ export function SupervisionPanel({ pending, validated, rejected }: Props) {
   const [actionId, setActionId] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
+  const dateLocale = locale === 'en' ? 'en-GB' : 'fr-FR'
+
   const tabs: { key: Tab; label: string; count: number }[] = [
-    { key: 'pending', label: 'En attente', count: pending.length },
-    { key: 'validated', label: 'Validés', count: validated.length },
-    { key: 'rejected', label: 'Rejetés', count: rejected.length },
+    { key: 'pending', label: t('supervision.pending'), count: pending.length },
+    { key: 'validated', label: t('supervision.validated'), count: validated.length },
+    { key: 'rejected', label: t('supervision.rejected'), count: rejected.length },
   ]
 
   const entries = tab === 'pending' ? pending : tab === 'validated' ? validated : rejected
@@ -39,7 +43,7 @@ export function SupervisionPanel({ pending, validated, rejected }: Props) {
       if (result.error) {
         setFeedback({ type: 'error', message: result.error })
       } else {
-        setFeedback({ type: 'success', message: 'Acte validé avec succès' })
+        setFeedback({ type: 'success', message: t('supervision.validated.success') })
       }
       setActionId(null)
     })
@@ -55,7 +59,7 @@ export function SupervisionPanel({ pending, validated, rejected }: Props) {
         if (result.error) {
           setFeedback({ type: 'error', message: result.error })
         } else {
-          setFeedback({ type: 'success', message: 'Acte rejeté' })
+          setFeedback({ type: 'success', message: t('supervision.rejected.success') })
         }
         setRejectingId(null)
         setRejectReason('')
@@ -75,8 +79,8 @@ export function SupervisionPanel({ pending, validated, rejected }: Props) {
           <Shield className="h-5 w-5 text-emerald-600" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-slate-900">Supervision</h1>
-          <p className="text-xs text-slate-500">Validez les actes de vos étudiants DES</p>
+          <h1 className="text-lg font-bold text-slate-900">{t('supervision.title')}</h1>
+          <p className="text-xs text-slate-500">{t('supervision.subtitle')}</p>
         </div>
       </div>
 
@@ -122,9 +126,9 @@ export function SupervisionPanel({ pending, validated, rejected }: Props) {
       {entries.length === 0 ? (
         <div className="rounded-xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
           <p className="text-sm text-slate-500">
-            {tab === 'pending' && 'Aucun acte en attente de validation'}
-            {tab === 'validated' && 'Aucun acte validé'}
-            {tab === 'rejected' && 'Aucun acte rejeté'}
+            {tab === 'pending' && t('supervision.noPending')}
+            {tab === 'validated' && t('supervision.noValidated')}
+            {tab === 'rejected' && t('supervision.noRejected')}
           </p>
         </div>
       ) : (
@@ -164,7 +168,7 @@ export function SupervisionPanel({ pending, validated, rejected }: Props) {
                   </p>
                   <p className="truncate text-xs text-slate-500">
                     {(entry.procedure as { name: string } | undefined)?.name || (entry.specialty as { name: string } | undefined)?.name || 'Intervention'}{' '}
-                    · {new Date(entry.intervention_date).toLocaleDateString('fr-FR')}{' '}
+                    · {new Date(entry.intervention_date).toLocaleDateString(dateLocale)}{' '}
                     · {(entry.hospital as { name: string } | undefined)?.name}
                   </p>
                 </div>
@@ -186,31 +190,31 @@ export function SupervisionPanel({ pending, validated, rejected }: Props) {
                   <dl className="space-y-1.5 text-xs">
                     {(entry.student as { matricule?: string } | undefined)?.matricule && (
                       <div className="flex justify-between">
-                        <dt className="text-slate-500">Matricule</dt>
+                        <dt className="text-slate-500">{t('settings.matricule')}</dt>
                         <dd className="font-medium">{(entry.student as { matricule: string }).matricule}</dd>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <dt className="text-slate-500">Rôle opérateur</dt>
-                      <dd className="font-medium">{OPERATOR_ROLE_LABELS[entry.operator_role]}</dd>
+                      <dt className="text-slate-500">{t('logbook.role')}</dt>
+                      <dd className="font-medium">{t(`role.${entry.operator_role}`)}</dd>
                     </div>
                     <div className="flex justify-between">
-                      <dt className="text-slate-500">Contexte</dt>
-                      <dd className="font-medium">{entry.context === 'programmed' ? 'Programmé' : 'Urgence'}</dd>
+                      <dt className="text-slate-500">{t('logbook.context')}</dt>
+                      <dd className="font-medium">{entry.context === 'programmed' ? t('context.programmed') : t('context.emergency')}</dd>
                     </div>
                     <div className="flex justify-between">
-                      <dt className="text-slate-500">Patient</dt>
-                      <dd className="font-medium">{entry.patient_type === 'real' ? 'Réel' : 'Simulation'}</dd>
+                      <dt className="text-slate-500">{t('logbook.patient')}</dt>
+                      <dd className="font-medium">{entry.patient_type === 'real' ? t('patient.real') : t('patient.simulation')}</dd>
                     </div>
                     <div className="flex justify-between">
-                      <dt className="text-slate-500">Mode</dt>
+                      <dt className="text-slate-500">{t('logbook.mode')}</dt>
                       <dd className={`font-medium ${entry.entry_mode === 'retrospective' ? 'text-amber-600' : 'text-green-600'}`}>
-                        {entry.entry_mode === 'prospective' ? 'Prospectif' : 'Rétrospectif'}
+                        {entry.entry_mode === 'prospective' ? t('mode.prospective') : t('mode.retrospective')}
                       </dd>
                     </div>
                     {entry.supervisor && (
                       <div className="flex justify-between">
-                        <dt className="text-slate-500">Superviseur</dt>
+                        <dt className="text-slate-500">{t('logbook.supervisor')}</dt>
                         <dd className="font-medium">
                           {(entry.supervisor as { title?: string }).title && SUPERVISOR_TITLE_LABELS[(entry.supervisor as { title: string }).title as SupervisorTitle]}{' '}
                           {(entry.supervisor as { last_name: string }).last_name}
@@ -218,12 +222,12 @@ export function SupervisionPanel({ pending, validated, rejected }: Props) {
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <dt className="text-slate-500">Soumis le</dt>
-                      <dd className="font-medium">{new Date(entry.submitted_at).toLocaleString('fr-FR')}</dd>
+                      <dt className="text-slate-500">{t('logbook.submittedAt')}</dt>
+                      <dd className="font-medium">{new Date(entry.submitted_at).toLocaleString(dateLocale)}</dd>
                     </div>
                     {entry.notes && (
                       <div className="pt-1">
-                        <dt className="text-slate-500">Notes</dt>
+                        <dt className="text-slate-500">{t('logbook.notes')}</dt>
                         <dd className="mt-0.5 text-slate-700">{entry.notes}</dd>
                       </div>
                     )}
@@ -237,7 +241,7 @@ export function SupervisionPanel({ pending, validated, rejected }: Props) {
                           <textarea
                             value={rejectReason}
                             onChange={(e) => setRejectReason(e.target.value)}
-                            placeholder="Motif du rejet (optionnel)…"
+                            placeholder={t('supervision.rejectReason')}
                             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700 placeholder:text-slate-400 focus:border-red-300 focus:outline-none focus:ring-1 focus:ring-red-200"
                             rows={2}
                           />
@@ -254,7 +258,7 @@ export function SupervisionPanel({ pending, validated, rejected }: Props) {
                           ) : (
                             <Check className="h-3.5 w-3.5" />
                           )}
-                          Valider
+                          {t('supervision.validate')}
                         </button>
                         <button
                           onClick={() => handleReject(entry.id)}
@@ -270,7 +274,7 @@ export function SupervisionPanel({ pending, validated, rejected }: Props) {
                           ) : (
                             <X className="h-3.5 w-3.5" />
                           )}
-                          {rejectingId === entry.id ? 'Confirmer le rejet' : 'Rejeter'}
+                          {rejectingId === entry.id ? t('supervision.confirmReject') : t('supervision.reject')}
                         </button>
                       </div>
                       {rejectingId === entry.id && (
@@ -278,7 +282,7 @@ export function SupervisionPanel({ pending, validated, rejected }: Props) {
                           onClick={() => { setRejectingId(null); setRejectReason('') }}
                           className="w-full text-center text-xs text-slate-400 hover:text-slate-600"
                         >
-                          Annuler
+                          {t('supervision.cancel')}
                         </button>
                       )}
                     </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { User, LogOut, Shield, Settings, Crown, ClipboardCheck, StickyNote, AlertTriangle, Loader2, HeartPulse } from 'lucide-react'
 import { logout } from '@/lib/actions/auth'
 import { logoutOtherSessions } from '@/lib/actions/sessions'
@@ -62,7 +63,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
             className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-xs backdrop-blur-sm transition-colors hover:bg-white/20"
           >
             {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="h-6 w-6 rounded-full object-cover" />
+              <Image src={profile.avatar_url} alt="" width={24} height={24} className="h-6 w-6 rounded-full object-cover" />
             ) : (
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">
                 {profile?.first_name?.charAt(0)}{profile?.last_name?.charAt(0)}

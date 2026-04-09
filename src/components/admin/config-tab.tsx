@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Plus, X, Pencil, Trash2, Check, Building2, Target, BookOpen, ChevronDown, ChevronUp, Shield, AlertCircle, CheckCircle } from 'lucide-react'
-import { DES_LEVEL_LABELS, ROLE_LABELS } from '@/types/database'
+import { useI18n } from '@/lib/i18n/context'
 import type { DesLevel, Hospital, UserRole } from '@/types/database'
 import {
   addHospital, updateHospital, deleteHospital,
@@ -25,6 +25,7 @@ interface ConfigTabProps {
 }
 
 export function ConfigTab({ hospitals, specialties, procedures, desObjectives, currentUserRole }: ConfigTabProps) {
+  const { t } = useI18n()
   const [section, setSection] = useState<'hospitals' | 'objectives' | 'specialties'>('hospitals')
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
@@ -34,9 +35,9 @@ export function ConfigTab({ hospitals, specialties, procedures, desObjectives, c
   }
 
   const sections = [
-    { key: 'hospitals' as const, label: 'Hôpitaux', icon: Building2 },
-    { key: 'objectives' as const, label: 'Objectifs DES', icon: Target },
-    { key: 'specialties' as const, label: 'Spécialités', icon: BookOpen },
+    { key: 'hospitals' as const, label: t('config.hospitals'), icon: Building2 },
+    { key: 'objectives' as const, label: t('config.objectives'), icon: Target },
+    { key: 'specialties' as const, label: t('config.specialties'), icon: BookOpen },
   ]
 
   return (
@@ -70,12 +71,12 @@ export function ConfigTab({ hospitals, specialties, procedures, desObjectives, c
 
       {/* Hôpitaux */}
       {section === 'hospitals' && (
-        <HospitalsManager hospitals={hospitals} onFeedback={showFeedback} />
+        <HospitalsManager hospitals={hospitals} onFeedback={showFeedback} t={t} />
       )}
 
       {/* Objectifs DES */}
       {section === 'objectives' && (
-        <ObjectivesManager objectives={desObjectives} onFeedback={showFeedback} />
+        <ObjectivesManager objectives={desObjectives} onFeedback={showFeedback} t={t} />
       )}
 
       {/* Spécialités & Procédures */}
@@ -84,6 +85,7 @@ export function ConfigTab({ hospitals, specialties, procedures, desObjectives, c
           specialties={specialties}
           procedures={procedures}
           onFeedback={showFeedback}
+          t={t}
         />
       )}
     </div>
@@ -95,9 +97,11 @@ export function ConfigTab({ hospitals, specialties, procedures, desObjectives, c
 function HospitalsManager({
   hospitals,
   onFeedback,
+  t,
 }: {
   hospitals: Hospital[]
   onFeedback: (type: 'success' | 'error', msg: string) => void
+  t: (key: string, params?: Record<string, string | number>) => string
 }) {
   const [showAdd, setShowAdd] = useState(false)
   const [name, setName] = useState('')
@@ -115,7 +119,7 @@ function HospitalsManager({
     if (result.error) {
       onFeedback('error', result.error)
     } else {
-      onFeedback('success', `Hôpital « ${name} » ajouté. Rechargez pour voir.`)
+      onFeedback('success', t('config.hospitalAdded', { name }))
       setName('')
       setCity('')
       setShowAdd(false)
@@ -129,7 +133,7 @@ function HospitalsManager({
     if (result.error) {
       onFeedback('error', result.error)
     } else {
-      onFeedback('success', 'Hôpital mis à jour. Rechargez pour voir.')
+      onFeedback('success', t('config.hospitalUpdated'))
       setEditingId(null)
     }
   }
@@ -139,19 +143,19 @@ function HospitalsManager({
     if (result.error) {
       onFeedback('error', result.error)
     } else {
-      onFeedback('success', `Hôpital ${h.is_active ? 'désactivé' : 'réactivé'}. Rechargez pour voir.`)
+      onFeedback('success', h.is_active ? t('config.deactivated') : t('config.reactivated'))
     }
   }
 
   return (
     <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-700">Hôpitaux ({hospitals.length})</h3>
+        <h3 className="text-sm font-semibold text-slate-700">{t('config.hospitals')} ({hospitals.length})</h3>
         <button
           onClick={() => setShowAdd(!showAdd)}
           className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
         >
-          <Plus className="h-3.5 w-3.5" /> Ajouter
+          <Plus className="h-3.5 w-3.5" /> {t('admin.add')}
         </button>
       </div>
 
@@ -160,7 +164,7 @@ function HospitalsManager({
         <div className="mb-3 rounded-lg bg-emerald-50 p-3">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="mb-1 block text-[10px] font-medium text-slate-600">Nom de l&apos;hôpital *</label>
+              <label className="mb-1 block text-[10px] font-medium text-slate-600">{t('config.hospitalName')} *</label>
               <input
                 value={name}
                 onChange={e => setName(e.target.value)}
@@ -169,7 +173,7 @@ function HospitalsManager({
               />
             </div>
             <div>
-              <label className="mb-1 block text-[10px] font-medium text-slate-600">Ville *</label>
+              <label className="mb-1 block text-[10px] font-medium text-slate-600">{t('config.city')} *</label>
               <input
                 value={city}
                 onChange={e => setCity(e.target.value)}
@@ -184,10 +188,10 @@ function HospitalsManager({
               disabled={loading || !name.trim() || !city.trim()}
               className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
             >
-              {loading ? 'Ajout...' : 'Confirmer'}
+              {loading ? t('config.adding') : t('admin.confirm')}
             </button>
             <button onClick={() => setShowAdd(false)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50">
-              Annuler
+              {t('admin.cancel')}
             </button>
           </div>
         </div>
@@ -240,7 +244,7 @@ function HospitalsManager({
                         : 'bg-red-100 text-red-700 hover:bg-green-100 hover:text-green-700'
                     }`}
                   >
-                    {h.is_active ? 'Actif' : 'Inactif'}
+                    {h.is_active ? t('admin.active') : t('admin.inactive')}
                   </button>
                 </div>
               </>
@@ -248,7 +252,7 @@ function HospitalsManager({
           </div>
         ))}
         {hospitals.length === 0 && (
-          <p className="py-4 text-center text-xs text-slate-400">Aucun hôpital enregistré</p>
+          <p className="py-4 text-center text-xs text-slate-400">{t('config.noHospitals')}</p>
         )}
       </div>
     </div>
@@ -260,9 +264,11 @@ function HospitalsManager({
 function ObjectivesManager({
   objectives,
   onFeedback,
+  t,
 }: {
   objectives: ConfigTabProps['desObjectives']
   onFeedback: (type: 'success' | 'error', msg: string) => void
+  t: (key: string, params?: Record<string, string | number>) => string
 }) {
   const [showAdd, setShowAdd] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -293,7 +299,7 @@ function ObjectivesManager({
     if (result.error) {
       onFeedback('error', result.error)
     } else {
-      onFeedback('success', `Objectif « ${form.label} » enregistré. Rechargez pour voir.`)
+      onFeedback('success', t('config.objectiveSaved', { label: form.label }))
       setForm({ ...form, label: '', target_count: 0, description: '', specialty_name: '', procedure_name: '' })
       setShowAdd(false)
     }
@@ -305,14 +311,14 @@ function ObjectivesManager({
     if (result.error) {
       onFeedback('error', result.error)
     } else {
-      onFeedback('success', `Objectif supprimé. Rechargez pour voir.`)
+      onFeedback('success', t('config.objectiveDeleted'))
     }
   }
 
   // Grouper par niveau DES
-  const grouped = (Object.keys(DES_LEVEL_LABELS) as DesLevel[]).map(level => ({
+  const grouped = (['DES1', 'DES2', 'DES3', 'DES4', 'DES5'] as const).map(level => ({
     level,
-    label: DES_LEVEL_LABELS[level],
+    label: t('des.' + level),
     quantitative: objectives.filter(o => o.des_level === level && o.category === 'quantitative'),
     qualitative: objectives.filter(o => o.des_level === level && o.category === 'qualitative'),
   }))
@@ -320,12 +326,12 @@ function ObjectivesManager({
   return (
     <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-700">Objectifs DES</h3>
+        <h3 className="text-sm font-semibold text-slate-700">{t('config.objectives')}</h3>
         <button
           onClick={() => setShowAdd(!showAdd)}
           className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
         >
-          <Plus className="h-3.5 w-3.5" /> Ajouter
+          <Plus className="h-3.5 w-3.5" /> {t('admin.add')}
         </button>
       </div>
 
@@ -334,30 +340,30 @@ function ObjectivesManager({
         <div className="mb-3 rounded-lg bg-emerald-50 p-3">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="mb-1 block text-[10px] font-medium text-slate-600">Niveau DES *</label>
+              <label className="mb-1 block text-[10px] font-medium text-slate-600">{t('admin.desLevel')} *</label>
               <select
                 value={form.des_level}
                 onChange={e => setForm(p => ({ ...p, des_level: e.target.value }))}
                 className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
               >
-                {(Object.entries(DES_LEVEL_LABELS) as [DesLevel, string][]).map(([k, v]) => (
-                  <option key={k} value={k}>{v} ({k})</option>
+                {(['DES1', 'DES2', 'DES3', 'DES4', 'DES5'] as const).map((k) => (
+                  <option key={k} value={k}>{t('des.' + k)} ({k})</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-[10px] font-medium text-slate-600">Catégorie *</label>
+              <label className="mb-1 block text-[10px] font-medium text-slate-600">{t('config.category')} *</label>
               <select
                 value={form.category}
                 onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
                 className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
               >
-                <option value="quantitative">Quantitatif (nombre)</option>
-                <option value="qualitative">Qualitatif (type d&apos;intervention)</option>
+                <option value="quantitative">{t('config.quantitative')}</option>
+                <option value="qualitative">{t('config.qualitative')}</option>
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-[10px] font-medium text-slate-600">Libellé *</label>
+              <label className="mb-1 block text-[10px] font-medium text-slate-600">{t('config.objectiveLabel')} *</label>
               <input
                 value={form.label}
                 onChange={e => setForm(p => ({ ...p, label: e.target.value }))}
@@ -366,7 +372,7 @@ function ObjectivesManager({
               />
             </div>
             <div>
-              <label className="mb-1 block text-[10px] font-medium text-slate-600">Objectif (nombre) *</label>
+              <label className="mb-1 block text-[10px] font-medium text-slate-600">{t('config.objectiveTarget')} *</label>
               <input
                 type="number"
                 value={form.target_count}
@@ -377,7 +383,7 @@ function ObjectivesManager({
             {form.category === 'qualitative' && (
               <>
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium text-slate-600">Spécialité</label>
+                  <label className="mb-1 block text-[10px] font-medium text-slate-600">{t('admin.specialty')}</label>
                   <input
                     value={form.specialty_name}
                     onChange={e => setForm(p => ({ ...p, specialty_name: e.target.value }))}
@@ -386,7 +392,7 @@ function ObjectivesManager({
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium text-slate-600">Procédure</label>
+                  <label className="mb-1 block text-[10px] font-medium text-slate-600">{t('config.procedure')}</label>
                   <input
                     value={form.procedure_name}
                     onChange={e => setForm(p => ({ ...p, procedure_name: e.target.value }))}
@@ -397,7 +403,7 @@ function ObjectivesManager({
               </>
             )}
             <div className="col-span-2">
-              <label className="mb-1 block text-[10px] font-medium text-slate-600">Description</label>
+              <label className="mb-1 block text-[10px] font-medium text-slate-600">{t('config.description')}</label>
               <input
                 value={form.description}
                 onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
@@ -412,10 +418,10 @@ function ObjectivesManager({
               disabled={loading || !form.label.trim()}
               className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
             >
-              {loading ? 'Enregistrement...' : 'Enregistrer'}
+              {loading ? t('admin.saving') : t('config.save')}
             </button>
             <button onClick={() => setShowAdd(false)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50">
-              Annuler
+              {t('admin.cancel')}
             </button>
           </div>
         </div>
@@ -444,12 +450,12 @@ function ObjectivesManager({
               {isExpanded && (
                 <div className="border-t border-slate-100 px-3 py-2">
                   {total === 0 ? (
-                    <p className="py-2 text-center text-xs text-slate-400">Aucun objectif défini pour ce niveau</p>
+                    <p className="py-2 text-center text-xs text-slate-400">{t('config.noObjectives')}</p>
                   ) : (
                     <div className="space-y-1">
                       {g.quantitative.length > 0 && (
                         <div>
-                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600">Quantitatifs</p>
+                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-600">{t('config.quantitativeLabel')}</p>
                           {g.quantitative.map(o => (
                             <div key={o.id} className="flex items-center justify-between rounded bg-blue-50 px-2 py-1.5 text-xs">
                               <div>
@@ -469,7 +475,7 @@ function ObjectivesManager({
                       )}
                       {g.qualitative.length > 0 && (
                         <div className="mt-2">
-                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-purple-600">Qualitatifs</p>
+                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-purple-600">{t('config.qualitativeLabel')}</p>
                           {g.qualitative.map(o => (
                             <div key={o.id} className="flex items-center justify-between rounded bg-purple-50 px-2 py-1.5 text-xs">
                               <div>
@@ -504,8 +510,8 @@ function ObjectivesManager({
 
       {/* Info */}
       <div className="mt-3 rounded-lg bg-slate-50 p-2 text-[10px] text-slate-500">
-        <p><strong>Quantitatif :</strong> nombre total d&apos;interventions attendu (opérateur, assistant, observateur)</p>
-        <p><strong>Qualitatif :</strong> types d&apos;interventions spécifiques à réaliser (par spécialité/procédure)</p>
+        <p>{t('config.quantitativeInfo')}</p>
+        <p>{t('config.qualitativeInfo')}</p>
       </div>
     </div>
   )
@@ -517,10 +523,12 @@ function SpecialtiesManager({
   specialties,
   procedures,
   onFeedback,
+  t,
 }: {
   specialties: { id: string; name: string; is_active: boolean }[]
   procedures: { id: string; name: string; specialty_id: string; specialty?: { name: string } | null }[]
   onFeedback: (type: 'success' | 'error', msg: string) => void
+  t: (key: string, params?: Record<string, string | number>) => string
 }) {
   const [showAddSpec, setShowAddSpec] = useState(false)
   const [showAddProc, setShowAddProc] = useState(false)
@@ -538,7 +546,7 @@ function SpecialtiesManager({
     if (result.error) {
       onFeedback('error', result.error)
     } else {
-      onFeedback('success', `Spécialité « ${specName} » ajoutée. Rechargez pour voir.`)
+      onFeedback('success', t('config.specialtyAdded', { name: specName }))
       setSpecName('')
       setShowAddSpec(false)
     }
@@ -552,7 +560,7 @@ function SpecialtiesManager({
     if (result.error) {
       onFeedback('error', result.error)
     } else {
-      onFeedback('success', `Procédure « ${procName} » ajoutée. Rechargez pour voir.`)
+      onFeedback('success', t('config.procedureAdded', { name: procName }))
       setProcName('')
       setShowAddProc(false)
     }
@@ -562,32 +570,32 @@ function SpecialtiesManager({
     if (!confirm(`Désactiver la spécialité « ${name} » ?`)) return
     const result = await deleteSpecialty(id)
     if (result.error) onFeedback('error', result.error)
-    else onFeedback('success', `Spécialité désactivée. Rechargez pour voir.`)
+    else onFeedback('success', t('config.specialtyDeactivated'))
   }
 
   const handleDeleteProc = async (id: string, name: string) => {
     if (!confirm(`Désactiver la procédure « ${name} » ?`)) return
     const result = await deleteProcedure(id)
     if (result.error) onFeedback('error', result.error)
-    else onFeedback('success', `Procédure désactivée. Rechargez pour voir.`)
+    else onFeedback('success', t('config.procedureDeactivated'))
   }
 
   return (
     <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-700">Spécialités & Procédures</h3>
+        <h3 className="text-sm font-semibold text-slate-700">{t('config.specialtiesAndProcedures')}</h3>
         <div className="flex gap-1.5">
           <button
             onClick={() => { setShowAddSpec(!showAddSpec); setShowAddProc(false) }}
             className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
           >
-            <Plus className="h-3.5 w-3.5" /> Spécialité
+            <Plus className="h-3.5 w-3.5" /> {t('admin.specialty')}
           </button>
           <button
             onClick={() => { setShowAddProc(!showAddProc); setShowAddSpec(false) }}
             className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
           >
-            <Plus className="h-3.5 w-3.5" /> Procédure
+            <Plus className="h-3.5 w-3.5" /> {t('config.procedure')}
           </button>
         </div>
       </div>
@@ -595,7 +603,7 @@ function SpecialtiesManager({
       {/* Formulaire ajout spécialité */}
       {showAddSpec && (
         <div className="mb-3 rounded-lg bg-emerald-50 p-3">
-          <label className="mb-1 block text-[10px] font-medium text-slate-600">Nom de la spécialité *</label>
+          <label className="mb-1 block text-[10px] font-medium text-slate-600">{t('config.specialtyName')} *</label>
           <input
             value={specName}
             onChange={e => setSpecName(e.target.value)}
@@ -608,10 +616,10 @@ function SpecialtiesManager({
               disabled={loading || !specName.trim()}
               className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
             >
-              {loading ? 'Ajout...' : 'Ajouter'}
+              {loading ? t('config.adding') : t('admin.add')}
             </button>
             <button onClick={() => setShowAddSpec(false)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50">
-              Annuler
+              {t('admin.cancel')}
             </button>
           </div>
         </div>
@@ -622,20 +630,20 @@ function SpecialtiesManager({
         <div className="mb-3 rounded-lg bg-blue-50 p-3">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="mb-1 block text-[10px] font-medium text-slate-600">Spécialité *</label>
+              <label className="mb-1 block text-[10px] font-medium text-slate-600">{t('admin.specialty')} *</label>
               <select
                 value={procSpecId}
                 onChange={e => setProcSpecId(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
               >
-                <option value="">— Sélectionner —</option>
+                <option value="">{t('common.select')}</option>
                 {specialties.map(s => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-[10px] font-medium text-slate-600">Nom de la procédure *</label>
+              <label className="mb-1 block text-[10px] font-medium text-slate-600">{t('config.procedureName')} *</label>
               <input
                 value={procName}
                 onChange={e => setProcName(e.target.value)}
@@ -650,10 +658,10 @@ function SpecialtiesManager({
               disabled={loading || !procName.trim() || !procSpecId}
               className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
             >
-              {loading ? 'Ajout...' : 'Ajouter'}
+              {loading ? t('config.adding') : t('admin.add')}
             </button>
             <button onClick={() => setShowAddProc(false)} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50">
-              Annuler
+              {t('admin.cancel')}
             </button>
           </div>
         </div>
@@ -699,14 +707,14 @@ function SpecialtiesManager({
               )}
               {isExpanded && procs.length === 0 && (
                 <div className="border-t border-slate-100 px-3 py-2">
-                  <p className="text-center text-[10px] text-slate-400">Aucune procédure</p>
+                  <p className="text-center text-[10px] text-slate-400">{t('config.noProcedures')}</p>
                 </div>
               )}
             </div>
           )
         })}
         {specialties.length === 0 && (
-          <p className="py-4 text-center text-xs text-slate-400">Aucune spécialité enregistrée</p>
+          <p className="py-4 text-center text-xs text-slate-400">{t('config.noSpecialties')}</p>
         )}
       </div>
     </div>

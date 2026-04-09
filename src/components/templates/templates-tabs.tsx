@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { FileText, Pill, ClipboardList, Wrench, Stethoscope, Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { FileText, Pill, ClipboardList, Wrench, Stethoscope, Plus, X, ChevronDown, ChevronUp, Check, XCircle } from 'lucide-react'
 import type { CroTemplate, PrescriptionTemplate, PreopTemplate, Instrument } from '@/types/database'
-import { addCroTemplate, addPrescriptionTemplate, addPreopTemplate, addInstrument, addTechnique } from '@/lib/actions/admin'
+import { addCroTemplate, addPrescriptionTemplate, addPreopTemplate, addInstrument, addTechnique, approveReferentialItem, rejectReferentialItem } from '@/lib/actions/admin'
+import { useI18n } from '@/lib/i18n/context'
 
 interface Technique {
   id: string
@@ -12,6 +13,7 @@ interface Technique {
   tips: string | null
   contraindications: string | null
   refs: string | null
+  status?: string
   specialty?: { name: string } | null
   procedure?: { name: string } | null
 }
@@ -27,26 +29,19 @@ interface TemplatesTabsProps {
 }
 
 const TABS = [
-  { id: 'techniques', label: 'Techniques', icon: Stethoscope },
-  { id: 'cro', label: 'CRO', icon: FileText },
-  { id: 'prescriptions', label: 'Ordonnances', icon: Pill },
-  { id: 'preop', label: 'Bilans', icon: ClipboardList },
-  { id: 'instruments', label: 'Instruments', icon: Wrench },
+  { id: 'techniques', labelKey: 'templates.techniques', icon: Stethoscope },
+  { id: 'cro', labelKey: 'templates.cro', icon: FileText },
+  { id: 'prescriptions', labelKey: 'templates.prescriptions', icon: Pill },
+  { id: 'preop', labelKey: 'templates.preop', icon: ClipboardList },
+  { id: 'instruments', labelKey: 'templates.instruments', icon: Wrench },
 ]
 
-const INSTRUMENT_CATEGORIES: Record<string, string> = {
-  coupe: 'Coupe',
-  prehension: 'Préhension',
-  hemostase: 'Hémostase',
-  ecartement: 'Écartement',
-  suture: 'Suture',
-  aspiration: 'Aspiration',
-  autre: 'Autre',
-}
+const INSTRUMENT_CATEGORY_KEYS = ['coupe', 'prehension', 'hemostase', 'ecartement', 'suture', 'aspiration', 'autre'] as const
 
 export function TemplatesTabs({
   croTemplates, prescriptionTemplates, preopTemplates, instruments, techniques, specialties, isAdmin,
 }: TemplatesTabsProps) {
+  const { t } = useI18n()
   const [activeTab, setActiveTab] = useState('techniques')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -63,10 +58,37 @@ export function TemplatesTabs({
   const [formTips, setFormTips] = useState('')
   const [formContra, setFormContra] = useState('')
 
+  const [validationLoading, setValidationLoading] = useState<string | null>(null)
+
   const resetForm = () => {
     setFormTitle(''); setFormSpecialty(''); setFormContent('');
     setFormCategory('coupe'); setFormDescription(''); setFormSteps('');
     setFormTips(''); setFormContra(''); setAddResult(null)
+  }
+
+  const tableForTab = (tab: string) => {
+    const map: Record<string, string> = {
+      techniques: 'surgical_techniques', cro: 'cro_templates',
+      prescriptions: 'prescription_templates', preop: 'preop_templates',
+      instruments: 'instruments',
+    }
+    return map[tab] || ''
+  }
+
+  const handleApprove = async (itemId: string) => {
+    setValidationLoading(itemId)
+    const result = await approveReferentialItem(tableForTab(activeTab), itemId)
+    setValidationLoading(null)
+    if (result.error) setAddResult({ error: result.error })
+    else setAddResult({ success: true })
+  }
+
+  const handleReject = async (itemId: string) => {
+    setValidationLoading(itemId)
+    const result = await rejectReferentialItem(tableForTab(activeTab), itemId)
+    setValidationLoading(null)
+    if (result.error) setAddResult({ error: result.error })
+    else setAddResult({ success: true })
   }
 
   const handleAdd = async () => {
@@ -79,7 +101,7 @@ export function TemplatesTabs({
         case 'techniques': {
           const steps = formSteps.split('\n').map(s => s.trim()).filter(Boolean)
           if (!formTitle || steps.length === 0) {
-            setAddResult({ error: 'Titre et étapes sont obligatoires' })
+            setAddResult({ error: t('templates.titleRequired') })
             setAddLoading(false)
             return
           }
@@ -128,10 +150,10 @@ export function TemplatesTabs({
           break
         }
         default:
-          result = { error: 'Type inconnu' }
+          result = { error: t('templates.unknownType') }
       }
     } catch {
-      result = { error: 'Erreur serveur' }
+      result = { error: t('templates.serverError') }
     }
 
     setAddResult(result)
@@ -156,7 +178,7 @@ export function TemplatesTabs({
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
-              {tab.label}
+              {t(tab.labelKey)}
             </button>
           )
         })}
@@ -170,7 +192,7 @@ export function TemplatesTabs({
             className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
           >
             {showAddForm ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-            {showAddForm ? 'Fermer' : 'Ajouter'}
+            {showAddForm ? t('templates.close') : t('templates.add')}
           </button>
         </div>
       )}
@@ -179,16 +201,16 @@ export function TemplatesTabs({
       {isAdmin && showAddForm && (
         <div className="mb-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
           <h3 className="mb-3 text-sm font-semibold text-slate-900">
-            Ajouter {activeTab === 'techniques' ? 'une technique opératoire' : activeTab === 'instruments' ? 'un instrument' : `un ${TABS.find(t => t.id === activeTab)?.label}`}
+            {activeTab === 'techniques' ? t('templates.addTechnique') : activeTab === 'instruments' ? t('templates.addInstrument') : t('templates.addTemplate', { label: t(TABS.find(tb => tb.id === activeTab)?.labelKey || '') })}
           </h3>
 
           {addResult?.error && <div className="mb-3 rounded-lg bg-red-50 p-2 text-xs text-red-700">{addResult.error}</div>}
-          {addResult?.success && <div className="mb-3 rounded-lg bg-green-50 p-2 text-xs text-green-700">Ajouté avec succès ! Rechargez la page.</div>}
+          {addResult?.success && <div className="mb-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-700">{t('templates.submittedSuccess')}</div>}
 
           <div className="space-y-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">
-                {activeTab === 'instruments' ? 'Nom de l\'instrument' : 'Titre'} *
+                {activeTab === 'instruments' ? t('templates.instrumentName') : t('templates.title')} *
               </label>
               <input
                 value={formTitle}
@@ -200,13 +222,13 @@ export function TemplatesTabs({
 
             {activeTab !== 'instruments' && (
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Spécialité</label>
+                <label className="mb-1 block text-xs font-medium text-slate-600">{t('templates.specialty')}</label>
                 <select
                   value={formSpecialty}
                   onChange={e => setFormSpecialty(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                 >
-                  <option value="">— Toutes —</option>
+                  <option value="">{t('templates.allSpecialties')}</option>
                   {specialties.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
@@ -215,19 +237,19 @@ export function TemplatesTabs({
             {activeTab === 'instruments' && (
               <>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Catégorie *</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">{t('templates.category')} *</label>
                   <select
                     value={formCategory}
                     onChange={e => setFormCategory(e.target.value)}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                   >
-                    {Object.entries(INSTRUMENT_CATEGORIES).map(([k, v]) => (
-                      <option key={k} value={k}>{v}</option>
+                    {INSTRUMENT_CATEGORY_KEYS.map((k) => (
+                      <option key={k} value={k}>{t(`templates.cat.${k}`)}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Description</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">{t('templates.description')}</label>
                   <textarea
                     value={formDescription}
                     onChange={e => setFormDescription(e.target.value)}
@@ -241,7 +263,7 @@ export function TemplatesTabs({
             {activeTab === 'techniques' && (
               <>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Étapes opératoires * (une par ligne)</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">{t('templates.steps')} * ({t('templates.stepsHint')})</label>
                   <textarea
                     value={formSteps}
                     onChange={e => setFormSteps(e.target.value)}
@@ -251,7 +273,7 @@ export function TemplatesTabs({
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Astuces / Points clés</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">{t('templates.tips')}</label>
                   <textarea
                     value={formTips}
                     onChange={e => setFormTips(e.target.value)}
@@ -260,7 +282,7 @@ export function TemplatesTabs({
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Contre-indications</label>
+                  <label className="mb-1 block text-xs font-medium text-slate-600">{t('templates.contraindications')}</label>
                   <textarea
                     value={formContra}
                     onChange={e => setFormContra(e.target.value)}
@@ -274,7 +296,7 @@ export function TemplatesTabs({
             {['cro', 'prescriptions', 'preop'].includes(activeTab) && (
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">
-                  Contenu {activeTab === 'cro' ? '(sections séparées par une ligne vide)' : '(clé: valeur, une par ligne)'}
+                  {activeTab === 'cro' ? t('templates.contentCro') : t('templates.contentKeyValue')}
                 </label>
                 <textarea
                   value={formContent}
@@ -295,7 +317,7 @@ export function TemplatesTabs({
               disabled={addLoading || !formTitle}
               className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
             >
-              {addLoading ? 'Ajout en cours...' : 'Enregistrer'}
+              {addLoading ? t('templates.saving') : t('templates.save')}
             </button>
           </div>
         </div>
@@ -307,55 +329,63 @@ export function TemplatesTabs({
           {techniques.length === 0 ? (
             <div className="rounded-xl bg-slate-50 py-12 text-center">
               <Stethoscope className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-              <p className="text-sm text-slate-400">Aucune technique opératoire disponible</p>
-              {isAdmin && <p className="mt-1 text-xs text-slate-400">Utilisez le bouton "Ajouter" ci-dessus</p>}
+              <p className="text-sm text-slate-400">{t('templates.noTechniques')}</p>
+              {isAdmin && <p className="mt-1 text-xs text-slate-400">{t('templates.useAddButton')}</p>}
             </div>
           ) : (
-            techniques.map((t) => (
-              <div key={t.id} className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+            techniques.map((tech) => (
+              <div key={tech.id} className={`overflow-hidden rounded-xl bg-white shadow-sm ring-1 ${tech.status === 'pending' ? 'ring-amber-300' : tech.status === 'rejected' ? 'ring-red-300' : 'ring-slate-200'}`}>
                 <button
                   type="button"
-                  onClick={() => setSelectedId(selectedId === t.id ? null : t.id)}
+                  onClick={() => setSelectedId(selectedId === tech.id ? null : tech.id)}
                   className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-slate-50"
                 >
                   <div>
-                    <p className="text-sm font-medium text-slate-900">{t.title}</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {tech.title}
+                      {isAdmin && tech.status && tech.status !== 'approved' && (
+                        <StatusBadge status={tech.status} t={t} />
+                      )}
+                    </p>
                     <div className="mt-0.5 flex gap-1.5">
-                      {t.specialty && (
+                      {tech.specialty && (
                         <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
-                          {(t.specialty as { name: string }).name}
+                          {(tech.specialty as { name: string }).name}
                         </span>
                       )}
-                      {t.procedure && (
+                      {tech.procedure && (
                         <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
-                          {(t.procedure as { name: string }).name}
+                          {(tech.procedure as { name: string }).name}
                         </span>
                       )}
                     </div>
                   </div>
-                  {selectedId === t.id ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+                  {selectedId === tech.id ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
                 </button>
-                {selectedId === t.id && (
+                {selectedId === tech.id && (
                   <div className="border-t border-slate-100 px-4 py-3">
                     <div className="mb-3">
-                      <p className="mb-1 text-[10px] font-semibold uppercase text-slate-400">Étapes</p>
+                      <p className="mb-1 text-[10px] font-semibold uppercase text-slate-400">{t('templates.stepsLabel')}</p>
                       <ol className="list-decimal space-y-1 pl-4 text-xs text-slate-700">
-                        {t.steps.map((step, i) => (
+                        {tech.steps.map((step, i) => (
                           <li key={i} className="leading-relaxed">{step}</li>
                         ))}
                       </ol>
                     </div>
-                    {t.tips && (
+                    {tech.tips && (
                       <div className="mb-2 rounded-lg bg-amber-50 p-2">
-                        <p className="text-[10px] font-semibold text-amber-700">Points clés</p>
-                        <p className="text-xs text-amber-800">{t.tips}</p>
+                        <p className="text-[10px] font-semibold text-amber-700">{t('templates.tipsLabel')}</p>
+                        <p className="text-xs text-amber-800">{tech.tips}</p>
                       </div>
                     )}
-                    {t.contraindications && (
-                      <div className="rounded-lg bg-red-50 p-2">
-                        <p className="text-[10px] font-semibold text-red-700">Contre-indications</p>
-                        <p className="text-xs text-red-800">{t.contraindications}</p>
+                    {tech.contraindications && (
+                      <div className="mb-2 rounded-lg bg-red-50 p-2">
+                        <p className="text-[10px] font-semibold text-red-700">{t('templates.contraindicationsLabel')}</p>
+                        <p className="text-xs text-red-800">{tech.contraindications}</p>
                       </div>
+                    )}
+                    {isAdmin && tech.status === 'pending' && (
+                      <ValidationButtons itemId={tech.id} loading={validationLoading} onApprove={handleApprove} onReject={handleReject} t={t} />
                     )}
                   </div>
                 )}
@@ -369,10 +399,10 @@ export function TemplatesTabs({
       {activeTab === 'cro' && (
         <div className="space-y-2">
           {croTemplates.length === 0 ? (
-            <EmptyState label="Aucun template CRO" isAdmin={isAdmin} />
-          ) : croTemplates.map((t) => (
-            <ExpandableCard key={t.id} id={t.id} title={t.title} selectedId={selectedId} setSelectedId={setSelectedId}>
-              <CroContent content={t.content} />
+            <EmptyState label={t('templates.noCro')} isAdmin={isAdmin} t={t} />
+          ) : croTemplates.map((cro) => (
+            <ExpandableCard key={cro.id} id={cro.id} title={cro.title} status={(cro as unknown as Record<string, unknown>).status as string} isAdmin={isAdmin} selectedId={selectedId} setSelectedId={setSelectedId} validationLoading={validationLoading} onApprove={handleApprove} onReject={handleReject} t={t}>
+              <CroContent content={cro.content} />
             </ExpandableCard>
           ))}
         </div>
@@ -382,10 +412,10 @@ export function TemplatesTabs({
       {activeTab === 'prescriptions' && (
         <div className="space-y-2">
           {prescriptionTemplates.length === 0 ? (
-            <EmptyState label="Aucune ordonnance type" isAdmin={isAdmin} />
-          ) : prescriptionTemplates.map((t) => (
-            <ExpandableCard key={t.id} id={t.id} title={t.title} selectedId={selectedId} setSelectedId={setSelectedId}>
-              <TemplateContent content={t.content} />
+            <EmptyState label={t('templates.noPrescriptions')} isAdmin={isAdmin} t={t} />
+          ) : prescriptionTemplates.map((presc) => (
+            <ExpandableCard key={presc.id} id={presc.id} title={presc.title} status={(presc as unknown as Record<string, unknown>).status as string} isAdmin={isAdmin} selectedId={selectedId} setSelectedId={setSelectedId} validationLoading={validationLoading} onApprove={handleApprove} onReject={handleReject} t={t}>
+              <TemplateContent content={presc.content} />
             </ExpandableCard>
           ))}
         </div>
@@ -395,10 +425,10 @@ export function TemplatesTabs({
       {activeTab === 'preop' && (
         <div className="space-y-2">
           {preopTemplates.length === 0 ? (
-            <EmptyState label="Aucun bilan pré-op" isAdmin={isAdmin} />
-          ) : preopTemplates.map((t) => (
-            <ExpandableCard key={t.id} id={t.id} title={t.title} selectedId={selectedId} setSelectedId={setSelectedId}>
-              <TemplateContent content={t.items} />
+            <EmptyState label={t('templates.noPreop')} isAdmin={isAdmin} t={t} />
+          ) : preopTemplates.map((preop) => (
+            <ExpandableCard key={preop.id} id={preop.id} title={preop.title} status={(preop as unknown as Record<string, unknown>).status as string} isAdmin={isAdmin} selectedId={selectedId} setSelectedId={setSelectedId} validationLoading={validationLoading} onApprove={handleApprove} onReject={handleReject} t={t}>
+              <TemplateContent content={preop.items} />
             </ExpandableCard>
           ))}
         </div>
@@ -408,25 +438,43 @@ export function TemplatesTabs({
       {activeTab === 'instruments' && (
         <div className="space-y-4">
           {instruments.length === 0 ? (
-            <EmptyState label="Aucun instrument" isAdmin={isAdmin} />
-          ) : Object.entries(INSTRUMENT_CATEGORIES).map(([key, label]) => {
+            <EmptyState label={t('templates.noInstruments')} isAdmin={isAdmin} t={t} />
+          ) : INSTRUMENT_CATEGORY_KEYS.map((key) => {
             const catInstruments = instruments.filter((i) => i.category === key)
             if (catInstruments.length === 0) return null
             return (
               <div key={key}>
-                <h3 className="mb-2 text-sm font-semibold text-slate-700">{label}</h3>
+                <h3 className="mb-2 text-sm font-semibold text-slate-700">{t(`templates.cat.${key}`)}</h3>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {catInstruments.map((inst) => (
-                    <div key={inst.id} className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
-                      {inst.image_url && (
-                        <div className="mb-2 aspect-square overflow-hidden rounded-lg bg-slate-100">
-                          <img src={inst.image_url} alt={inst.name} className="h-full w-full object-contain" />
-                        </div>
-                      )}
-                      <p className="text-xs font-medium text-slate-900">{inst.name}</p>
-                      {inst.description && <p className="mt-0.5 text-[10px] text-slate-500">{inst.description}</p>}
-                    </div>
-                  ))}
+                  {catInstruments.map((inst) => {
+                    const instStatus = (inst as unknown as Record<string, unknown>).status as string | undefined
+                    return (
+                      <div key={inst.id} className={`rounded-xl bg-white p-3 shadow-sm ring-1 ${instStatus === 'pending' ? 'ring-amber-300' : 'ring-slate-200'}`}>
+                        {inst.image_url && (
+                          <div className="mb-2 aspect-square overflow-hidden rounded-lg bg-slate-100">
+                            <img src={inst.image_url} alt={inst.name} className="h-full w-full object-contain" />
+                          </div>
+                        )}
+                        <p className="text-xs font-medium text-slate-900">
+                          {inst.name}
+                          {isAdmin && instStatus && instStatus !== 'approved' && <StatusBadge status={instStatus} t={t} />}
+                        </p>
+                        {inst.description && <p className="mt-0.5 text-[10px] text-slate-500">{inst.description}</p>}
+                        {isAdmin && instStatus === 'pending' && (
+                          <div className="mt-2 flex gap-1">
+                            <button onClick={() => handleApprove(inst.id)} disabled={validationLoading === inst.id}
+                              className="flex items-center gap-0.5 rounded bg-emerald-500 px-2 py-1 text-[10px] font-medium text-white hover:bg-emerald-600 disabled:opacity-50">
+                              <Check className="h-2.5 w-2.5" /> {t('templates.approve')}
+                            </button>
+                            <button onClick={() => handleReject(inst.id)} disabled={validationLoading === inst.id}
+                              className="flex items-center gap-0.5 rounded bg-red-50 px-2 py-1 text-[10px] font-medium text-red-600 hover:bg-red-100 disabled:opacity-50">
+                              <XCircle className="h-2.5 w-2.5" /> {t('templates.rejectItem')}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )
@@ -439,31 +487,68 @@ export function TemplatesTabs({
 
 // ===== Composants utilitaires =====
 
-function EmptyState({ label, isAdmin }: { label: string; isAdmin: boolean }) {
+function EmptyState({ label, isAdmin, t }: { label: string; isAdmin: boolean; t: (key: string) => string }) {
   return (
     <div className="rounded-xl bg-slate-50 py-12 text-center">
       <p className="text-sm text-slate-400">{label}</p>
-      {isAdmin && <p className="mt-1 text-xs text-slate-400">Utilisez le bouton "Ajouter" ci-dessus</p>}
+      {isAdmin && <p className="mt-1 text-xs text-slate-400">{t('templates.useAddButton')}</p>}
     </div>
   )
 }
 
-function ExpandableCard({ id, title, selectedId, setSelectedId, children }: {
-  id: string; title: string; selectedId: string | null; setSelectedId: (id: string | null) => void; children: React.ReactNode
+function ExpandableCard({ id, title, status, isAdmin, selectedId, setSelectedId, validationLoading, onApprove, onReject, children, t }: {
+  id: string; title: string; status?: string; isAdmin?: boolean; selectedId: string | null; setSelectedId: (id: string | null) => void;
+  validationLoading?: string | null; onApprove?: (id: string) => void; onReject?: (id: string) => void; children: React.ReactNode; t: (key: string) => string
 }) {
   return (
-    <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+    <div className={`overflow-hidden rounded-xl bg-white shadow-sm ring-1 ${status === 'pending' ? 'ring-amber-300' : status === 'rejected' ? 'ring-red-300' : 'ring-slate-200'}`}>
       <button
         type="button"
         onClick={() => setSelectedId(selectedId === id ? null : id)}
         className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-slate-50"
       >
-        <p className="text-sm font-medium text-slate-900">{title}</p>
+        <p className="text-sm font-medium text-slate-900">
+          {title}
+          {isAdmin && status && status !== 'approved' && <StatusBadge status={status} t={t} />}
+        </p>
         {selectedId === id ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
       </button>
       {selectedId === id && (
-        <div className="border-t border-slate-100 px-4 py-3">{children}</div>
+        <div className="border-t border-slate-100 px-4 py-3">
+          {children}
+          {isAdmin && status === 'pending' && onApprove && onReject && (
+            <ValidationButtons itemId={id} loading={validationLoading ?? null} onApprove={onApprove} onReject={onReject} t={t} />
+          )}
+        </div>
       )}
+    </div>
+  )
+}
+
+function StatusBadge({ status, t }: { status: string; t: (key: string) => string }) {
+  const styles = status === 'pending'
+    ? 'bg-amber-100 text-amber-700'
+    : status === 'rejected'
+    ? 'bg-red-100 text-red-700'
+    : 'bg-emerald-100 text-emerald-700'
+  const label = status === 'pending' ? t('templates.statusPending') : status === 'rejected' ? t('templates.statusRejected') : t('templates.statusApproved')
+  return <span className={`ml-2 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium ${styles}`}>{label}</span>
+}
+
+function ValidationButtons({ itemId, loading, onApprove, onReject, t }: {
+  itemId: string; loading: string | null; onApprove: (id: string) => void; onReject: (id: string) => void; t: (key: string) => string
+}) {
+  const isLoading = loading === itemId
+  return (
+    <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3">
+      <button onClick={() => onApprove(itemId)} disabled={isLoading}
+        className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-500 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-50">
+        <Check className="h-3 w-3" /> {t('templates.approve')}
+      </button>
+      <button onClick={() => onReject(itemId)} disabled={isLoading}
+        className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-red-50 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 disabled:opacity-50">
+        <XCircle className="h-3 w-3" /> {t('templates.rejectItem')}
+      </button>
     </div>
   )
 }

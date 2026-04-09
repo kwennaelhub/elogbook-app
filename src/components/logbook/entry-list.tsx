@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { ChevronDown, Check, Clock, MapPin, AlertTriangle } from 'lucide-react'
-import { OPERATOR_ROLE_LABELS } from '@/types/database'
 import type { EntryWithDetails } from '@/types/database'
+import { useI18n } from '@/lib/i18n/context'
 
 interface EntryListProps {
   entries: EntryWithDetails[]
@@ -12,6 +12,7 @@ interface EntryListProps {
 
 export function EntryList({ entries, totalCount }: EntryListProps) {
   const [expanded, setExpanded] = useState<string | null>(null)
+  const { t, locale } = useI18n()
 
   if (entries.length === 0) {
     return (
@@ -19,8 +20,8 @@ export function EntryList({ entries, totalCount }: EntryListProps) {
         <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
           <Clock className="h-6 w-6 text-slate-400" />
         </div>
-        <p className="text-sm font-medium text-slate-600">Aucune intervention enregistrée</p>
-        <p className="mt-1 text-xs text-slate-400">Utilisez le formulaire ci-dessus pour commencer</p>
+        <p className="text-sm font-medium text-slate-600">{t('entries.noEntries')}</p>
+        <p className="mt-1 text-xs text-slate-400">{t('entries.noEntriesHint')}</p>
       </div>
     )
   }
@@ -29,7 +30,7 @@ export function EntryList({ entries, totalCount }: EntryListProps) {
     <div>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-slate-900">
-          Historique <span className="text-slate-400">({totalCount})</span>
+          {t('entries.history')} <span className="text-slate-400">({totalCount})</span>
         </h2>
       </div>
 
@@ -54,10 +55,10 @@ export function EntryList({ entries, totalCount }: EntryListProps) {
 
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-slate-900">
-                  {(entry.procedure as { name: string } | undefined)?.name || (entry.specialty as { name: string } | undefined)?.name || 'Intervention'}
+                  {(entry.procedure as { name: string } | undefined)?.name || (entry.specialty as { name: string } | undefined)?.name || t('entries.intervention')}
                 </p>
                 <p className="text-xs text-slate-500">
-                  {new Date(entry.intervention_date).toLocaleDateString('fr-FR')} · {(entry.hospital as { name: string } | undefined)?.name}
+                  {new Date(entry.intervention_date).toLocaleDateString(locale === 'en' ? 'en-GB' : 'fr-FR')} · {(entry.hospital as { name: string } | undefined)?.name}
                 </p>
               </div>
 
@@ -76,40 +77,40 @@ export function EntryList({ entries, totalCount }: EntryListProps) {
               <div className="border-t border-slate-100 px-3 pb-3 pt-2">
                 <dl className="space-y-1.5 text-xs">
                   <div className="flex justify-between">
-                    <dt className="text-slate-500">Rôle</dt>
-                    <dd className="font-medium">{OPERATOR_ROLE_LABELS[entry.operator_role]}</dd>
+                    <dt className="text-slate-500">{t('entries.role')}</dt>
+                    <dd className="font-medium">{t(`role.${entry.operator_role}`)}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-slate-500">Contexte</dt>
-                    <dd className="font-medium">{entry.context === 'programmed' ? 'Programmé' : 'Urgence'}</dd>
+                    <dt className="text-slate-500">{t('entries.context')}</dt>
+                    <dd className="font-medium">{entry.context === 'programmed' ? t('entries.programmed') : t('entries.emergency')}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-slate-500">Patient</dt>
-                    <dd className="font-medium">{entry.patient_type === 'real' ? 'Réel' : 'Simulation'}</dd>
+                    <dt className="text-slate-500">{t('entries.patient')}</dt>
+                    <dd className="font-medium">{entry.patient_type === 'real' ? t('entries.real') : t('entries.simulation')}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-slate-500">Mode</dt>
+                    <dt className="text-slate-500">{t('entries.mode')}</dt>
                     <dd className={`font-medium ${entry.entry_mode === 'retrospective' ? 'text-amber-600' : 'text-green-600'}`}>
-                      {entry.entry_mode === 'prospective' ? 'Prospectif' : 'Rétrospectif'}
+                      {entry.entry_mode === 'prospective' ? t('entries.prospective') : t('entries.retrospective')}
                     </dd>
                   </div>
                   {entry.supervisor && (
                     <div className="flex justify-between">
-                      <dt className="text-slate-500">Superviseur</dt>
+                      <dt className="text-slate-500">{t('entries.supervisor')}</dt>
                       <dd className="font-medium">
                         Dr {(entry.supervisor as { last_name: string; first_name: string }).last_name} {(entry.supervisor as { last_name: string; first_name: string }).first_name}
                       </dd>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <dt className="text-slate-500">Soumis le</dt>
+                    <dt className="text-slate-500">{t('entries.submittedAt')}</dt>
                     <dd className="font-medium">
-                      {new Date(entry.submitted_at).toLocaleString('fr-FR')}
+                      {new Date(entry.submitted_at).toLocaleString(locale === 'en' ? 'en-GB' : 'fr-FR')}
                     </dd>
                   </div>
                   {entry.notes && (
                     <div className="pt-1">
-                      <dt className="text-slate-500">Notes</dt>
+                      <dt className="text-slate-500">{t('entries.notes')}</dt>
                       <dd className="mt-0.5 text-slate-700">{entry.notes}</dd>
                     </div>
                   )}

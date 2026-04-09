@@ -68,13 +68,16 @@ export async function getGardes(month: number, year: number) {
 
 export async function deleteGarde(gardeId: string) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non authentifié' }
 
   const { error } = await supabase
     .from('gardes')
     .delete()
     .eq('id', gardeId)
+    .eq('user_id', user.id)
 
-  if (error) return { error: error.message }
+  if (error) return { error: 'Impossible de supprimer cette garde' }
 
   revalidatePath('/calendar')
   return { success: true }

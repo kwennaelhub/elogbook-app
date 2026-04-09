@@ -1,30 +1,51 @@
 'use server'
 
+import { createHash } from 'crypto'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import type { FollowupOutcome, AgeRange, PatientSex } from '@/types/database'
+import type { FollowupOutcome, FollowupEventType, AgeRange, PatientSex } from '@/types/database'
 
 export async function getFollowups() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
-  const { data, error } = await supabase
+  // Requête simple sans JOIN (évite les erreurs RLS/FK silencieuses)
+  const { data: followups, error } = await supabase
     .from('patient_followups')
-    .select(`
-      *,
-      entry:entries(
-        id,
-        procedure:procedures(name),
-        specialty:specialties(name),
-        hospital:hospitals(name)
-      )
-    `)
+    .select('*')
     .eq('user_id', user.id)
     .order('intervention_date', { ascending: false })
 
-  if (error) return []
-  return data ?? []
+  if (error || !followups) return []
+
+  // Enrichir avec les détails de l'intervention liée
+  const entryIds = followups.map(f => f.entry_id).filter(Boolean) as string[]
+
+  interface EntryInfo { id: string; procedure?: { name: string } | null; specialty?: { name: string } | null; hospital?: { name: string } | null }
+  const entriesMap: Record<string, EntryInfo> = {}
+
+  if (entryIds.length > 0) {
+    const { data: entries } = await supabase
+      .from('entries')
+      .select('id, procedure:procedures!entries_procedure_id_fkey(name), specialty:specialties!entries_specialty_id_fkey(name), hospital:hospitals(name)')
+      .in('id', entryIds)
+
+    if (entries) {
+      for (const e of entries) {
+        // Supabase retourne un objet ou un array selon la cardinalité FK
+        const proc = Array.isArray(e.procedure) ? e.procedure[0] : e.procedure
+        const spec = Array.isArray(e.specialty) ? e.specialty[0] : e.specialty
+        const hosp = Array.isArray(e.hospital) ? e.hospital[0] : e.hospital
+        entriesMap[e.id] = { id: e.id, procedure: proc || null, specialty: spec || null, hospital: hosp || null }
+      }
+    }
+  }
+
+  return followups.map(f => ({
+    ...f,
+    entry: f.entry_id ? entriesMap[f.entry_id] || null : null,
+  }))
 }
 
 export async function getFollowupStats() {
@@ -40,7 +61,7 @@ export async function getFollowupStats() {
   if (!data || data.length === 0) return null
 
   const total = data.length
-  const outcomes: Record<string, number> = { pending: 0, success: 0, complication: 0, failure: 0, deceased: 0 }
+  const outcomes: Record<string, number> = { en_cours: 0, exeat: 0, decede: 0 }
   let totalDays = 0
   let daysCount = 0
 
@@ -52,11 +73,18 @@ export async function getFollowupStats() {
     }
   }
 
-  const successRate = total > 0 ? Math.round(((outcomes.success || 0) / total) * 100) : 0
-  const complicationRate = total > 0 ? Math.round(((outcomes.complication || 0) / total) * 100) : 0
+  const exeatRate = total > 0 ? Math.round(((outcomes.exeat || 0) / total) * 100) : 0
+  const decedeRate = total > 0 ? Math.round(((outcomes.decede || 0) / total) * 100) : 0
   const avgStay = daysCount > 0 ? Math.round(totalDays / daysCount) : 0
 
-  return { total, outcomes, successRate, complicationRate, avgStay }
+  // Compter les complications depuis les événements timeline
+  const { count: complicationCount } = await supabase
+    .from('followup_events')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('event_type', 'complication')
+
+  return { total, outcomes, exeatRate, decedeRate, avgStay, complications: complicationCount ?? 0 }
 }
 
 export type FollowupState = { error?: string; success?: boolean }
@@ -75,22 +103,15 @@ export async function createFollowup(data: {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Non authentifié' }
 
-  // Générer un ID anonyme
-  const year = new Date().getFullYear()
-  const { count } = await supabase
-    .from('patient_followups')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-
-  const seq = String((count ?? 0) + 1).padStart(3, '0')
-  const anonymousId = `PAT-${year}-${seq}`
+  // Générer un ID déterministe basé sur les données
+  const anonymousId = `PAT-${data.intervention_date.replace(/-/g, '').slice(2)}-${String(Date.now()).slice(-6)}`
 
   const { error } = await supabase.from('patient_followups').insert({
     user_id: user.id,
     entry_id: data.entry_id || null,
     anonymous_id: anonymousId,
     intervention_date: data.intervention_date,
-    outcome: 'pending',
+    outcome: 'en_cours',
     age_range: data.age_range || null,
     sex: data.sex || null,
     asa_score: data.asa_score || null,
@@ -105,9 +126,11 @@ export async function createFollowup(data: {
 export async function updateFollowup(followupId: string, data: {
   discharge_date?: string | null
   outcome?: FollowupOutcome
-  complication_type?: string | null
-  complication_date?: string | null
+  cause_of_death?: string | null
   notes?: string | null
+  age_range?: AgeRange | null
+  sex?: PatientSex | null
+  asa_score?: number | null
 }): Promise<FollowupState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -116,9 +139,16 @@ export async function updateFollowup(followupId: string, data: {
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (data.discharge_date !== undefined) updates.discharge_date = data.discharge_date || null
   if (data.outcome !== undefined) updates.outcome = data.outcome
-  if (data.complication_type !== undefined) updates.complication_type = data.complication_type || null
-  if (data.complication_date !== undefined) updates.complication_date = data.complication_date || null
+  if (data.cause_of_death !== undefined) updates.cause_of_death = data.cause_of_death || null
   if (data.notes !== undefined) updates.notes = data.notes || null
+  if (data.age_range !== undefined) updates.age_range = data.age_range || null
+  if (data.sex !== undefined) updates.sex = data.sex || null
+  if (data.asa_score !== undefined) updates.asa_score = data.asa_score ?? null
+
+  // Si décès, on nettoie la cause si l'outcome change
+  if (data.outcome && data.outcome !== 'decede') {
+    updates.cause_of_death = null
+  }
 
   const { error } = await supabase
     .from('patient_followups')
@@ -129,6 +159,61 @@ export async function updateFollowup(followupId: string, data: {
   if (error) return { error: error.message }
   revalidatePath('/followups')
   return { success: true }
+}
+
+// ========== FOLLOWUP EVENTS (timeline additive) ==========
+
+export async function getFollowupEvents(followupId: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('followup_events')
+    .select('*')
+    .eq('followup_id', followupId)
+    .order('event_date', { ascending: true })
+  return data ?? []
+}
+
+export async function addFollowupEvent(followupId: string, data: {
+  event_type: FollowupEventType
+  event_date: string
+  description: string
+}): Promise<FollowupState> {
+  if (!data.description.trim()) return { error: 'La description est obligatoire' }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non authentifié' }
+
+  const { error } = await supabase.from('followup_events').insert({
+    followup_id: followupId,
+    user_id: user.id,
+    event_type: data.event_type,
+    event_date: data.event_date,
+    description: data.description.trim(),
+  })
+
+  if (error) return { error: error.message }
+  revalidatePath('/followups')
+  return { success: true }
+}
+
+// ========== ID PATIENT DÉTERMINISTE ==========
+
+export async function generateDeterministicPatientId(entryData: {
+  intervention_date: string
+  hospital_id: string
+  procedure_id?: string | null
+  supervisor_id?: string | null
+}): Promise<string> {
+  const base = [
+    entryData.intervention_date,
+    entryData.hospital_id,
+    entryData.procedure_id || '',
+    entryData.supervisor_id || '',
+  ].join('-')
+  const hash = createHash('sha256').update(base).digest('hex').slice(0, 6).toUpperCase()
+  const dateShort = entryData.intervention_date.replace(/-/g, '').slice(2) // YYMMDD
+  return `PAT-${dateShort}-${hash}`
 }
 
 export async function deleteFollowup(followupId: string): Promise<FollowupState> {

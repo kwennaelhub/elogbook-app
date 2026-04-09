@@ -212,7 +212,8 @@ export interface AuditLog {
   created_at: string
 }
 
-export type FollowupOutcome = 'pending' | 'success' | 'complication' | 'failure' | 'deceased'
+export type FollowupOutcome = 'en_cours' | 'exeat' | 'decede'
+export type FollowupEventType = 'complication' | 'reprise_bloc' | 'note' | 'observation' | 'amelioration'
 export type AgeRange = '0-5' | '6-15' | '16-25' | '26-40' | '41-60' | '61-75' | '75+'
 export type PatientSex = 'M' | 'F'
 
@@ -224,8 +225,9 @@ export interface PatientFollowup {
   intervention_date: string
   discharge_date: string | null
   outcome: FollowupOutcome
-  complication_type: string | null
-  complication_date: string | null
+  cause_of_death: string | null
+  complication_type: string | null // Déprécié — utiliser followup_events
+  complication_date: string | null // Déprécié — utiliser followup_events
   age_range: AgeRange | null
   sex: PatientSex | null
   asa_score: number | null
@@ -233,6 +235,16 @@ export interface PatientFollowup {
   follow_up_days: number | null
   created_at: string
   updated_at: string
+}
+
+export interface FollowupEvent {
+  id: string
+  followup_id: string
+  user_id: string
+  event_type: FollowupEventType
+  event_date: string
+  description: string
+  created_at: string
 }
 
 export interface PatientFollowupWithEntry extends PatientFollowup {
@@ -353,6 +365,7 @@ export const SUBSCRIPTION_FEATURES: Record<SubscriptionPlan, string[]> = {
   ],
   premium: [
     'Saisie illimitée d\'interventions',
+    'Suivi post-opératoire des patients',
     'Export PDF/Excel certifié',
     'Dashboard avancé + graphiques',
     'Templates CRO complets',
@@ -389,20 +402,44 @@ export interface InstitutionalSeat {
 }
 
 export const FOLLOWUP_OUTCOME_LABELS: Record<FollowupOutcome, string> = {
-  pending: 'En cours',
-  success: 'Succès',
-  complication: 'Complication',
-  failure: 'Échec',
-  deceased: 'Décès',
+  en_cours: 'En cours',
+  exeat: 'Exéat',
+  decede: 'Décès',
 }
 
 export const FOLLOWUP_OUTCOME_COLORS: Record<FollowupOutcome, string> = {
-  pending: 'bg-amber-100 text-amber-700',
-  success: 'bg-emerald-100 text-emerald-700',
-  complication: 'bg-orange-100 text-orange-700',
-  failure: 'bg-red-100 text-red-700',
-  deceased: 'bg-slate-200 text-slate-700',
+  en_cours: 'bg-amber-100 text-amber-700',
+  exeat: 'bg-emerald-100 text-emerald-700',
+  decede: 'bg-slate-200 text-slate-700',
 }
+
+export const FOLLOWUP_EVENT_LABELS: Record<FollowupEventType, string> = {
+  complication: 'Complication',
+  reprise_bloc: 'Reprise au bloc',
+  note: 'Note',
+  observation: 'Observation',
+  amelioration: 'Amélioration',
+}
+
+export const FOLLOWUP_EVENT_COLORS: Record<FollowupEventType, string> = {
+  complication: 'bg-orange-100 text-orange-700 border-orange-200',
+  reprise_bloc: 'bg-red-100 text-red-700 border-red-200',
+  note: 'bg-blue-100 text-blue-700 border-blue-200',
+  observation: 'bg-slate-100 text-slate-700 border-slate-200',
+  amelioration: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+}
+
+export const CAUSE_OF_DEATH_OPTIONS = [
+  'Arrêt cardiaque',
+  'Choc septique',
+  'Hémorragie',
+  'Embolie pulmonaire',
+  'Défaillance multi-organes',
+  'Complication anesthésique',
+  'Complication chirurgicale',
+  'Détresse respiratoire',
+  'Autre',
+] as const
 
 export const AGE_RANGE_LABELS: Record<AgeRange, string> = {
   '0-5': '0-5 ans',
@@ -424,5 +461,8 @@ export const NOTE_CATEGORIES = [
   'Pharmacologie',
   'Radiologie',
   'Anesthésie',
+  'Consignes',
+  'Divers',
+  'Personnel',
   'Autre',
 ] as const

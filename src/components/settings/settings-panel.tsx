@@ -1,14 +1,13 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import { User, Hospital, AlertTriangle, Trash2, Camera, Pencil, Check, X, Save, Globe } from 'lucide-react'
 import { deleteAccount } from '@/lib/actions/auth'
 import { updateProfile } from '@/lib/actions/admin'
 import { useI18n } from '@/lib/i18n/context'
 import type { Locale } from '@/lib/i18n/dictionaries'
-import type { Profile } from '@/types/database'
-import { DES_LEVEL_LABELS } from '@/types/database'
-import type { DesLevel } from '@/types/database'
+import type { Profile, DesLevel } from '@/types/database'
 
 interface SettingsPanelProps {
   profile: (Profile & { hospital?: { name: string } | null }) | null
@@ -21,7 +20,6 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
   const [deleteText, setDeleteText] = useState('')
   const [deleting, setDeleting] = useState(false)
 
-  // Édition du profil
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveResult, setSaveResult] = useState<{ error?: string; success?: boolean } | null>(null)
@@ -34,13 +32,14 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
     date_of_birth: profile?.date_of_birth || '',
   })
 
-  // Avatar
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const confirmWord = t('settings.deleteConfirmWord')
+
   const handleDelete = async () => {
-    if (deleteText !== 'SUPPRIMER') return
+    if (deleteText !== confirmWord) return
     setDeleting(true)
     await deleteAccount()
   }
@@ -68,18 +67,15 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Vérifier la taille (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      setSaveResult({ error: 'L\'image ne doit pas dépasser 2 Mo' })
+      setSaveResult({ error: t('settings.imageTooLarge') })
       return
     }
 
-    // Prévisualisation locale
     const reader = new FileReader()
     reader.onloadend = () => setAvatarPreview(reader.result as string)
     reader.readAsDataURL(file)
 
-    // Upload vers Supabase Storage via API
     setUploadingAvatar(true)
     try {
       const formData = new FormData()
@@ -95,38 +91,40 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
         setSaveResult({ success: true })
         setTimeout(() => setSaveResult(null), 3000)
       } else {
-        setSaveResult({ error: data.error || 'Erreur lors de l\'upload' })
+        setSaveResult({ error: data.error || t('settings.uploadError') })
       }
     } catch {
-      setSaveResult({ error: 'Erreur lors de l\'upload de l\'avatar' })
+      setSaveResult({ error: t('settings.uploadError') })
     }
     setUploadingAvatar(false)
   }
 
   const initials = `${profile?.first_name?.[0] || ''}${profile?.last_name?.[0] || ''}`.toUpperCase()
+  const dateLocale = locale === 'en' ? 'en-GB' : 'fr-FR'
 
   return (
     <div className="space-y-4">
-      {/* Feedback */}
       {saveResult && (
         <div className={`flex items-center gap-2 rounded-lg p-3 text-sm ${
           saveResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
         }`}>
           {saveResult.success ? <Check className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-          {saveResult.success ? 'Profil mis à jour avec succès !' : saveResult.error}
+          {saveResult.success ? t('settings.profileUpdated') : saveResult.error}
         </div>
       )}
 
       {/* Avatar + Nom */}
       <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
         <div className="flex items-center gap-4">
-          {/* Avatar */}
           <div className="relative">
             {avatarPreview ? (
-              <img
+              <Image
                 src={avatarPreview}
                 alt="Avatar"
+                width={64}
+                height={64}
                 className="h-16 w-16 rounded-full object-cover ring-2 ring-emerald-200"
+                unoptimized={avatarPreview.startsWith('data:')}
               />
             ) : (
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-xl font-bold text-white ring-2 ring-emerald-200">
@@ -137,7 +135,7 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingAvatar}
               className="absolute -bottom-1 -right-1 rounded-full bg-slate-700 p-1.5 text-white shadow-lg hover:bg-slate-600 disabled:opacity-50"
-              title="Changer la photo"
+              aria-label={t('settings.changePhoto')}
             >
               <Camera className="h-3 w-3" />
             </button>
@@ -157,7 +155,7 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
             <div className="mt-1 flex items-center gap-2">
               {profile?.des_level && (
                 <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                  {DES_LEVEL_LABELS[profile.des_level as DesLevel]}
+                  {t(`des.${profile.des_level}`)}
                 </span>
               )}
               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -180,15 +178,15 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
             }`}
           >
             {editing ? (
-              <span className="flex items-center gap-1"><X className="h-3 w-3" /> Annuler</span>
+              <span className="flex items-center gap-1"><X className="h-3 w-3" /> {t('common.cancel')}</span>
             ) : (
-              <span className="flex items-center gap-1"><Pencil className="h-3 w-3" /> Modifier</span>
+              <span className="flex items-center gap-1"><Pencil className="h-3 w-3" /> {t('common.edit')}</span>
             )}
           </button>
         </div>
 
         {uploadingAvatar && (
-          <p className="mt-2 text-xs text-emerald-600">Upload en cours...</p>
+          <p className="mt-2 text-xs text-emerald-600">{t('settings.uploading')}</p>
         )}
       </div>
 
@@ -196,14 +194,14 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
       <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
         <div className="mb-3 flex items-center gap-2">
           <User className="h-4 w-4 text-slate-500" />
-          <h3 className="text-sm font-semibold text-slate-700">Informations personnelles</h3>
+          <h3 className="text-sm font-semibold text-slate-700">{t('settings.profile')}</h3>
         </div>
 
         {editing ? (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Nom *</label>
+                <label className="mb-1 block text-xs font-medium text-slate-600">{t('settings.lastName')} *</label>
                 <input
                   value={form.last_name}
                   onChange={e => setForm(p => ({ ...p, last_name: e.target.value }))}
@@ -211,7 +209,7 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Prénom *</label>
+                <label className="mb-1 block text-xs font-medium text-slate-600">{t('settings.firstName')} *</label>
                 <input
                   value={form.first_name}
                   onChange={e => setForm(p => ({ ...p, first_name: e.target.value }))}
@@ -219,7 +217,7 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Téléphone</label>
+                <label className="mb-1 block text-xs font-medium text-slate-600">{t('settings.phone')}</label>
                 <input
                   value={form.phone}
                   onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
@@ -228,7 +226,7 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Date de naissance</label>
+                <label className="mb-1 block text-xs font-medium text-slate-600">{t('settings.dob')}</label>
                 <input
                   type="date"
                   value={form.date_of_birth}
@@ -237,28 +235,28 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Hôpital</label>
+                <label className="mb-1 block text-xs font-medium text-slate-600">{t('settings.hospital')}</label>
                 <select
                   value={form.hospital_id}
                   onChange={e => setForm(p => ({ ...p, hospital_id: e.target.value }))}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 >
-                  <option value="">— Sélectionner —</option>
+                  <option value="">{t('common.select')}</option>
                   {hospitals.map(h => (
                     <option key={h.id} value={h.id}>{h.name}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">Niveau DES</label>
+                <label className="mb-1 block text-xs font-medium text-slate-600">{t('settings.desLevel')}</label>
                 <select
                   value={form.des_level}
                   onChange={e => setForm(p => ({ ...p, des_level: e.target.value }))}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 >
-                  <option value="">— Non défini —</option>
-                  {(Object.entries(DES_LEVEL_LABELS) as [DesLevel, string][]).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
+                  <option value="">{t('settings.notDefined')}</option>
+                  {(['DES1', 'DES2', 'DES3', 'DES4', 'DES5'] as const).map((k) => (
+                    <option key={k} value={k}>{t(`des.${k}`)}</option>
                   ))}
                 </select>
               </div>
@@ -270,48 +268,48 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+              {saving ? t('settings.saving') : t('settings.saveChanges')}
             </button>
           </div>
         ) : (
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-slate-500">Nom</span>
+              <span className="text-slate-500">{t('settings.name')}</span>
               <span className="font-medium text-slate-900">{profile?.last_name} {profile?.first_name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Email</span>
+              <span className="text-slate-500">{t('settings.email')}</span>
               <span className="text-slate-700">{profile?.email}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Téléphone</span>
-              <span className="text-slate-700">{profile?.phone || '—'}</span>
+              <span className="text-slate-500">{t('settings.phone')}</span>
+              <span className="text-slate-700">{profile?.phone || t('settings.none')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Date de naissance</span>
+              <span className="text-slate-500">{t('settings.dob')}</span>
               <span className="text-slate-700">
                 {profile?.date_of_birth
-                  ? new Date(profile.date_of_birth).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-                  : '—'}
+                  ? new Date(profile.date_of_birth).toLocaleDateString(dateLocale, { day: 'numeric', month: 'long', year: 'numeric' })
+                  : t('settings.none')}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Niveau</span>
+              <span className="text-slate-500">{t('settings.level')}</span>
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                {profile?.des_level ? DES_LEVEL_LABELS[profile.des_level as DesLevel] : '—'}
+                {profile?.des_level ? t(`des.${profile.des_level}`) : t('settings.none')}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Rôle</span>
+              <span className="text-slate-500">{t('settings.role')}</span>
               <span className="text-slate-700">{profile?.role}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Hôpital</span>
-              <span className="text-slate-700">{profile?.hospital?.name || '—'}</span>
+              <span className="text-slate-500">{t('settings.hospital')}</span>
+              <span className="text-slate-700">{profile?.hospital?.name || t('settings.none')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Matricule</span>
-              <span className="font-mono text-xs text-slate-700">{profile?.matricule || '—'}</span>
+              <span className="text-slate-500">{t('settings.matricule')}</span>
+              <span className="font-mono text-xs text-slate-700">{profile?.matricule || t('settings.none')}</span>
             </div>
           </div>
         )}
@@ -330,7 +328,7 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
               locale === 'fr' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            🇫🇷 Français
+            <span className="mr-1.5 inline-block text-xs font-bold uppercase">FR</span> Français
           </button>
           <button
             onClick={() => setLocale('en')}
@@ -338,7 +336,7 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
               locale === 'en' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            🇬🇧 English
+            <span className="mr-1.5 inline-block text-xs font-bold uppercase">EN</span> English
           </button>
         </div>
       </div>
@@ -347,34 +345,34 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
       <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-red-200">
         <div className="mb-3 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-red-500" />
-          <h3 className="text-sm font-semibold text-red-700">Zone dangereuse</h3>
+          <h3 className="text-sm font-semibold text-red-700">{t('settings.dangerZone')}</h3>
         </div>
 
         {!showDeleteConfirm ? (
           <div>
             <p className="mb-3 text-xs text-slate-500">
-              La suppression de votre compte est irréversible. Toutes vos données (interventions, gardes, statistiques) seront définitivement désactivées.
+              {t('settings.deleteWarning')}
             </p>
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
             >
               <Trash2 className="h-4 w-4" />
-              Supprimer mon compte
+              {t('settings.deleteAccount')}
             </button>
           </div>
         ) : (
           <div className="space-y-3">
             <div className="rounded-lg bg-red-50 p-3">
               <p className="text-xs font-medium text-red-800">
-                Cette action est irréversible. Pour confirmer, tapez <strong>SUPPRIMER</strong> ci-dessous.
+                {t('settings.deleteConfirm')}
               </p>
             </div>
             <input
               type="text"
               value={deleteText}
               onChange={(e) => setDeleteText(e.target.value)}
-              placeholder="Tapez SUPPRIMER"
+              placeholder={t('settings.typeDelete')}
               className="w-full rounded-lg border border-red-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
             />
             <div className="flex gap-2">
@@ -382,14 +380,14 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
                 onClick={() => { setShowDeleteConfirm(false); setDeleteText('') }}
                 className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
               >
-                Annuler
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleDelete}
-                disabled={deleteText !== 'SUPPRIMER' || deleting}
+                disabled={deleteText !== confirmWord || deleting}
                 className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
               >
-                {deleting ? 'Suppression...' : 'Confirmer la suppression'}
+                {deleting ? t('settings.deleting') : t('settings.confirmDelete')}
               </button>
             </div>
           </div>

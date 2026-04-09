@@ -3,8 +3,8 @@
 import { useState, useTransition } from 'react'
 import { Building2, UserPlus, X, Search, Loader2, UserMinus, Users } from 'lucide-react'
 import { assignSeat, removeSeatAssignment, getSeatAssignments, searchUsersForSeat } from '@/lib/actions/admin'
-import { ROLE_LABELS, DES_LEVEL_LABELS } from '@/types/database'
 import type { UserRole, DesLevel } from '@/types/database'
+import { useI18n } from '@/lib/i18n/context'
 
 interface InstitutionalSeatRow {
   id: string
@@ -42,6 +42,7 @@ interface Props {
 }
 
 export function SeatsTab({ initialSeats }: Props) {
+  const { t } = useI18n()
   const [seats] = useState(initialSeats)
   const [selectedSeat, setSelectedSeat] = useState<string | null>(null)
   const [assignments, setAssignments] = useState<AssignmentRow[]>([])
@@ -78,7 +79,7 @@ export function SeatsTab({ initialSeats }: Props) {
       if (result.error) {
         setFeedback({ type: 'error', message: result.error })
       } else {
-        setFeedback({ type: 'success', message: 'Utilisateur assigné avec succès' })
+        setFeedback({ type: 'success', message: t('seats.userAssigned') })
         setShowSearch(false)
         setSearchQuery('')
         setSearchResults([])
@@ -98,7 +99,7 @@ export function SeatsTab({ initialSeats }: Props) {
       if (result.error) {
         setFeedback({ type: 'error', message: result.error })
       } else {
-        setFeedback({ type: 'success', message: 'Utilisateur retiré' })
+        setFeedback({ type: 'success', message: t('seats.userRemoved') })
         const data = await getSeatAssignments(selectedSeat)
         setAssignments(data)
       }
@@ -111,9 +112,9 @@ export function SeatsTab({ initialSeats }: Props) {
     return (
       <div className="rounded-xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
         <Building2 className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-        <p className="text-sm font-medium text-slate-600">Aucun abonnement institutionnel actif</p>
+        <p className="text-sm font-medium text-slate-600">{t('seats.noInstitutional')}</p>
         <p className="mt-1 text-xs text-slate-400">
-          Les sièges apparaîtront ici quand un hôpital souscrira au plan institutionnel
+          {t('seats.hint')}
         </p>
       </div>
     )
@@ -148,15 +149,15 @@ export function SeatsTab({ initialSeats }: Props) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-slate-900">
-                    {seat.hospital?.name || 'Hôpital non défini'}
+                    {seat.hospital?.name || t('seats.hospitalUndefined')}
                   </p>
                   <p className="text-xs text-slate-500">
-                    {seat.used_seats}/{seat.max_seats} postes occupés
+                    {t('seats.seatsOccupied', { used: seat.used_seats, max: seat.max_seats })}
                     {seat.subscription?.status && (
                       <span className={`ml-2 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
                         seat.subscription.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
                       }`}>
-                        {seat.subscription.status === 'active' ? 'Actif' : seat.subscription.status}
+                        {seat.subscription.status === 'active' ? t('admin.active') : seat.subscription.status}
                       </span>
                     )}
                   </p>
@@ -181,14 +182,14 @@ export function SeatsTab({ initialSeats }: Props) {
                   <div className="mb-3 flex items-center justify-between">
                     <h4 className="text-xs font-semibold text-slate-700">
                       <Users className="mr-1 inline h-3.5 w-3.5" />
-                      Postes assignés ({assignments.length})
+                      {t('seats.assigned')} ({assignments.length})
                     </h4>
                     <button
                       onClick={() => { setShowSearch(!showSearch); setSearchResults([]); setSearchQuery('') }}
                       className="flex items-center gap-1 rounded-lg bg-indigo-500 px-2.5 py-1.5 text-[10px] font-semibold text-white hover:bg-indigo-600"
                     >
                       {showSearch ? <X className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
-                      {showSearch ? 'Fermer' : 'Ajouter'}
+                      {showSearch ? t('seats.close') : t('seats.add')}
                     </button>
                   </div>
 
@@ -202,7 +203,7 @@ export function SeatsTab({ initialSeats }: Props) {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                            placeholder="Rechercher par nom ou email…"
+                            placeholder={t('seats.searchPlaceholder')}
                             className="w-full rounded-lg border border-slate-200 py-2 pl-8 pr-3 text-xs focus:border-indigo-300 focus:outline-none"
                           />
                         </div>
@@ -211,7 +212,7 @@ export function SeatsTab({ initialSeats }: Props) {
                           disabled={isPending}
                           className="rounded-lg bg-indigo-500 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-600 disabled:opacity-50"
                         >
-                          {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Chercher'}
+                          {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t('seats.search')}
                         </button>
                       </div>
 
@@ -222,8 +223,8 @@ export function SeatsTab({ initialSeats }: Props) {
                               <div>
                                 <p className="font-medium text-slate-800">{u.first_name} {u.last_name}</p>
                                 <p className="text-[10px] text-slate-400">
-                                  {u.email} · {ROLE_LABELS[u.role as UserRole]}
-                                  {u.des_level && ` · ${DES_LEVEL_LABELS[u.des_level as DesLevel]}`}
+                                  {u.email} · {t('userRole.' + u.role)}
+                                  {u.des_level && ` · ${t('des.' + u.des_level)}`}
                                 </p>
                               </div>
                               <button
@@ -231,7 +232,7 @@ export function SeatsTab({ initialSeats }: Props) {
                                 disabled={loadingAssign === u.id}
                                 className="rounded bg-indigo-100 px-2 py-1 text-[10px] font-semibold text-indigo-700 hover:bg-indigo-200 disabled:opacity-50"
                               >
-                                {loadingAssign === u.id ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Assigner'}
+                                {loadingAssign === u.id ? <Loader2 className="h-3 w-3 animate-spin" /> : t('seats.assign')}
                               </button>
                             </div>
                           ))}
@@ -239,7 +240,7 @@ export function SeatsTab({ initialSeats }: Props) {
                       )}
 
                       {searchResults.length === 0 && searchQuery && !isPending && (
-                        <p className="text-center text-[10px] text-slate-400">Aucun résultat</p>
+                        <p className="text-center text-[10px] text-slate-400">{t('seats.noResults')}</p>
                       )}
                     </div>
                   )}
@@ -250,7 +251,7 @@ export function SeatsTab({ initialSeats }: Props) {
                       <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
                     </div>
                   ) : assignments.length === 0 ? (
-                    <p className="text-center text-xs text-slate-400">Aucun poste assigné</p>
+                    <p className="text-center text-xs text-slate-400">{t('seats.noAssigned')}</p>
                   ) : (
                     <div className="space-y-1.5">
                       {assignments.map((a) => (
@@ -264,8 +265,8 @@ export function SeatsTab({ initialSeats }: Props) {
                             </p>
                             <p className="text-[10px] text-slate-400">
                               {a.user?.email}
-                              {a.user?.role && ` · ${ROLE_LABELS[a.user.role as UserRole]}`}
-                              {a.assigned_by_user && ` · ajouté par ${a.assigned_by_user.first_name} ${a.assigned_by_user.last_name}`}
+                              {a.user?.role && ` · ${t('userRole.' + a.user.role)}`}
+                              {a.assigned_by_user && ` · ${t('seats.addedBy')} ${a.assigned_by_user.first_name} ${a.assigned_by_user.last_name}`}
                             </p>
                           </div>
                           <button
@@ -273,7 +274,7 @@ export function SeatsTab({ initialSeats }: Props) {
                             disabled={isPending}
                             className="flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-[10px] font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
                           >
-                            <UserMinus className="h-3 w-3" /> Retirer
+                            <UserMinus className="h-3 w-3" /> {t('seats.remove')}
                           </button>
                         </div>
                       ))}
@@ -283,7 +284,7 @@ export function SeatsTab({ initialSeats }: Props) {
                   {/* Info capacité */}
                   {selectedSeatData && (
                     <div className="mt-3 text-center text-[10px] text-slate-400">
-                      {selectedSeatData.max_seats - selectedSeatData.used_seats} poste{selectedSeatData.max_seats - selectedSeatData.used_seats !== 1 ? 's' : ''} disponible{selectedSeatData.max_seats - selectedSeatData.used_seats !== 1 ? 's' : ''}
+                      {t('seats.available', { count: selectedSeatData.max_seats - selectedSeatData.used_seats })}
                     </div>
                   )}
                 </div>

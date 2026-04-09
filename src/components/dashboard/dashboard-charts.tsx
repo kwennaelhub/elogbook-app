@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts'
-import { OPERATOR_ROLE_LABELS } from '@/types/database'
 import { Building2, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/context'
 
 interface HospitalStat {
   name: string
@@ -31,33 +31,61 @@ const SPEC_COLORS = ['#3b82f6', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6', '#06
 const HOSPITAL_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899']
 
 export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalStats, topProcedures }: DashboardChartsProps) {
+  const { t, locale } = useI18n()
   const [expandedHospital, setExpandedHospital] = useState<string | null>(null)
 
+  // Locale-aware role labels mapping
+  const ROLE_LABEL_KEYS: Record<string, string> = {
+    observer: 'dashboard.observer',
+    assistant: 'dashboard.assistant',
+    supervised_operator: 'dashboard.operator',
+    autonomous_operator: 'dashboard.operator',
+  }
+
   const roleData = Object.entries(roleCounts).map(([key, value]) => ({
-    name: OPERATOR_ROLE_LABELS[key as keyof typeof OPERATOR_ROLE_LABELS] || key,
+    name: ROLE_LABEL_KEYS[key] ? t(ROLE_LABEL_KEYS[key]) : key,
     value,
   }))
+
+  // Re-format month labels with current locale (server sends fr-FR short months)
+  const localizedMonthlyData = useMemo(() => {
+    // Reconstruct locale-aware month labels for the last 6 months
+    const months: string[] = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date()
+      d.setMonth(d.getMonth() - i)
+      months.push(d.toLocaleDateString(locale === 'en' ? 'en-US' : 'fr-FR', { month: 'short' }))
+    }
+    return monthlyData.map((item, idx) => ({
+      ...item,
+      month: months[idx] ?? item.month,
+    }))
+  }, [monthlyData, locale])
 
   const specData = Object.entries(specCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 8)
     .map(([name, value]) => ({ name: name.length > 15 ? name.slice(0, 15) + '…' : name, value }))
 
+  const operatorLabel = t('dashboard.operatorLabel')
+  const assistantLabel = t('dashboard.assistantLabel')
+  const observerLabel = t('dashboard.observerLabel')
+
   const hospitalBarData = hospitalStats.slice(0, 7).map(h => ({
     name: h.name.length > 12 ? h.name.slice(0, 12) + '…' : h.name,
     fullName: h.name,
-    Opérateur: h.asOperator,
-    Assistant: h.asAssistant,
-    Observateur: h.asObserver,
+    [operatorLabel]: h.asOperator,
+    [assistantLabel]: h.asAssistant,
+    [observerLabel]: h.asObserver,
   }))
 
   return (
     <div className="space-y-4">
       {/* Évolution mensuelle */}
       <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-        <h3 className="mb-3 text-sm font-semibold text-slate-700">Évolution mensuelle</h3>
+        <h3 className="mb-3 text-sm font-semibold text-slate-700">{t('dashboard.monthlyEvolution')}</h3>
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={monthlyData}>
+          <BarChart data={localizedMonthlyData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis dataKey="month" tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
@@ -71,7 +99,7 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {roleData.length > 0 && (
           <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <h3 className="mb-3 text-sm font-semibold text-slate-700">Par rôle opératoire</h3>
+            <h3 className="mb-3 text-sm font-semibold text-slate-700">{t('dashboard.byRole')}</h3>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
@@ -96,7 +124,7 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
 
         {specData.length > 0 && (
           <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <h3 className="mb-3 text-sm font-semibold text-slate-700">Par spécialité</h3>
+            <h3 className="mb-3 text-sm font-semibold text-slate-700">{t('dashboard.bySpecialty')}</h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={specData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -119,7 +147,7 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
         <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
           <div className="mb-3 flex items-center gap-2">
             <Building2 className="h-4 w-4 text-slate-500" />
-            <h3 className="text-sm font-semibold text-slate-700">Interventions par hôpital</h3>
+            <h3 className="text-sm font-semibold text-slate-700">{t('dashboard.byHospital')}</h3>
           </div>
           <ResponsiveContainer width="100%" height={Math.max(150, hospitalBarData.length * 40)}>
             <BarChart data={hospitalBarData} layout="vertical">
@@ -128,9 +156,9 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
               <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} width={100} />
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: 10 }} />
-              <Bar dataKey="Opérateur" stackId="a" fill="#22c55e" />
-              <Bar dataKey="Assistant" stackId="a" fill="#f59e0b" />
-              <Bar dataKey="Observateur" stackId="a" fill="#8b5cf6" />
+              <Bar dataKey={operatorLabel} stackId="a" fill="#22c55e" />
+              <Bar dataKey={assistantLabel} stackId="a" fill="#f59e0b" />
+              <Bar dataKey={observerLabel} stackId="a" fill="#8b5cf6" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -141,7 +169,7 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
         <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
           <div className="mb-3 flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-slate-500" />
-            <h3 className="text-sm font-semibold text-slate-700">Où aller pour quoi ?</h3>
+            <h3 className="text-sm font-semibold text-slate-700">{t('dashboard.whereToGo')}</h3>
           </div>
           <p className="mb-3 text-xs text-slate-500">
             Basé sur vos données : cliquez sur un hôpital pour voir les détails.
@@ -187,15 +215,15 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
                       <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
                         <div className="rounded-lg bg-green-50 p-2">
                           <p className="font-bold text-green-700">{h.asOperator}</p>
-                          <p className="text-[10px] text-green-600">Opérateur</p>
+                          <p className="text-[10px] text-green-600">{operatorLabel}</p>
                         </div>
                         <div className="rounded-lg bg-amber-50 p-2">
                           <p className="font-bold text-amber-700">{h.asAssistant}</p>
-                          <p className="text-[10px] text-amber-600">Assistant</p>
+                          <p className="text-[10px] text-amber-600">{assistantLabel}</p>
                         </div>
                         <div className="rounded-lg bg-purple-50 p-2">
                           <p className="font-bold text-purple-700">{h.asObserver}</p>
-                          <p className="text-[10px] text-purple-600">Observateur</p>
+                          <p className="text-[10px] text-purple-600">{observerLabel}</p>
                         </div>
                       </div>
 
@@ -236,7 +264,7 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
       {/* Top procédures */}
       {topProcedures.length > 0 && (
         <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-          <h3 className="mb-3 text-sm font-semibold text-slate-700">Top interventions réalisées</h3>
+          <h3 className="mb-3 text-sm font-semibold text-slate-700">{t('dashboard.topProcedures')}</h3>
           <div className="space-y-1.5">
             {topProcedures.map((p, i) => {
               const maxCount = topProcedures[0].count
@@ -266,9 +294,9 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
       {/* Message si aucune donnée */}
       {Object.keys(roleCounts).length === 0 && hospitalStats.length === 0 && (
         <div className="rounded-xl bg-slate-50 p-6 text-center">
-          <p className="text-sm text-slate-500">Commencez à enregistrer vos interventions pour voir vos statistiques ici.</p>
+          <p className="text-sm text-slate-500">{t('dashboard.noData')}</p>
           <a href="/logbook" className="mt-2 inline-block text-sm font-medium text-emerald-600 hover:underline">
-            Ajouter une intervention
+            {t('dashboard.addEntry')}
           </a>
         </div>
       )}

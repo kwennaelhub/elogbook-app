@@ -5,12 +5,14 @@ import { Plus, Pin, Trash2, Edit3, X, Search, ChevronDown, Loader2, StickyNote }
 import { createNote, updateNote, deleteNote, togglePinNote } from '@/lib/actions/notes'
 import { NOTE_CATEGORIES } from '@/types/database'
 import type { Note } from '@/types/database'
+import { useI18n } from '@/lib/i18n/context'
 
 interface Props {
   initialNotes: Note[]
 }
 
 export function NotesPanel({ initialNotes }: Props) {
+  const { t, locale } = useI18n()
   const [notes] = useState(initialNotes)
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState<string | ''>('')
@@ -98,7 +100,7 @@ export function NotesPanel({ initialNotes }: Props) {
             <StickyNote className="h-5 w-5 text-amber-600" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900">Notes de cours</h1>
+            <h1 className="text-lg font-bold text-slate-900">{t('notes.title')}</h1>
             <p className="text-xs text-slate-500">{notes.length} note{notes.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
@@ -106,7 +108,7 @@ export function NotesPanel({ initialNotes }: Props) {
           onClick={() => openEditor()}
           className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-600"
         >
-          <Plus className="h-3.5 w-3.5" /> Nouvelle
+          <Plus className="h-3.5 w-3.5" /> {t('notes.new')}
         </button>
       </div>
 
@@ -126,7 +128,7 @@ export function NotesPanel({ initialNotes }: Props) {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher…"
+            placeholder={t('notes.search')}
             className="w-full rounded-lg border border-slate-200 py-2 pl-8 pr-3 text-xs focus:border-amber-300 focus:outline-none focus:ring-1 focus:ring-amber-200"
           />
         </div>
@@ -135,7 +137,7 @@ export function NotesPanel({ initialNotes }: Props) {
           onChange={(e) => setFilterCategory(e.target.value)}
           className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600 focus:border-amber-300 focus:outline-none"
         >
-          <option value="">Toutes</option>
+          <option value="">{t('notes.allCategories')}</option>
           {categories.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
@@ -146,10 +148,10 @@ export function NotesPanel({ initialNotes }: Props) {
       {filteredNotes.length === 0 ? (
         <div className="rounded-xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
           <p className="text-sm text-slate-500">
-            {notes.length === 0 ? 'Aucune note pour le moment' : 'Aucune note trouvée'}
+            {notes.length === 0 ? t('notes.noNotes') : t('notes.noResults')}
           </p>
           {notes.length === 0 && (
-            <p className="mt-1 text-xs text-slate-400">Créez votre première note de cours</p>
+            <p className="mt-1 text-xs text-slate-400">{t('notes.noNotesHint')}</p>
           )}
         </div>
       ) : (
@@ -170,7 +172,7 @@ export function NotesPanel({ initialNotes }: Props) {
                   <p className="truncate text-sm font-medium text-slate-900">{note.title}</p>
                   <p className="text-xs text-slate-500">
                     {note.category && <span className="mr-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium">{note.category}</span>}
-                    {new Date(note.updated_at).toLocaleDateString('fr-FR')}
+                    {new Date(note.updated_at).toLocaleDateString(locale === 'en' ? 'en-GB' : 'fr-FR')}
                   </p>
                 </div>
                 <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${expanded === note.id ? 'rotate-180' : ''}`} />
@@ -186,21 +188,21 @@ export function NotesPanel({ initialNotes }: Props) {
                       onClick={() => openEditor(note)}
                       className="flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
                     >
-                      <Edit3 className="h-3 w-3" /> Modifier
+                      <Edit3 className="h-3 w-3" /> {t('notes.edit')}
                     </button>
                     <button
                       onClick={() => handlePin(note.id, note.is_pinned)}
                       disabled={isPending}
                       className="flex items-center gap-1 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-600 hover:bg-amber-100 disabled:opacity-50"
                     >
-                      <Pin className="h-3 w-3" /> {note.is_pinned ? 'Désépingler' : 'Épingler'}
+                      <Pin className="h-3 w-3" /> {note.is_pinned ? t('notes.unpin') : t('notes.pin')}
                     </button>
                     <button
                       onClick={() => handleDelete(note.id)}
                       disabled={isPending}
                       className="flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
                     >
-                      <Trash2 className="h-3 w-3" /> Supprimer
+                      <Trash2 className="h-3 w-3" /> {t('notes.delete')}
                     </button>
                   </div>
                 </div>
@@ -216,7 +218,7 @@ export function NotesPanel({ initialNotes }: Props) {
           <div className="w-full max-w-md rounded-t-2xl bg-white p-6 shadow-xl sm:rounded-2xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-slate-900">
-                {editingNote ? 'Modifier la note' : 'Nouvelle note'}
+                {editingNote ? t('notes.editTitle') : t('notes.newTitle')}
               </h3>
               <button type="button" onClick={closeEditor}>
                 <X className="h-5 w-5 text-slate-400" />
@@ -225,7 +227,7 @@ export function NotesPanel({ initialNotes }: Props) {
 
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Titre</label>
+                <label className="mb-1 block text-sm font-medium text-slate-700">{t('notes.titleField')}</label>
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -235,13 +237,13 @@ export function NotesPanel({ initialNotes }: Props) {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Catégorie</label>
+                <label className="mb-1 block text-sm font-medium text-slate-700">{t('notes.category')}</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
                 >
-                  <option value="">— Sans catégorie —</option>
+                  <option value="">{t('notes.noCategory')}</option>
                   {NOTE_CATEGORIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
@@ -249,7 +251,7 @@ export function NotesPanel({ initialNotes }: Props) {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Contenu</label>
+                <label className="mb-1 block text-sm font-medium text-slate-700">{t('notes.content')}</label>
                 <textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
@@ -266,7 +268,7 @@ export function NotesPanel({ initialNotes }: Props) {
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500 py-2.5 text-sm font-medium text-white hover:bg-amber-600 disabled:opacity-50"
             >
               {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editingNote ? 'Enregistrer' : 'Créer la note'}
+              {editingNote ? t('notes.save') : t('notes.create')}
             </button>
           </div>
         </div>

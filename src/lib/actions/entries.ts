@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { entrySchema } from '@/lib/validations'
 import { ENTRY_MODE_THRESHOLD_HOURS } from '@/types/database'
+import { generateDeterministicPatientId } from '@/lib/actions/followups'
 
 export type EntryState = {
   error?: string
@@ -21,13 +22,14 @@ function determineEntryMode(interventionDate: string): 'prospective' | 'retrospe
 export async function createEntry(_prev: EntryState, formData: FormData): Promise<EntryState> {
   const raw = Object.fromEntries(formData)
 
-  // Convertir les champs numériques
+  // Convertir les champs numériques et booléens
   const data = {
     ...raw,
     geo_latitude: raw.geo_latitude ? Number(raw.geo_latitude) : undefined,
     geo_longitude: raw.geo_longitude ? Number(raw.geo_longitude) : undefined,
     geo_accuracy: raw.geo_accuracy ? Number(raw.geo_accuracy) : undefined,
     attestation_checked: raw.attestation_checked === 'true',
+    enable_followup: raw.enable_followup === 'true',
   }
 
   const parsed = entrySchema.safeParse(data)
@@ -48,7 +50,7 @@ export async function createEntry(_prev: EntryState, formData: FormData): Promis
 
   const now = new Date().toISOString()
 
-  const { error } = await supabase.from('entries').insert({
+  const { data: newEntry, error } = await supabase.from('entries').insert({
     user_id: user.id,
     intervention_date: parsed.data.intervention_date,
     submitted_at: now,
@@ -74,14 +76,37 @@ export async function createEntry(_prev: EntryState, formData: FormData): Promis
       ? `J'atteste sur l'honneur avoir été présent(e) sur site le ${parsed.data.intervention_date} en tant que ${parsed.data.operator_role}.`
       : null,
     attestation_at: entryMode === 'retrospective' ? now : null,
-  })
+  }).select('id').single()
 
   if (error) {
     return { error: 'Erreur lors de l\'enregistrement : ' + error.message }
   }
 
+  // Auto-création du suivi post-opératoire si demandé (Premium)
+  if (newEntry && parsed.data.enable_followup && parsed.data.patient_type === 'real') {
+    try {
+      const anonymousId = await generateDeterministicPatientId({
+        intervention_date: parsed.data.intervention_date,
+        hospital_id: parsed.data.hospital_id,
+        procedure_id: parsed.data.procedure_id || null,
+        supervisor_id: parsed.data.supervisor_id || null,
+      })
+
+      await supabase.from('patient_followups').insert({
+        user_id: user.id,
+        entry_id: newEntry.id,
+        anonymous_id: anonymousId,
+        intervention_date: parsed.data.intervention_date,
+        outcome: 'en_cours',
+      })
+    } catch {
+      // Le suivi échoue silencieusement — l'intervention est déjà sauvée
+    }
+  }
+
   revalidatePath('/logbook')
   revalidatePath('/dashboard')
+  revalidatePath('/followups')
   return { success: true }
 }
 
@@ -160,7 +185,7 @@ export async function rejectEntry(entryId: string, reason?: string) {
       is_validated: false,
       validated_at: new Date().toISOString(),
       validated_by: user.id,
-      notes: reason ? `[REJETÉ] ${reason}` : null,
+      notes: reason ? `[REJETÉ] ${reason.trim().slice(0, 500)}` : null,
     })
     .eq('id', entryId)
 
@@ -204,9 +229,14 @@ export async function getEntriesForSupervisor() {
   if (profile.role === 'supervisor') {
     // Superviseur : voit uniquement les entrées où il est assigné
     query = query.eq('supervisor_id', user.id)
-  } else if (profile.role === 'admin' && profile.hospital_id) {
-    // Admin : voit les entrées de son hôpital
+  } else if (profile.role === 'admin') {
+    if (!profile.hospital_id) {
+      // Admin sans hôpital : accès refusé (évite l'exposition de toutes les entrées)
+      return { pending: [], validated: [], rejected: [] }
+    }
     query = query.eq('hospital_id', profile.hospital_id)
+  } else if (profile.role !== 'superadmin' && profile.role !== 'developer') {
+    return { pending: [], validated: [], rejected: [] }
   }
   // superadmin/developer : voit tout (pas de filtre)
 
@@ -223,13 +253,16 @@ export async function getEntriesForSupervisor() {
 
 export async function deleteEntry(entryId: string) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Non authentifié' }
 
   const { error } = await supabase
     .from('entries')
     .delete()
     .eq('id', entryId)
+    .eq('user_id', user.id)
 
-  if (error) return { error: error.message }
+  if (error) return { error: 'Impossible de supprimer cette entrée' }
 
   revalidatePath('/logbook')
   revalidatePath('/dashboard')

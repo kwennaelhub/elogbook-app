@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "elogbook-app",
+      "runtimeExecutable": "/Users/kethzfagnon/.nvm/versions/node/v24.14.1/bin/npx",
+      "runtimeArgs": ["next", "dev", "--turbopack", "--port", "3000"],
+      "port": 3000
+    }
+  ]
+}
