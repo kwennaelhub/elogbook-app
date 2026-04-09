@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// API interne pour l'envoi d'emails de bienvenue
+// API interne pour l'envoi d'emails de bienvenue via Brevo API v3
 // Appelée automatiquement à l'inscription d'un nouvel utilisateur
 export async function POST(request: NextRequest) {
   try {
@@ -10,14 +10,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email et prénom requis' }, { status: 400 })
     }
 
-    // Utilise Resend, Brevo ou tout autre service email configuré
-    // Pour l'instant, on log l'email et on retourne un succès
-    // L'email de confirmation Supabase est déjà envoyé automatiquement
-    console.log(`[WELCOME EMAIL] → ${email} (${firstName})`)
+    const brevoApiKey = process.env.BREVO_API_KEY
+    if (!brevoApiKey) {
+      console.log(`[WELCOME EMAIL] Brevo non configuré — email logué : ${email} (${firstName})`)
+      return NextResponse.json({ success: true, message: 'Brevo non configuré, email logué' })
+    }
 
     // Template HTML de l'email de bienvenue
-    const htmlContent = `
-<!DOCTYPE html>
+    const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 <body>
   <div class="container">
     <div class="header">
-      <h1>🏥 InternLog</h1>
+      <h1>InternLog</h1>
       <p>Logbook Médical DES</p>
     </div>
     <div class="body">
@@ -51,17 +51,15 @@ export async function POST(request: NextRequest) {
       </p>
       <div class="features">
         <ul>
-          <li>📋 Enregistrez vos interventions (opérateur, assistant, observateur)</li>
-          <li>📊 Suivez votre progression vers les objectifs DES</li>
-          <li>📅 Gérez votre calendrier de gardes</li>
-          <li>📖 Accédez au référentiel médical (techniques, CRO, ordonnances)</li>
-          <li>📈 Dashboard avec statistiques et graphiques</li>
+          <li>Enregistrez vos interventions (opérateur, assistant, observateur)</li>
+          <li>Suivez votre progression vers les objectifs DES</li>
+          <li>Gérez votre calendrier de gardes</li>
+          <li>Accédez au référentiel médical (techniques, CRO, ordonnances)</li>
+          <li>Dashboard avec statistiques et graphiques</li>
         </ul>
       </div>
-      <p>
-        Connectez-vous dès maintenant pour commencer :
-      </p>
-      <a href="https://elogbook-app.vercel.app/login" class="cta">Se connecter →</a>
+      <p>Connectez-vous dès maintenant pour commencer :</p>
+      <a href="https://internlog.app/login" class="cta">Se connecter</a>
     </div>
     <div class="footer">
       <p>InternLog — Logbook Médical DES</p>
@@ -70,15 +68,52 @@ export async function POST(request: NextRequest) {
 </body>
 </html>`
 
-    // TODO: Intégrer avec un service d'email réel (Resend, Brevo, Nodemailer)
-    // Pour l'instant, l'email sera envoyé via Supabase Auth (confirmation d'email)
-    // Le template ci-dessus est prêt à être utilisé avec un service d'envoi
-
-    return NextResponse.json({
-      success: true,
-      message: 'Email de bienvenue préparé (en attente du service d\'envoi)',
+    // Envoi via Brevo API v3 (transactional email)
+    const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': brevoApiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: {
+          name: 'InternLog',
+          email: process.env.BREVO_SENDER_EMAIL || 'noreply@internlog.app',
+        },
+        to: [{ email, name: firstName }],
+        subject: `Bienvenue sur InternLog, ${firstName} !`,
+        htmlContent,
+      }),
     })
-  } catch {
+
+    if (!brevoRes.ok) {
+      const error = await brevoRes.text()
+      console.error(`[WELCOME EMAIL] Brevo error: ${error}`)
+      return NextResponse.json({ error: 'Erreur envoi email' }, { status: 500 })
+    }
+
+    const result = await brevoRes.json()
+    console.log(`[WELCOME EMAIL] Envoyé via Brevo → ${email} (messageId: ${result.messageId})`)
+
+    // Aussi créer le contact dans Brevo pour le CRM
+    await fetch('https://api.brevo.com/v3/contacts', {
+      method: 'POST',
+      headers: {
+        'api-key': brevoApiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        attributes: { PRENOM: firstName },
+        listIds: process.env.BREVO_LIST_ID ? [parseInt(process.env.BREVO_LIST_ID)] : [],
+        updateEnabled: true,
+      }),
+    }).catch((err) => console.error('[BREVO] Contact creation error:', err))
+
+    return NextResponse.json({ success: true, messageId: result.messageId })
+  } catch (error) {
+    console.error('[WELCOME EMAIL] Error:', error)
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }

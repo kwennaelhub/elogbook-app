@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Vous avez déjà un abonnement actif' }, { status: 400 })
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://elogbook-app.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://internlog.app'
 
     const { subscriptionId, approvalUrl } = await createSubscription(
       planId,
