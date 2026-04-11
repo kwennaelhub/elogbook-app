@@ -12,13 +12,11 @@ export async function POST(request: NextRequest) {
       headers[key] = value
     })
 
-    // Vérifier la signature du webhook en production
-    if (process.env.PAYPAL_MODE === 'live') {
-      const isValid = await verifyWebhookSignature(headers, body)
-      if (!isValid) {
-        console.error('[PayPal Webhook] Signature invalide')
-        return NextResponse.json({ error: 'Signature invalide' }, { status: 401 })
-      }
+    // Vérifier la signature du webhook (sandbox ET production)
+    const isValid = await verifyWebhookSignature(headers, body)
+    if (!isValid) {
+      console.error('[PayPal Webhook] Signature invalide')
+      return NextResponse.json({ error: 'Signature invalide' }, { status: 401 })
     }
 
     const event = JSON.parse(body)
