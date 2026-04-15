@@ -1,6 +1,18 @@
 User-agent: *
 Allow: /
+Allow: /login
+Allow: /register
+Allow: /adhesion
+Allow: /feedback
 Disallow: /api/
-Disallow: /admin/
+Disallow: /admin
+Disallow: /logbook
+Disallow: /calendar
+Disallow: /settings
+Disallow: /subscription
+Disallow: /notes
+Disallow: /followups
+Disallow: /templates
+Disallow: /reference
 
-Sitemap: https://elogbook.bj/sitemap.xml
+Sitemap: https://internlog.app/sitemap.xml
