@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/test-results
+/playwright-report
+/playwright/.cache
 
 # next.js
 /.next/
@@ -40,3 +43,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .vercel_backup/
+
+# local-only dev artifacts
+/backups
+/logos
+/design-inspiration*.html
+/supabase/migrations.backup
