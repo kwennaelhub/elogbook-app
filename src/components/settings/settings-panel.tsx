@@ -106,15 +106,15 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
     <div className="space-y-4">
       {saveResult && (
         <div className={`flex items-center gap-2 rounded-lg p-3 text-sm ${
-          saveResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+          saveResult.success ? 'bg-accent/10 text-accent' : 'bg-destructive/10 text-destructive'
         }`}>
           {saveResult.success ? <Check className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-          {saveResult.success ? t('settings.profileUpdated') : saveResult.error}
+          {saveResult.success ? t('settings.profileUpdated') : t(saveResult.error!)}
         </div>
       )}
 
       {/* Avatar + Nom */}
-      <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+      <div className="card-base">
         <div className="flex items-center gap-4">
           <div className="relative">
             {avatarPreview ? (
@@ -123,18 +123,18 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
                 alt="Avatar"
                 width={64}
                 height={64}
-                className="h-16 w-16 rounded-full object-cover ring-2 ring-emerald-200"
+                className="h-16 w-16 rounded-full object-cover ring-2 ring-primary/30"
                 unoptimized={avatarPreview.startsWith('data:')}
               />
             ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-xl font-bold text-white ring-2 ring-emerald-200">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl font-bold text-white ring-2 ring-primary/30">
                 {initials}
               </div>
             )}
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingAvatar}
-              className="absolute -bottom-1 -right-1 rounded-full bg-slate-700 p-1.5 text-white shadow-lg hover:bg-slate-600 disabled:opacity-50"
+              className="absolute -bottom-1 -right-1 rounded-full bg-foreground/80 p-1.5 text-white shadow-lg hover:bg-foreground/70 disabled:opacity-50"
               aria-label={t('settings.changePhoto')}
             >
               <Camera className="h-3 w-3" />
@@ -148,22 +148,22 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
             />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-slate-900">
+            <h3 className="text-lg font-semibold text-foreground">
               {profile?.last_name} {profile?.first_name}
             </h3>
-            <p className="text-sm text-slate-500">{profile?.email}</p>
+            <p className="text-sm text-muted-foreground">{profile?.email}</p>
             <div className="mt-1 flex items-center gap-2">
               {profile?.des_level && (
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                   {t(`des.${profile.des_level}`)}
                 </span>
               )}
               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                profile?.role === 'developer' ? 'bg-emerald-100 text-emerald-800' :
-                profile?.role === 'superadmin' ? 'bg-red-100 text-red-700' :
-                profile?.role === 'admin' ? 'bg-purple-100 text-purple-700' :
-                profile?.role === 'supervisor' ? 'bg-amber-100 text-amber-700' :
-                'bg-blue-100 text-blue-700'
+                profile?.role === 'developer' ? 'bg-primary/10 text-primary' :
+                profile?.role === 'superadmin' ? 'bg-destructive/15 text-destructive' :
+                profile?.role === 'admin' ? 'bg-purple-500/15 text-purple-400' :
+                profile?.role === 'supervisor' ? 'bg-amber-500/15 text-amber-400' :
+                'bg-primary/10 text-primary'
               }`}>
                 {profile?.role}
               </span>
@@ -173,8 +173,8 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
             onClick={() => setEditing(!editing)}
             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
               editing
-                ? 'bg-slate-200 text-slate-600'
-                : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                ? 'bg-secondary text-muted-foreground'
+                : 'bg-primary text-white hover:bg-primary/90'
             }`}
           >
             {editing ? (
@@ -186,60 +186,60 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
         </div>
 
         {uploadingAvatar && (
-          <p className="mt-2 text-xs text-emerald-600">{t('settings.uploading')}</p>
+          <p className="mt-2 text-xs text-primary">{t('settings.uploading')}</p>
         )}
       </div>
 
       {/* Informations du profil */}
-      <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+      <div className="card-base">
         <div className="mb-3 flex items-center gap-2">
-          <User className="h-4 w-4 text-slate-500" />
-          <h3 className="text-sm font-semibold text-slate-700">{t('settings.profile')}</h3>
+          <User className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-sm font-semibold text-foreground">{t('settings.profile')}</h3>
         </div>
 
         {editing ? (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">{t('settings.lastName')} *</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('settings.lastName')} *</label>
                 <input
                   value={form.last_name}
                   onChange={e => setForm(p => ({ ...p, last_name: e.target.value }))}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">{t('settings.firstName')} *</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('settings.firstName')} *</label>
                 <input
                   value={form.first_name}
                   onChange={e => setForm(p => ({ ...p, first_name: e.target.value }))}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">{t('settings.phone')}</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('settings.phone')}</label>
                 <input
                   value={form.phone}
                   onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
                   placeholder="+229 XX XX XX XX"
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">{t('settings.dob')}</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('settings.dob')}</label>
                 <input
                   type="date"
                   value={form.date_of_birth}
                   onChange={e => setForm(p => ({ ...p, date_of_birth: e.target.value }))}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">{t('settings.hospital')}</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('settings.hospital')}</label>
                 <select
                   value={form.hospital_id}
                   onChange={e => setForm(p => ({ ...p, hospital_id: e.target.value }))}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
                   <option value="">{t('common.select')}</option>
                   {hospitals.map(h => (
@@ -248,11 +248,11 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">{t('settings.desLevel')}</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('settings.desLevel')}</label>
                 <select
                   value={form.des_level}
                   onChange={e => setForm(p => ({ ...p, des_level: e.target.value }))}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
                   <option value="">{t('settings.notDefined')}</option>
                   {(['DES1', 'DES2', 'DES3', 'DES4', 'DES5'] as const).map((k) => (
@@ -265,7 +265,7 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
             <button
               onClick={handleSave}
               disabled={saving || !form.first_name || !form.last_name}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
               {saving ? t('settings.saving') : t('settings.saveChanges')}
@@ -274,58 +274,58 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
         ) : (
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-slate-500">{t('settings.name')}</span>
-              <span className="font-medium text-slate-900">{profile?.last_name} {profile?.first_name}</span>
+              <span className="text-muted-foreground">{t('settings.name')}</span>
+              <span className="font-medium text-foreground">{profile?.last_name} {profile?.first_name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">{t('settings.email')}</span>
-              <span className="text-slate-700">{profile?.email}</span>
+              <span className="text-muted-foreground">{t('settings.email')}</span>
+              <span className="text-foreground">{profile?.email}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">{t('settings.phone')}</span>
-              <span className="text-slate-700">{profile?.phone || t('settings.none')}</span>
+              <span className="text-muted-foreground">{t('settings.phone')}</span>
+              <span className="text-foreground">{profile?.phone || t('settings.none')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">{t('settings.dob')}</span>
-              <span className="text-slate-700">
+              <span className="text-muted-foreground">{t('settings.dob')}</span>
+              <span className="text-foreground">
                 {profile?.date_of_birth
                   ? new Date(profile.date_of_birth).toLocaleDateString(dateLocale, { day: 'numeric', month: 'long', year: 'numeric' })
                   : t('settings.none')}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">{t('settings.level')}</span>
-              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+              <span className="text-muted-foreground">{t('settings.level')}</span>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                 {profile?.des_level ? t(`des.${profile.des_level}`) : t('settings.none')}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">{t('settings.role')}</span>
-              <span className="text-slate-700">{profile?.role}</span>
+              <span className="text-muted-foreground">{t('settings.role')}</span>
+              <span className="text-foreground">{profile?.role}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">{t('settings.hospital')}</span>
-              <span className="text-slate-700">{profile?.hospital?.name || t('settings.none')}</span>
+              <span className="text-muted-foreground">{t('settings.hospital')}</span>
+              <span className="text-foreground">{profile?.hospital?.name || t('settings.none')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">{t('settings.matricule')}</span>
-              <span className="font-mono text-xs text-slate-700">{profile?.matricule || t('settings.none')}</span>
+              <span className="text-muted-foreground">{t('settings.matricule')}</span>
+              <span className="font-mono text-xs text-foreground">{profile?.matricule || t('settings.none')}</span>
             </div>
           </div>
         )}
       </div>
 
       {/* Langue */}
-      <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+      <div className="card-base">
         <div className="mb-3 flex items-center gap-2">
           <Globe className="h-4 w-4 text-blue-500" />
-          <h3 className="text-sm font-semibold text-slate-800">{t('settings.language')}</h3>
+          <h3 className="text-sm font-semibold text-foreground">{t('settings.language')}</h3>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setLocale('fr')}
             className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-              locale === 'fr' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              locale === 'fr' ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground hover:bg-secondary'
             }`}
           >
             <span className="mr-1.5 inline-block text-xs font-bold uppercase">FR</span> Français
@@ -333,7 +333,7 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
           <button
             onClick={() => setLocale('en')}
             className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-              locale === 'en' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              locale === 'en' ? 'bg-primary text-white' : 'bg-secondary text-muted-foreground hover:bg-secondary'
             }`}
           >
             <span className="mr-1.5 inline-block text-xs font-bold uppercase">EN</span> English
@@ -342,20 +342,20 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
       </div>
 
       {/* Zone dangereuse */}
-      <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-red-200">
+      <div className="rounded-xl bg-card p-4 shadow-sm ring-1 ring-destructive/30">
         <div className="mb-3 flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-red-500" />
-          <h3 className="text-sm font-semibold text-red-700">{t('settings.dangerZone')}</h3>
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+          <h3 className="text-sm font-semibold text-destructive">{t('settings.dangerZone')}</h3>
         </div>
 
         {!showDeleteConfirm ? (
           <div>
-            <p className="mb-3 text-xs text-slate-500">
+            <p className="mb-3 text-xs text-muted-foreground">
               {t('settings.deleteWarning')}
             </p>
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+              className="flex items-center gap-2 rounded-lg border border-destructive/30 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
             >
               <Trash2 className="h-4 w-4" />
               {t('settings.deleteAccount')}
@@ -363,8 +363,8 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="rounded-lg bg-red-50 p-3">
-              <p className="text-xs font-medium text-red-800">
+            <div className="rounded-lg bg-destructive/10 p-3">
+              <p className="text-xs font-medium text-destructive">
                 {t('settings.deleteConfirm')}
               </p>
             </div>
@@ -373,19 +373,19 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
               value={deleteText}
               onChange={(e) => setDeleteText(e.target.value)}
               placeholder={t('settings.typeDelete')}
-              className="w-full rounded-lg border border-red-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+              className="w-full rounded-lg border border-destructive/40 bg-card px-3 py-2 text-sm text-foreground focus:border-destructive focus:outline-none focus:ring-2 focus:ring-destructive/20"
             />
             <div className="flex gap-2">
               <button
                 onClick={() => { setShowDeleteConfirm(false); setDeleteText('') }}
-                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                className="flex-1 rounded-lg border border-input px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary/50"
               >
                 {t('common.cancel')}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleteText !== confirmWord || deleting}
-                className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                className="flex-1 rounded-lg bg-destructive px-3 py-2 text-sm font-medium text-white hover:bg-destructive/90 disabled:opacity-50"
               >
                 {deleting ? t('settings.deleting') : t('settings.confirmDelete')}
               </button>

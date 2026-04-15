@@ -49,7 +49,7 @@ export default async function TemplatesPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-4">
-      <h2 className="mb-4 text-lg font-semibold text-slate-900">{t('templates.pageTitle')}</h2>
+      <h2 className="mb-4 text-lg font-semibold text-foreground">{t('templates.pageTitle')}</h2>
       <TemplatesTabs
         croTemplates={croTemplates ?? []}
         prescriptionTemplates={prescriptionTemplates ?? []}

@@ -2,7 +2,7 @@ export default function CookiesPage() {
   return (
     <article className="prose prose-slate prose-sm max-w-none">
       <h1>Politique des cookies</h1>
-      <p className="text-sm text-slate-500">Dernière mise à jour : 09 avril 2026</p>
+      <p className="text-sm text-muted-foreground">Dernière mise à jour : 09 avril 2026</p>
 
       <h2>1. Qu&apos;est-ce qu&apos;un cookie ?</h2>
       <p>

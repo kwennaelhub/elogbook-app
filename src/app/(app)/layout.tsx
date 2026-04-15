@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { BottomNav } from '@/components/ui/bottom-nav'
 import { AppHeader } from '@/components/ui/app-header'
+import { AppSidebar } from '@/components/ui/app-sidebar'
 import { I18nProvider } from '@/lib/i18n/context'
 import type { Locale } from '@/lib/i18n/dictionaries'
 
@@ -81,12 +82,19 @@ export default async function AppLayout({
 
   return (
     <I18nProvider initialLocale={locale}>
-      <div className="flex min-h-full flex-col bg-slate-50 pb-16">
-        <AppHeader profile={profile} otherSessionsCount={sessionCount > 1 ? sessionCount - 1 : 0} />
-        <main className="flex-1 pb-4">
-          {children}
-        </main>
-        <BottomNav />
+      <div className="flex min-h-full bg-background">
+        {/* Sidebar desktop — masqué sur mobile */}
+        <AppSidebar profile={profile} />
+
+        {/* Zone principale : header + contenu */}
+        <div className="flex min-h-full flex-1 flex-col pb-16 lg:pb-0">
+          <AppHeader profile={profile} otherSessionsCount={sessionCount > 1 ? sessionCount - 1 : 0} />
+          <main className="flex-1 pb-4">
+            {children}
+          </main>
+          {/* Bottom nav mobile — masqué sur desktop */}
+          <BottomNav />
+        </div>
       </div>
     </I18nProvider>
   )

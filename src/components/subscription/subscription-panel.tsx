@@ -81,44 +81,44 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
     <div className="mx-auto max-w-2xl px-4 py-6">
       {/* Message de statut post-paiement */}
       {paymentStatus === 'success' && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">
+        <div className="mb-6 flex items-center gap-3 rounded-xl bg-primary/10 p-4 text-sm text-primary">
           <Check className="h-5 w-5 flex-shrink-0" />
           <div>
             <p className="font-semibold">{t('subscription.paymentProcessing')}</p>
-            <p className="text-emerald-600">{t('subscription.paymentProcessingDesc')}</p>
+            <p className="text-primary">{t('subscription.paymentProcessingDesc')}</p>
           </div>
         </div>
       )}
 
       {paymentStatus === 'cancelled' && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
+        <div className="mb-6 flex items-center gap-3 rounded-xl bg-amber-500/10 p-4 text-sm text-amber-300 ring-1 ring-amber-500/20">
           <AlertCircle className="h-5 w-5 flex-shrink-0" />
           <p>{t('subscription.paymentCancelled')}</p>
         </div>
       )}
 
       {error && (
-        <div className="mb-6 flex items-center gap-3 rounded-xl bg-red-50 p-4 text-sm text-red-800">
+        <div className="mb-6 flex items-center gap-3 rounded-xl bg-destructive/10 p-4 text-sm text-destructive ring-1 ring-destructive/20">
           <X className="h-5 w-5 flex-shrink-0" />
-          <p>{error}</p>
+          <p>{t(error)}</p>
         </div>
       )}
 
       {/* Abonnement actuel (premium ou institutionnel uniquement) */}
       {subscription?.status === 'active' && currentPlan !== 'free' && (
-        <div className="mb-6 rounded-xl border-2 border-emerald-200 bg-emerald-50 p-5">
+        <div className="mb-6 rounded-xl border-2 border-primary/20 bg-primary/10 p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {currentPlan === 'institutional' ? (
-                <Building2 className="h-6 w-6 text-emerald-600" />
+                <Building2 className="h-6 w-6 text-primary" />
               ) : (
-                <Crown className="h-6 w-6 text-emerald-600" />
+                <Crown className="h-6 w-6 text-primary" />
               )}
               <div>
-                <h3 className="font-bold text-emerald-900">
+                <h3 className="font-bold text-primary">
                   {t('subscription.planActive', { plan: currentPlan === 'premium' ? 'Premium' : 'Institutionnel' })}
                 </h3>
-                <p className="text-sm text-emerald-700">
+                <p className="text-sm text-primary">
                   {SUBSCRIPTION_PRICES[currentPlan].label} · {t('subscription.since')}{' '}
                   {new Date(subscription.starts_at).toLocaleDateString(locale === 'en' ? 'en-GB' : 'fr-FR')}
                 </p>
@@ -127,7 +127,7 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
             <button
               onClick={handleCancel}
               disabled={cancelling}
-              className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-red-600 shadow-sm ring-1 ring-red-200 transition-colors hover:bg-red-50"
+              className="rounded-lg bg-card px-3 py-1.5 text-xs font-medium text-destructive shadow-sm ring-1 ring-red-200 transition-colors hover:bg-destructive/10"
             >
               {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : t('subscription.cancel')}
             </button>
@@ -137,8 +137,8 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
 
       {/* En-tête */}
       <div className="mb-6 text-center">
-        <h1 className="text-xl font-bold text-slate-900">{t('subscription.title')}</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-xl font-bold text-foreground">{t('subscription.title')}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           {t('subscription.subtitle')}
         </p>
       </div>
@@ -152,7 +152,7 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
           priceFcfa="Gratuit"
           features={SUBSCRIPTION_FEATURES.free}
           isCurrent={currentPlan === 'free'}
-          icon={<Zap className="h-5 w-5 text-slate-400" />}
+          icon={<Zap className="h-5 w-5 text-muted-foreground" />}
           color="slate"
           t={t}
         />
@@ -191,7 +191,7 @@ export function SubscriptionPanel({ profile, subscription, paymentStatus }: Prop
 
       {/* FAQ rapide */}
       <div className="mt-8 space-y-3">
-        <h2 className="text-sm font-bold text-slate-700">{t('subscription.faq')}</h2>
+        <h2 className="text-sm font-bold text-foreground">{t('subscription.faq')}</h2>
         <FaqItem
           q="Comment fonctionne le paiement ?"
           a="Le paiement est sécurisé via PayPal. Vous pouvez payer par carte bancaire ou compte PayPal. L'abonnement est mensuel et renouvelé automatiquement."
@@ -241,10 +241,10 @@ function PlanCard({
   t: (key: string, params?: Record<string, string | number>) => string
 }) {
   const borderColor = isCurrent
-    ? 'border-emerald-300 bg-emerald-50/50'
+    ? 'border-primary/30 bg-primary/10'
     : isRecommended
-      ? 'border-amber-200 bg-white'
-      : 'border-slate-200 bg-white'
+      ? 'border-amber-500/30 bg-card'
+      : 'border-border bg-card'
 
   return (
     <div className={`relative rounded-xl border-2 p-5 ${borderColor}`}>
@@ -258,16 +258,16 @@ function PlanCard({
         <div className="flex items-center gap-3">
           {icon}
           <div>
-            <h3 className="font-bold text-slate-900">{name}</h3>
+            <h3 className="font-bold text-foreground">{name}</h3>
             <div className="flex items-baseline gap-2">
-              <span className="text-lg font-bold text-slate-900">{price}</span>
-              <span className="text-xs text-slate-400">{priceFcfa}</span>
+              <span className="text-lg font-bold text-foreground">{price}</span>
+              <span className="text-xs text-muted-foreground">{priceFcfa}</span>
             </div>
           </div>
         </div>
 
         {isCurrent && (
-          <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
             {t('subscription.active')}
           </span>
         )}
@@ -275,10 +275,10 @@ function PlanCard({
 
       <ul className="mt-4 space-y-2">
         {features.map((feature) => (
-          <li key={feature} className="flex items-start gap-2 text-sm text-slate-600">
+          <li key={feature} className="flex items-start gap-2 text-sm text-muted-foreground">
             <Check className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
               color === 'amber' ? 'text-amber-500' :
-              color === 'blue' ? 'text-blue-500' : 'text-slate-400'
+              color === 'blue' ? 'text-blue-500' : 'text-muted-foreground'
             }`} />
             {feature}
           </li>
@@ -292,7 +292,7 @@ function PlanCard({
           className={`mt-4 w-full rounded-lg py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 ${
             color === 'amber'
               ? 'bg-amber-500 text-white hover:bg-amber-600'
-              : 'bg-emerald-600 text-white hover:bg-emerald-700'
+              : 'bg-primary text-white hover:bg-primary/90'
           }`}
         >
           {loading ? (
@@ -311,11 +311,11 @@ function PlanCard({
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   return (
-    <details className="group rounded-lg bg-slate-50 px-4 py-3">
-      <summary className="cursor-pointer text-sm font-medium text-slate-700 group-open:mb-2">
+    <details className="group rounded-lg bg-secondary/50 px-4 py-3">
+      <summary className="cursor-pointer text-sm font-medium text-foreground group-open:mb-2">
         {q}
       </summary>
-      <p className="text-xs text-slate-500 leading-relaxed">{a}</p>
+      <p className="text-xs text-muted-foreground leading-relaxed">{a}</p>
     </details>
   )
 }

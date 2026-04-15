@@ -164,7 +164,7 @@ export function TemplatesTabs({
   return (
     <div>
       {/* Tabs scrollables */}
-      <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1">
+      <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl bg-secondary p-1">
         {TABS.map((tab) => {
           const Icon = tab.icon
           return (
@@ -173,8 +173,8 @@ export function TemplatesTabs({
               onClick={() => { setActiveTab(tab.id); setSelectedId(null); setShowAddForm(false); resetForm() }}
               className={`flex flex-shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
                 activeTab === tab.id
-                  ? 'bg-white text-emerald-600 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
+                  ? 'bg-white text-primary shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -189,7 +189,7 @@ export function TemplatesTabs({
         <div className="mb-3 flex justify-end">
           <button
             onClick={() => { setShowAddForm(!showAddForm); setAddResult(null) }}
-            className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+            className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90"
           >
             {showAddForm ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
             {showAddForm ? t('templates.close') : t('templates.add')}
@@ -199,34 +199,34 @@ export function TemplatesTabs({
 
       {/* Formulaire d'ajout */}
       {isAdmin && showAddForm && (
-        <div className="mb-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-          <h3 className="mb-3 text-sm font-semibold text-slate-900">
+        <div className="mb-4 card-base">
+          <h3 className="mb-3 text-sm font-semibold text-foreground">
             {activeTab === 'techniques' ? t('templates.addTechnique') : activeTab === 'instruments' ? t('templates.addInstrument') : t('templates.addTemplate', { label: t(TABS.find(tb => tb.id === activeTab)?.labelKey || '') })}
           </h3>
 
-          {addResult?.error && <div className="mb-3 rounded-lg bg-red-50 p-2 text-xs text-red-700">{addResult.error}</div>}
-          {addResult?.success && <div className="mb-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-700">{t('templates.submittedSuccess')}</div>}
+          {addResult?.error && <div className="mb-3 rounded-lg bg-destructive/10 p-2 text-xs text-destructive">{t(addResult.error)}</div>}
+          {addResult?.success && <div className="mb-3 rounded-lg bg-amber-500/10 p-2 text-xs text-amber-400">{t('templates.submittedSuccess')}</div>}
 
           <div className="space-y-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
                 {activeTab === 'instruments' ? t('templates.instrumentName') : t('templates.title')} *
               </label>
               <input
                 value={formTitle}
                 onChange={e => setFormTitle(e.target.value)}
                 placeholder={activeTab === 'techniques' ? 'Ex: Appendicectomie par voie de McBurney' : activeTab === 'instruments' ? 'Ex: Bistouri n°11' : 'Titre...'}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none"
               />
             </div>
 
             {activeTab !== 'instruments' && (
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">{t('templates.specialty')}</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('templates.specialty')}</label>
                 <select
                   value={formSpecialty}
                   onChange={e => setFormSpecialty(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none"
                 >
                   <option value="">{t('templates.allSpecialties')}</option>
                   {specialties.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -237,11 +237,11 @@ export function TemplatesTabs({
             {activeTab === 'instruments' && (
               <>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">{t('templates.category')} *</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('templates.category')} *</label>
                   <select
                     value={formCategory}
                     onChange={e => setFormCategory(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none"
                   >
                     {INSTRUMENT_CATEGORY_KEYS.map((k) => (
                       <option key={k} value={k}>{t(`templates.cat.${k}`)}</option>
@@ -249,12 +249,12 @@ export function TemplatesTabs({
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">{t('templates.description')}</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('templates.description')}</label>
                   <textarea
                     value={formDescription}
                     onChange={e => setFormDescription(e.target.value)}
                     rows={2}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none"
                   />
                 </div>
               </>
@@ -263,31 +263,31 @@ export function TemplatesTabs({
             {activeTab === 'techniques' && (
               <>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">{t('templates.steps')} * ({t('templates.stepsHint')})</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('templates.steps')} * ({t('templates.stepsHint')})</label>
                   <textarea
                     value={formSteps}
                     onChange={e => setFormSteps(e.target.value)}
                     rows={6}
                     placeholder={"1. Installation du patient\n2. Asepsie et champs\n3. Incision de McBurney\n4. Ouverture plan par plan\n5. Ligature du méso-appendice\n6. Section de l'appendice\n7. Fermeture plan par plan"}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono focus:border-emerald-500 focus:outline-none"
+                    className="w-full rounded-lg border border-input px-3 py-2 text-sm font-mono focus:border-primary focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">{t('templates.tips')}</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('templates.tips')}</label>
                   <textarea
                     value={formTips}
                     onChange={e => setFormTips(e.target.value)}
                     rows={2}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">{t('templates.contraindications')}</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('templates.contraindications')}</label>
                   <textarea
                     value={formContra}
                     onChange={e => setFormContra(e.target.value)}
                     rows={2}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none"
                   />
                 </div>
               </>
@@ -295,7 +295,7 @@ export function TemplatesTabs({
 
             {['cro', 'prescriptions', 'preop'].includes(activeTab) && (
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
                   {activeTab === 'cro' ? t('templates.contentCro') : t('templates.contentKeyValue')}
                 </label>
                 <textarea
@@ -307,7 +307,7 @@ export function TemplatesTabs({
                       ? "Indication\nDétails de l'indication...\n\nTechnique opératoire\nDescription de la technique..."
                       : "Élément 1: Détail\nÉlément 2: Détail"
                   }
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-input px-3 py-2 text-sm font-mono focus:border-primary focus:outline-none"
                 />
               </div>
             )}
@@ -315,7 +315,7 @@ export function TemplatesTabs({
             <button
               onClick={handleAdd}
               disabled={addLoading || !formTitle}
-              className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
             >
               {addLoading ? t('templates.saving') : t('templates.save')}
             </button>
@@ -327,21 +327,21 @@ export function TemplatesTabs({
       {activeTab === 'techniques' && (
         <div className="space-y-2">
           {techniques.length === 0 ? (
-            <div className="rounded-xl bg-slate-50 py-12 text-center">
-              <Stethoscope className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-              <p className="text-sm text-slate-400">{t('templates.noTechniques')}</p>
-              {isAdmin && <p className="mt-1 text-xs text-slate-400">{t('templates.useAddButton')}</p>}
+            <div className="rounded-xl bg-secondary/50 py-12 text-center">
+              <Stethoscope className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">{t('templates.noTechniques')}</p>
+              {isAdmin && <p className="mt-1 text-xs text-muted-foreground">{t('templates.useAddButton')}</p>}
             </div>
           ) : (
             techniques.map((tech) => (
-              <div key={tech.id} className={`overflow-hidden rounded-xl bg-white shadow-sm ring-1 ${tech.status === 'pending' ? 'ring-amber-300' : tech.status === 'rejected' ? 'ring-red-300' : 'ring-slate-200'}`}>
+              <div key={tech.id} className={`overflow-hidden rounded-xl bg-card shadow-sm border border-border/60 ring-0 ${tech.status === 'pending' ? 'ring-amber-300' : tech.status === 'rejected' ? 'ring-red-300' : 'ring-border'}`}>
                 <button
                   type="button"
                   onClick={() => setSelectedId(selectedId === tech.id ? null : tech.id)}
-                  className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-slate-50"
+                  className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-secondary/50"
                 >
                   <div>
-                    <p className="text-sm font-medium text-slate-900">
+                    <p className="text-sm font-medium text-foreground">
                       {tech.title}
                       {isAdmin && tech.status && tech.status !== 'approved' && (
                         <StatusBadge status={tech.status} t={t} />
@@ -349,39 +349,39 @@ export function TemplatesTabs({
                     </p>
                     <div className="mt-0.5 flex gap-1.5">
                       {tech.specialty && (
-                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                           {(tech.specialty as { name: string }).name}
                         </span>
                       )}
                       {tech.procedure && (
-                        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                        <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-medium text-blue-400">
                           {(tech.procedure as { name: string }).name}
                         </span>
                       )}
                     </div>
                   </div>
-                  {selectedId === tech.id ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+                  {selectedId === tech.id ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                 </button>
                 {selectedId === tech.id && (
-                  <div className="border-t border-slate-100 px-4 py-3">
+                  <div className="border-t border-border/60 px-4 py-3">
                     <div className="mb-3">
-                      <p className="mb-1 text-[10px] font-semibold uppercase text-slate-400">{t('templates.stepsLabel')}</p>
-                      <ol className="list-decimal space-y-1 pl-4 text-xs text-slate-700">
+                      <p className="mb-1 text-[10px] font-semibold uppercase text-muted-foreground">{t('templates.stepsLabel')}</p>
+                      <ol className="list-decimal space-y-1 pl-4 text-xs text-foreground">
                         {tech.steps.map((step, i) => (
                           <li key={i} className="leading-relaxed">{step}</li>
                         ))}
                       </ol>
                     </div>
                     {tech.tips && (
-                      <div className="mb-2 rounded-lg bg-amber-50 p-2">
-                        <p className="text-[10px] font-semibold text-amber-700">{t('templates.tipsLabel')}</p>
-                        <p className="text-xs text-amber-800">{tech.tips}</p>
+                      <div className="mb-2 rounded-lg bg-amber-500/10 p-2 ring-1 ring-amber-500/20">
+                        <p className="text-[10px] font-semibold text-amber-400">{t('templates.tipsLabel')}</p>
+                        <p className="text-xs text-amber-300">{tech.tips}</p>
                       </div>
                     )}
                     {tech.contraindications && (
-                      <div className="mb-2 rounded-lg bg-red-50 p-2">
-                        <p className="text-[10px] font-semibold text-red-700">{t('templates.contraindicationsLabel')}</p>
-                        <p className="text-xs text-red-800">{tech.contraindications}</p>
+                      <div className="mb-2 rounded-lg bg-destructive/10 p-2 ring-1 ring-destructive/20">
+                        <p className="text-[10px] font-semibold text-destructive">{t('templates.contraindicationsLabel')}</p>
+                        <p className="text-xs text-destructive">{tech.contraindications}</p>
                       </div>
                     )}
                     {isAdmin && tech.status === 'pending' && (
@@ -444,30 +444,30 @@ export function TemplatesTabs({
             if (catInstruments.length === 0) return null
             return (
               <div key={key}>
-                <h3 className="mb-2 text-sm font-semibold text-slate-700">{t(`templates.cat.${key}`)}</h3>
+                <h3 className="mb-2 text-sm font-semibold text-foreground">{t(`templates.cat.${key}`)}</h3>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {catInstruments.map((inst) => {
                     const instStatus = (inst as unknown as Record<string, unknown>).status as string | undefined
                     return (
-                      <div key={inst.id} className={`rounded-xl bg-white p-3 shadow-sm ring-1 ${instStatus === 'pending' ? 'ring-amber-300' : 'ring-slate-200'}`}>
+                      <div key={inst.id} className={`rounded-xl bg-card p-3 shadow-sm ring-1 ${instStatus === 'pending' ? 'ring-amber-500/40' : 'ring-border'}`}>
                         {inst.image_url && (
-                          <div className="mb-2 aspect-square overflow-hidden rounded-lg bg-slate-100">
+                          <div className="mb-2 aspect-square overflow-hidden rounded-lg bg-secondary">
                             <img src={inst.image_url} alt={inst.name} className="h-full w-full object-contain" />
                           </div>
                         )}
-                        <p className="text-xs font-medium text-slate-900">
+                        <p className="text-xs font-medium text-foreground">
                           {inst.name}
                           {isAdmin && instStatus && instStatus !== 'approved' && <StatusBadge status={instStatus} t={t} />}
                         </p>
-                        {inst.description && <p className="mt-0.5 text-[10px] text-slate-500">{inst.description}</p>}
+                        {inst.description && <p className="mt-0.5 text-[10px] text-muted-foreground">{inst.description}</p>}
                         {isAdmin && instStatus === 'pending' && (
                           <div className="mt-2 flex gap-1">
                             <button onClick={() => handleApprove(inst.id)} disabled={validationLoading === inst.id}
-                              className="flex items-center gap-0.5 rounded bg-emerald-500 px-2 py-1 text-[10px] font-medium text-white hover:bg-emerald-600 disabled:opacity-50">
+                              className="flex items-center gap-0.5 rounded bg-primary px-2 py-1 text-[10px] font-medium text-white hover:bg-primary disabled:opacity-50">
                               <Check className="h-2.5 w-2.5" /> {t('templates.approve')}
                             </button>
                             <button onClick={() => handleReject(inst.id)} disabled={validationLoading === inst.id}
-                              className="flex items-center gap-0.5 rounded bg-red-50 px-2 py-1 text-[10px] font-medium text-red-600 hover:bg-red-100 disabled:opacity-50">
+                              className="flex items-center gap-0.5 rounded bg-destructive/10 px-2 py-1 text-[10px] font-medium text-destructive hover:bg-destructive/20 disabled:opacity-50">
                               <XCircle className="h-2.5 w-2.5" /> {t('templates.rejectItem')}
                             </button>
                           </div>
@@ -489,9 +489,9 @@ export function TemplatesTabs({
 
 function EmptyState({ label, isAdmin, t }: { label: string; isAdmin: boolean; t: (key: string) => string }) {
   return (
-    <div className="rounded-xl bg-slate-50 py-12 text-center">
-      <p className="text-sm text-slate-400">{label}</p>
-      {isAdmin && <p className="mt-1 text-xs text-slate-400">{t('templates.useAddButton')}</p>}
+    <div className="rounded-xl bg-secondary/50 py-12 text-center">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      {isAdmin && <p className="mt-1 text-xs text-muted-foreground">{t('templates.useAddButton')}</p>}
     </div>
   )
 }
@@ -501,20 +501,20 @@ function ExpandableCard({ id, title, status, isAdmin, selectedId, setSelectedId,
   validationLoading?: string | null; onApprove?: (id: string) => void; onReject?: (id: string) => void; children: React.ReactNode; t: (key: string) => string
 }) {
   return (
-    <div className={`overflow-hidden rounded-xl bg-white shadow-sm ring-1 ${status === 'pending' ? 'ring-amber-300' : status === 'rejected' ? 'ring-red-300' : 'ring-slate-200'}`}>
+    <div className={`overflow-hidden rounded-xl bg-card shadow-sm border border-border/60 ring-0 ${status === 'pending' ? 'ring-amber-500/40' : status === 'rejected' ? 'ring-destructive/40' : 'ring-border'}`}>
       <button
         type="button"
         onClick={() => setSelectedId(selectedId === id ? null : id)}
-        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-slate-50"
+        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-secondary/50"
       >
-        <p className="text-sm font-medium text-slate-900">
+        <p className="text-sm font-medium text-foreground">
           {title}
           {isAdmin && status && status !== 'approved' && <StatusBadge status={status} t={t} />}
         </p>
-        {selectedId === id ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+        {selectedId === id ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
       </button>
       {selectedId === id && (
-        <div className="border-t border-slate-100 px-4 py-3">
+        <div className="border-t border-border/60 px-4 py-3">
           {children}
           {isAdmin && status === 'pending' && onApprove && onReject && (
             <ValidationButtons itemId={id} loading={validationLoading ?? null} onApprove={onApprove} onReject={onReject} t={t} />
@@ -527,10 +527,10 @@ function ExpandableCard({ id, title, status, isAdmin, selectedId, setSelectedId,
 
 function StatusBadge({ status, t }: { status: string; t: (key: string) => string }) {
   const styles = status === 'pending'
-    ? 'bg-amber-100 text-amber-700'
+    ? 'bg-amber-500/15 text-amber-400'
     : status === 'rejected'
-    ? 'bg-red-100 text-red-700'
-    : 'bg-emerald-100 text-emerald-700'
+    ? 'bg-destructive/15 text-destructive'
+    : 'bg-primary/10 text-primary'
   const label = status === 'pending' ? t('templates.statusPending') : status === 'rejected' ? t('templates.statusRejected') : t('templates.statusApproved')
   return <span className={`ml-2 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-medium ${styles}`}>{label}</span>
 }
@@ -540,13 +540,13 @@ function ValidationButtons({ itemId, loading, onApprove, onReject, t }: {
 }) {
   const isLoading = loading === itemId
   return (
-    <div className="mt-3 flex gap-2 border-t border-slate-100 pt-3">
+    <div className="mt-3 flex gap-2 border-t border-border/60 pt-3">
       <button onClick={() => onApprove(itemId)} disabled={isLoading}
-        className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-500 py-1.5 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-50">
+        className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-primary py-1.5 text-xs font-semibold text-white hover:bg-primary disabled:opacity-50">
         <Check className="h-3 w-3" /> {t('templates.approve')}
       </button>
       <button onClick={() => onReject(itemId)} disabled={isLoading}
-        className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-red-50 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 disabled:opacity-50">
+        className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-destructive/10 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20 disabled:opacity-50">
         <XCircle className="h-3 w-3" /> {t('templates.rejectItem')}
       </button>
     </div>
@@ -556,11 +556,11 @@ function ValidationButtons({ itemId, loading, onApprove, onReject, t }: {
 function CroContent({ content }: { content: Record<string, unknown> }) {
   if (!content || typeof content !== 'object') return null
   return (
-    <div className="space-y-2 text-xs text-slate-700">
+    <div className="space-y-2 text-xs text-foreground">
       {Object.entries(content).map(([key, value]) => (
         <div key={key}>
-          <p className="font-semibold text-slate-900">{key}</p>
-          <p className="whitespace-pre-wrap text-slate-600">{String(value)}</p>
+          <p className="font-semibold text-foreground">{key}</p>
+          <p className="whitespace-pre-wrap text-muted-foreground">{String(value)}</p>
         </div>
       ))}
     </div>
@@ -570,11 +570,11 @@ function CroContent({ content }: { content: Record<string, unknown> }) {
 function TemplateContent({ content }: { content: Record<string, unknown> }) {
   if (!content || typeof content !== 'object') return null
   return (
-    <div className="space-y-1 text-xs text-slate-700">
+    <div className="space-y-1 text-xs text-foreground">
       {Object.entries(content).map(([key, value]) => (
         <div key={key}>
           <span className="font-medium">{key}: </span>
-          <span className="text-slate-600">{String(value)}</span>
+          <span className="text-muted-foreground">{String(value)}</span>
         </div>
       ))}
     </div>

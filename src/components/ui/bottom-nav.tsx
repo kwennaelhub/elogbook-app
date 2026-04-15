@@ -20,7 +20,7 @@ export function BottomNav() {
   const navItems = useNavItems()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200/80 bg-white/95 backdrop-blur-md safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/60 bg-card/95 backdrop-blur-xl safe-area-bottom lg:hidden">
       <div className="mx-auto flex max-w-lg">
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href)
@@ -31,12 +31,12 @@ export function BottomNav() {
               href={item.href}
               className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2.5 text-[11px] transition-all touch-manipulation ${
                 isActive
-                  ? 'text-emerald-600'
-                  : 'text-slate-400 hover:text-slate-600'
+                  ? 'text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
               style={{ minHeight: '56px' }}
             >
-              <div className={`rounded-lg p-1.5 transition-all ${isActive ? 'bg-emerald-50' : ''}`}>
+              <div className={`rounded-xl p-1.5 transition-all ${isActive ? 'bg-primary/10' : ''}`}>
                 <Icon className={`h-5 w-5 ${isActive ? 'stroke-[2.5]' : ''}`} />
               </div>
               <span className={isActive ? 'font-semibold' : 'font-medium'}>{item.label}</span>

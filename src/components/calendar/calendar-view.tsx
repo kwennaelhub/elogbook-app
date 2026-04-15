@@ -36,7 +36,7 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
   const { t, locale } = useI18n()
   const [month, setMonth] = useState(initialMonth)
   const [year, setYear] = useState(initialYear)
-  const [gardes] = useState(initialGardes)
+  const gardes = initialGardes
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [state, action, isPending] = useActionState<GardeState, FormData>(createGarde, {})
@@ -74,22 +74,22 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
     <div>
       {/* Header mois */}
       <div className="mb-4 flex items-center justify-between">
-        <button onClick={prevMonth} className="rounded-lg p-2 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none" aria-label={locale === 'en' ? 'Previous month' : 'Mois précédent'}>
-          <ChevronLeft className="h-5 w-5 text-slate-600" />
+        <button onClick={prevMonth} className="rounded-lg p-2 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none" aria-label={locale === 'en' ? 'Previous month' : 'Mois précédent'}>
+          <ChevronLeft className="h-5 w-5 text-muted-foreground" />
         </button>
-        <h2 className="text-lg font-semibold capitalize text-slate-900">
+        <h2 className="text-lg font-semibold capitalize text-foreground">
           {new Date(year, month - 1).toLocaleDateString(localeDateLocale, { month: 'long', year: 'numeric' })}
         </h2>
-        <button onClick={nextMonth} className="rounded-lg p-2 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none" aria-label={locale === 'en' ? 'Next month' : 'Mois suivant'}>
-          <ChevronRight className="h-5 w-5 text-slate-600" />
+        <button onClick={nextMonth} className="rounded-lg p-2 hover:bg-secondary focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none" aria-label={locale === 'en' ? 'Next month' : 'Mois suivant'}>
+          <ChevronRight className="h-5 w-5 text-muted-foreground" />
         </button>
       </div>
 
       {/* Grille calendrier */}
-      <div className="mb-4 rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200">
+      <div className="mb-4 card-base p-3">
         <div className="mb-1 grid grid-cols-7 gap-px">
           {days.map((d) => (
-            <div key={d} className="py-1 text-center text-[10px] font-medium text-slate-400">
+            <div key={d} className="py-1 text-center text-[10px] font-medium text-muted-foreground">
               {d}
             </div>
           ))}
@@ -109,9 +109,9 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
                 type="button"
                 onClick={() => setSelectedDate(dateStr)}
                 className={`relative flex aspect-square flex-col items-center justify-center rounded-lg text-sm transition-all ${
-                  isSelected ? 'bg-blue-600 text-white' :
-                  isToday ? 'bg-blue-100 font-bold text-blue-700' :
-                  'hover:bg-slate-50 text-slate-700'
+                  isSelected ? 'bg-primary text-white' :
+                  isToday ? 'bg-primary/10 font-bold text-primary' :
+                  'hover:bg-secondary/50 text-foreground'
                 }`}
               >
                 {day}
@@ -120,7 +120,7 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
                     {dayGardes.map((g) => (
                       <div
                         key={g.id}
-                        className={`h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-white' : GARDE_COLORS[g.type] || 'bg-slate-400'}`}
+                        className={`h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-card' : GARDE_COLORS[g.type] || 'bg-muted-foreground'}`}
                       />
                     ))}
                   </div>
@@ -133,25 +133,25 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
 
       {/* Détail du jour sélectionné */}
       {selectedDate && (
-        <div className="mb-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <div className="mb-4 card-base">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900">
+            <h3 className="text-sm font-semibold text-foreground">
               {new Date(selectedDate + 'T00:00:00').toLocaleDateString(localeDateLocale, { weekday: 'long', day: 'numeric', month: 'long' })}
             </h3>
             <button
               onClick={() => { setShowModal(true) }}
-              className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+              className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90"
             >
               <Plus className="h-3 w-3" /> {t('calendar.addGarde')}
             </button>
           </div>
 
           {selectedGardes.length === 0 ? (
-            <p className="text-sm text-slate-400">{t('calendar.noGarde')}</p>
+            <p className="text-sm text-muted-foreground">{t('calendar.noGarde')}</p>
           ) : (
             <div className="space-y-2">
               {/* En-tête équipe */}
-              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <Users className="h-3.5 w-3.5" />
                 {t('calendar.teamMembers', { count: selectedGardes.length })}
               </div>
@@ -161,16 +161,16 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
                 const senior = g.senior as { first_name: string; last_name: string; title?: string | null } | undefined
 
                 return (
-                  <div key={g.id} className="rounded-lg bg-slate-50 p-3">
+                  <div key={g.id} className="rounded-lg bg-secondary/50 p-3">
                     {/* Ligne principale : type + hôpital + badge */}
                     <div className="mb-2 flex items-center gap-2">
                       <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${GARDE_COLORS[g.type]}`} />
-                      <span className="text-sm font-semibold text-slate-800">{t(GARDE_TYPE_KEYS[g.type] || `garde.${g.type}`)}</span>
+                      <span className="text-sm font-semibold text-foreground">{t(GARDE_TYPE_KEYS[g.type] || `garde.${g.type}`)}</span>
                       {(g.hospital as { name: string } | undefined)?.name && (
-                        <span className="text-xs text-slate-500">· {(g.hospital as { name: string }).name}</span>
+                        <span className="text-xs text-muted-foreground">· {(g.hospital as { name: string }).name}</span>
                       )}
                       <span className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        g.source === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-200 text-slate-600'
+                        g.source === 'admin' ? 'bg-violet-500/15 text-violet-400' : 'bg-secondary text-muted-foreground'
                       }`}>
                         {g.source === 'admin' ? t('calendar.planning') : t('calendar.personal')}
                       </span>
@@ -180,11 +180,11 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
                     {user && (
                       <div className="mb-1.5 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-700">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
                             {user.first_name?.[0]}{user.last_name?.[0]}
                           </div>
                           <div>
-                            <p className="text-xs font-medium text-slate-800">
+                            <p className="text-xs font-medium text-foreground">
                               {user.title && SUPERVISOR_TITLE_LABELS[user.title as SupervisorTitle]
                                 ? `${SUPERVISOR_TITLE_LABELS[user.title as SupervisorTitle]} `
                                 : ''
@@ -192,12 +192,12 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
                               {user.first_name} {user.last_name}
                             </p>
                             {user.des_level && (
-                              <p className="text-[10px] text-slate-400">{t(`des.${user.des_level}`) || user.des_level}</p>
+                              <p className="text-[10px] text-muted-foreground">{t(`des.${user.des_level}`) || user.des_level}</p>
                             )}
                           </div>
                         </div>
                         {user.phone && (
-                          <a href={`tel:${user.phone}`} className="flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700 hover:bg-emerald-100">
+                          <a href={`tel:${user.phone}`} className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/10">
                             <Phone className="h-3 w-3" />
                             {user.phone}
                           </a>
@@ -207,9 +207,9 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
 
                     {/* Senior de garde */}
                     {(senior || g.senior_name) && (
-                      <div className="flex items-center gap-2 border-t border-slate-200/60 pt-1.5">
-                        <span className="text-[10px] font-medium text-slate-400">{t('calendar.senior')} :</span>
-                        <span className="text-xs text-slate-600">
+                      <div className="flex items-center gap-2 border-t border-border/60 pt-1.5">
+                        <span className="text-[10px] font-medium text-muted-foreground">{t('calendar.senior')} :</span>
+                        <span className="text-xs text-muted-foreground">
                           {senior
                             ? `${senior.title && SUPERVISOR_TITLE_LABELS[senior.title as SupervisorTitle] ? SUPERVISOR_TITLE_LABELS[senior.title as SupervisorTitle] + ' ' : 'Dr '}${senior.last_name} ${senior.first_name}`
                             : `Dr ${g.senior_name}`
@@ -221,14 +221,14 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
                     {/* Service */}
                     {g.service && (
                       <div className="flex items-center gap-2 pt-0.5">
-                        <span className="text-[10px] font-medium text-slate-400">{t('calendar.service')} :</span>
-                        <span className="text-xs text-slate-600">{g.service}</span>
+                        <span className="text-[10px] font-medium text-muted-foreground">{t('calendar.service')} :</span>
+                        <span className="text-xs text-muted-foreground">{g.service}</span>
                       </div>
                     )}
 
                     {/* Notes */}
                     {g.notes && (
-                      <p className="mt-1 text-[10px] italic text-slate-400">{g.notes}</p>
+                      <p className="mt-1 text-[10px] italic text-muted-foreground">{g.notes}</p>
                     )}
                   </div>
                 )
@@ -239,7 +239,7 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
       )}
 
       {/* Légende */}
-      <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
         {(['day', 'night', '24h', 'weekend'] as const).map((key) => (
           <span key={key} className="flex items-center gap-1">
             <div className={`h-2 w-2 rounded-full ${GARDE_COLORS[key]}`} />
@@ -253,25 +253,25 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
           <form
             action={action}
-            className="w-full max-w-md rounded-t-2xl bg-white p-6 shadow-xl sm:rounded-2xl"
+            className="w-full max-w-md rounded-t-2xl bg-card p-6 shadow-xl sm:rounded-2xl"
           >
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900">{t('calendar.addTitle')}</h3>
+              <h3 className="text-lg font-semibold text-foreground">{t('calendar.addTitle')}</h3>
               <button type="button" onClick={() => setShowModal(false)}>
-                <X className="h-5 w-5 text-slate-400" />
+                <X className="h-5 w-5 text-muted-foreground" />
               </button>
             </div>
 
             {state.error && (
-              <div className="mb-3 rounded-lg bg-red-50 p-2 text-xs text-red-700">{state.error}</div>
+              <div className="mb-3 rounded-lg bg-destructive/10 p-2 text-xs text-destructive">{t(state.error)}</div>
             )}
 
             <input type="hidden" name="date" value={selectedDate || ''} />
 
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">{t('calendar.type')}</label>
-                <select name="type" required className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                <label className="label">{t('calendar.type')}</label>
+                <select name="type" required className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none">
                   {(['day', 'night', '24h', 'weekend'] as const).map((k) => (
                     <option key={k} value={k}>{t(`garde.${k}`)}</option>
                   ))}
@@ -279,8 +279,8 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">{t('common.hospital')}</label>
-                <select name="hospital_id" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                <label className="label">{t('common.hospital')}</label>
+                <select name="hospital_id" className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none">
                   <option value="">{t('common.select')}</option>
                   {hospitals.map((h) => (
                     <option key={h.id} value={h.id}>{h.name}</option>
@@ -289,13 +289,13 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">{t('calendar.service')}</label>
-                <input name="service" type="text" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" placeholder="Ex : Urgences chirurgicales" />
+                <label className="label">{t('calendar.service')}</label>
+                <input name="service" type="text" className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" placeholder="Ex : Urgences chirurgicales" />
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">{t('calendar.senior')}</label>
-                <select name="senior_id" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none">
+                <label className="label">{t('calendar.senior')}</label>
+                <select name="senior_id" className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none">
                   <option value="">{t('common.select')}</option>
                   {supervisors.map((s) => (
                     <option key={s.id} value={s.id}>Dr {s.last_name} {s.first_name}</option>
@@ -304,15 +304,15 @@ export function CalendarView({ initialGardes, hospitals, supervisors, initialMon
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">{t('common.notes')}</label>
-                <textarea name="notes" rows={2} className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none" />
+                <label className="label">{t('common.notes')}</label>
+                <textarea name="notes" rows={2} className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none" />
               </div>
             </div>
 
             <button
               type="submit"
               disabled={isPending}
-              className="mt-4 w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              className="mt-4 w-full rounded-lg bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
             >
               {isPending ? t('calendar.saving') : t('calendar.save')}
             </button>

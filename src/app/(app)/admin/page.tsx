@@ -18,6 +18,9 @@ export default async function AdminPage() {
     redirect('/logbook')
   }
 
+  const { createServiceClient } = await import('@/lib/supabase/server')
+  const serviceClient = await createServiceClient()
+
   const [
     { data: registryEntries, count: registryCount },
     { data: users, count: usersCount },
@@ -27,6 +30,7 @@ export default async function AdminPage() {
     { data: procedures },
     { data: desObjectives },
     institutionalSeats,
+    { data: adhesionRequests, count: adhesionCount },
   ] = await Promise.all([
     supabase.from('des_registry').select('*', { count: 'exact' }).order('last_name').limit(500),
     supabase.from('profiles').select('*, hospital:hospitals(name)', { count: 'exact' }).order('last_name').limit(500),
@@ -36,11 +40,12 @@ export default async function AdminPage() {
     supabase.from('procedures').select('*, specialty:specialties(name)').eq('is_active', true).order('sort_order'),
     supabase.from('des_objectives').select('*').order('des_level, category'),
     getInstitutionalSeats(),
+    serviceClient.from('adhesion_requests').select('*', { count: 'exact' }).order('created_at', { ascending: false }).limit(100),
   ])
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-4">
-      <h2 className="mb-4 text-lg font-semibold text-slate-900">Administration</h2>
+      <h2 className="mb-4 text-lg font-semibold text-foreground">Administration</h2>
       <AdminPanel
         registryEntries={registryEntries ?? []}
         registryCount={registryCount ?? 0}
@@ -53,6 +58,8 @@ export default async function AdminPage() {
         procedures={procedures ?? []}
         desObjectives={desObjectives ?? []}
         institutionalSeats={institutionalSeats}
+        adhesionRequests={adhesionRequests ?? []}
+        adhesionCount={adhesionCount ?? 0}
         currentUserRole={profile.role}
       />
     </div>
