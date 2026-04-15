@@ -1,18 +1,45 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
-const publicRoutes = ['/login', '/register', '/feedback']
+const publicRoutes = ['/login', '/register', '/feedback', '/adhesion', '/offline']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Laisser passer les fichiers statiques et API
+  // Laisser passer les fichiers statiques
   if (
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
     pathname.includes('.') // fichiers statiques (favicon, manifest, etc.)
   ) {
+    return NextResponse.next()
+  }
+
+  // Rate limiting sur les endpoints sensibles
+  const rateLimitConfig = getRateLimitConfig(pathname, request.method)
+  if (rateLimitConfig) {
+    const ip = getClientIp(request.headers)
+    const identifier = `${ip}:${pathname}`
+    const result = rateLimit(identifier, rateLimitConfig)
+
+    if (!result.allowed) {
+      return NextResponse.json(
+        { error: 'Trop de requêtes. Réessayez dans quelques instants.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.ceil((result.resetAt - Date.now()) / 1000)),
+            'X-RateLimit-Limit': String(rateLimitConfig.limit),
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      )
+    }
+  }
+
+  // Laisser passer les API (rate limit déjà vérifié si applicable)
+  if (pathname.startsWith('/api')) {
     return NextResponse.next()
   }
 
@@ -35,7 +62,7 @@ export async function proxy(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
+          cookiesToSet.forEach(({ name, value }) => {
             request.cookies.set(name, value)
           })
           supabaseResponse = NextResponse.next({ request })
@@ -51,8 +78,10 @@ export async function proxy(request: NextRequest) {
 
   // Routes publiques
   if (publicRoutes.includes(pathname)) {
-    // /feedback est accessible à tous, même connectés
-    if (pathname === '/feedback') {
+    // /feedback, /adhesion, /offline sont accessibles à tous (connecté ou non)
+    // /offline doit être servi sans redirection : le service worker Safari
+    // rejette toute réponse SW qui contient une redirection.
+    if (pathname === '/feedback' || pathname === '/adhesion' || pathname === '/offline') {
       return supabaseResponse
     }
     // login/register : si connecté, rediriger vers logbook
@@ -75,6 +104,31 @@ export async function proxy(request: NextRequest) {
   }
 
   return supabaseResponse
+}
+
+function getRateLimitConfig(pathname: string, method: string): { limit: number; windowSeconds: number } | null {
+  // Auth POST uniquement : 10 tentatives par minute (protection brute force)
+  // GET sur /login et /register ne sont PAS rate limités (navigation normale)
+  if ((pathname === '/login' || pathname === '/register') && method === 'POST') {
+    return { limit: 10, windowSeconds: 60 }
+  }
+
+  // Lookup matricule : 15 requêtes par minute (anti-énumération)
+  if (pathname === '/api/lookup-matricule') {
+    return { limit: 15, windowSeconds: 60 }
+  }
+
+  // Adhésion POST : 5 soumissions par 10 minutes (anti-spam)
+  if (pathname === '/api/adhesion' && method === 'POST') {
+    return { limit: 5, windowSeconds: 600 }
+  }
+
+  // Welcome email : 5 par minute (anti-spam)
+  if (pathname === '/api/send-welcome') {
+    return { limit: 5, windowSeconds: 60 }
+  }
+
+  return null
 }
 
 export const config = {
