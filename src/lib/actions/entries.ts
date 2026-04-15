@@ -39,13 +39,13 @@ export async function createEntry(_prev: EntryState, formData: FormData): Promis
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   const entryMode = determineEntryMode(parsed.data.intervention_date)
 
   // Vérifier l'attestation pour le mode rétrospectif
   if (entryMode === 'retrospective' && !parsed.data.attestation_checked) {
-    return { error: 'L\'attestation sur l\'honneur est obligatoire pour une saisie rétrospective' }
+    return { error: 'logbook.error.attestationRequired' }
   }
 
   const now = new Date().toISOString()
@@ -134,7 +134,7 @@ export async function getEntries(page = 1, limit = 20) {
 export async function validateEntry(entryId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   // Vérifier que l'utilisateur est superviseur, admin ou developer
   const { data: profile } = await supabase
@@ -166,7 +166,7 @@ export async function validateEntry(entryId: string) {
 export async function rejectEntry(entryId: string, reason?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   // Vérifier que l'utilisateur est superviseur, admin ou developer
   const { data: profile } = await supabase
@@ -254,7 +254,7 @@ export async function getEntriesForSupervisor() {
 export async function deleteEntry(entryId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   const { error } = await supabase
     .from('entries')
@@ -262,7 +262,7 @@ export async function deleteEntry(entryId: string) {
     .eq('id', entryId)
     .eq('user_id', user.id)
 
-  if (error) return { error: 'Impossible de supprimer cette entrée' }
+  if (error) return { error: 'logbook.error.deletionFailed' }
 
   revalidatePath('/logbook')
   revalidatePath('/dashboard')

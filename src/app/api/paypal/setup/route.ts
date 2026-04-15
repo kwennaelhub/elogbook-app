@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createProduct, createBillingPlan } from '@/lib/paypal'
+import { paypalLogger as log } from '@/lib/logger'
 
 // Route d'initialisation PayPal — À appeler UNE SEULE FOIS
 // Crée le produit + les 2 plans dans PayPal
@@ -11,7 +12,7 @@ export async function POST() {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+      return NextResponse.json({ error: 'error.unauthorized' }, { status: 401 })
     }
 
     // Vérifier que c'est un developer
@@ -22,7 +23,7 @@ export async function POST() {
       .single()
 
     if (profile?.role !== 'developer') {
-      return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+      return NextResponse.json({ error: 'error.forbidden' }, { status: 403 })
     }
 
     // Créer le produit PayPal
@@ -47,11 +48,11 @@ export async function POST() {
       },
     }
 
-    console.log('[PayPal Setup]', JSON.stringify(result, null, 2))
+    log.info({ productId, premiumPlanId, institutionalPlanId }, 'PayPal setup terminé')
 
     return NextResponse.json(result)
   } catch (error) {
-    console.error('[PayPal Setup] Error:', error)
+    log.error({ err: error }, 'Erreur setup PayPal')
     return NextResponse.json(
       { error: 'Erreur lors de la configuration PayPal' },
       { status: 500 }

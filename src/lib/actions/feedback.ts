@@ -33,6 +33,15 @@ export async function submitFeedback(data: {
 
 export async function getFeedbacks() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  // Vérifier rôle admin
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (!profile || !['admin', 'superadmin', 'developer'].includes(profile.role)) {
+    return []
+  }
+
   const { data } = await supabase
     .from('feedback')
     .select('*')

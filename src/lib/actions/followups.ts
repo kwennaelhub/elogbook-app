@@ -101,7 +101,7 @@ export async function createFollowup(data: {
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   // Générer un ID déterministe basé sur les données
   const anonymousId = `PAT-${data.intervention_date.replace(/-/g, '').slice(2)}-${String(Date.now()).slice(-6)}`
@@ -134,7 +134,7 @@ export async function updateFollowup(followupId: string, data: {
 }): Promise<FollowupState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (data.discharge_date !== undefined) updates.discharge_date = data.discharge_date || null
@@ -182,7 +182,7 @@ export async function addFollowupEvent(followupId: string, data: {
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   const { error } = await supabase.from('followup_events').insert({
     followup_id: followupId,
@@ -219,7 +219,7 @@ export async function generateDeterministicPatientId(entryData: {
 export async function deleteFollowup(followupId: string): Promise<FollowupState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   const { error } = await supabase
     .from('patient_followups')

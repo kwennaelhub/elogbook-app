@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createSubscription } from '@/lib/paypal'
+import { paypalLogger as log } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,7 +9,7 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+      return NextResponse.json({ error: 'error.unauthorized' }, { status: 401 })
     }
 
     const { planKey } = await request.json()
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
 
       if (requestedLevel <= currentLevel) {
         return NextResponse.json(
-          { error: 'Vous avez déjà un abonnement de niveau égal ou supérieur' },
+          { error: 'subscription.error.alreadyHigher' },
           { status: 400 }
         )
       }
@@ -75,9 +76,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ approvalUrl, subscriptionId })
   } catch (error) {
-    console.error('[PayPal] Create subscription error:', error)
+    log.error({ err: error }, 'Erreur création abonnement')
     return NextResponse.json(
-      { error: 'Erreur lors de la création de l\'abonnement' },
+      { error: 'subscription.error.creationFailed' },
       { status: 500 }
     )
   }

@@ -62,7 +62,7 @@ export async function getActiveSessions(): Promise<{ count: number; currentToken
 export async function logoutOtherSessions() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   const cookieStore = await cookies()
   const currentToken = cookieStore.get(SESSION_TOKEN_COOKIE)?.value

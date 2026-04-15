@@ -73,6 +73,15 @@ export async function updateSupervisor(supervisorId: string, updates: {
   hospital_id?: string
 }) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'error.unauthorized' }
+
+  // Vérifier rôle admin
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (!profile || !['admin', 'superadmin', 'developer'].includes(profile.role)) {
+    return { error: 'error.forbidden' }
+  }
+
   const { error } = await supabase
     .from('profiles')
     .update(updates)
@@ -92,6 +101,14 @@ export async function createSupervisor(data: {
   phone?: string
 }) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'error.unauthorized' }
+
+  // Vérifier rôle admin
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (!profile || !['admin', 'superadmin', 'developer'].includes(profile.role)) {
+    return { error: 'error.forbidden' }
+  }
 
   // Créer le compte auth via l'API admin (mot de passe temporaire)
   const { randomBytes } = await import('crypto')
@@ -120,7 +137,7 @@ export async function createSupervisor(data: {
 
   if (!response.ok) {
     const err = await response.json()
-    return { error: err.msg || err.message || 'Erreur lors de la création du compte' }
+    return { error: err.msg || err.message || 'auth.error.creationFailed' }
   }
 
   const authData = await response.json()
@@ -156,7 +173,13 @@ export async function addDesRegistryEntry(data: {
 }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
+
+  // Vérifier rôle admin
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (!profile || !['admin', 'superadmin', 'developer'].includes(profile.role)) {
+    return { error: 'error.forbidden' }
+  }
 
   const { error } = await supabase.from('des_registry').insert({
     matricule: data.matricule,
@@ -171,7 +194,7 @@ export async function addDesRegistryEntry(data: {
   })
 
   if (error) {
-    if (error.code === '23505') return { error: 'Ce matricule existe déjà' }
+    if (error.code === '23505') return { error: 'auth.error.matriculeExists' }
     return { error: error.message }
   }
   return { success: true }
@@ -189,7 +212,13 @@ export async function importDesRegistryBatch(entries: {
 }[]) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié', imported: 0, errors: [] as string[] }
+  if (!user) return { error: 'error.unauthorized', imported: 0, errors: [] as string[] }
+
+  // Vérifier rôle admin
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (!profile || !['admin', 'superadmin', 'developer'].includes(profile.role)) {
+    return { error: 'error.forbidden', imported: 0, errors: [] as string[] }
+  }
 
   let imported = 0
   const errors: string[] = []

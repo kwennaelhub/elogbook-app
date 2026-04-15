@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifyWebhookSignature } from '@/lib/paypal'
+import { paypalLogger as log } from '@/lib/logger'
 
 // Événements webhook PayPal pour les souscriptions
 // https://developer.paypal.com/docs/api/webhooks/v1/#webhooks-event-types
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
     // Vérifier la signature du webhook (sandbox ET production)
     const isValid = await verifyWebhookSignature(headers, body)
     if (!isValid) {
-      console.error('[PayPal Webhook] Signature invalide')
+      log.error('Signature webhook invalide')
       return NextResponse.json({ error: 'Signature invalide' }, { status: 401 })
     }
 
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     const eventType = event.event_type as string
     const resource = event.resource
 
-    console.log(`[PayPal Webhook] ${eventType}`, resource?.id)
+    log.info({ eventType, resourceId: resource?.id }, 'Webhook reçu')
 
     const supabase = await createServiceClient()
 
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        console.log(`[PayPal] Abonnement activé pour user ${customId}`)
+        log.info({ userId: customId, subscriptionId }, 'Abonnement activé')
         break
       }
 
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
           })
           .eq('payment_reference', subscriptionId)
 
-        console.log(`[PayPal] Abonnement annulé: ${subscriptionId}`)
+        log.info({ subscriptionId }, 'Abonnement annulé')
         break
       }
 
@@ -100,24 +101,24 @@ export async function POST(request: NextRequest) {
           .update({ status: 'expired' })
           .eq('payment_reference', subscriptionId)
 
-        console.log(`[PayPal] Abonnement suspendu: ${subscriptionId}`)
+        log.warn({ subscriptionId }, 'Abonnement suspendu (échec paiement)')
         break
       }
 
       // Paiement échoué
       case 'BILLING.SUBSCRIPTION.PAYMENT.FAILED': {
         const subscriptionId = resource.id
-        console.log(`[PayPal] Paiement échoué: ${subscriptionId}`)
+        log.warn({ subscriptionId }, 'Paiement échoué')
         break
       }
 
       default:
-        console.log(`[PayPal Webhook] Événement non géré: ${eventType}`)
+        log.debug({ eventType }, 'Événement webhook non géré')
     }
 
     return NextResponse.json({ received: true })
   } catch (error) {
-    console.error('[PayPal Webhook] Error:', error)
+    log.error({ err: error }, 'Erreur traitement webhook')
     return NextResponse.json({ error: 'Webhook error' }, { status: 500 })
   }
 }

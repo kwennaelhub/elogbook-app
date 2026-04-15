@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { loginSchema, registerSchema } from '@/lib/validations'
+import { authLogger as log } from '@/lib/logger'
 
 export type AuthState = {
   error?: string
@@ -24,7 +25,7 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   })
 
   if (error) {
-    return { error: 'Email ou mot de passe incorrect' }
+    return { error: 'auth.error.credentials' }
   }
 
   const redirectTo = formData.get('redirect') as string
@@ -53,7 +54,7 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
 
   if (regError || !registry || registry.length === 0) {
     return {
-      error: 'Matricule non trouvé dans le registre DES. Contactez votre coordinateur de programme.',
+      error: 'auth.error.matriculeNotFound',
     }
   }
 
@@ -61,7 +62,7 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
   const desEntry = registry[0]
   if (desEntry.email && desEntry.email !== parsed.data.email) {
     return {
-      error: 'L\'email ne correspond pas à celui enregistré pour ce matricule.',
+      error: 'auth.error.emailMismatch',
     }
   }
 
@@ -80,10 +81,10 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
 
   if (error) {
     if (error.message.includes('already registered')) {
-      return { error: 'Un compte existe déjà avec cet email' }
+      return { error: 'auth.error.emailExists' }
     }
-    console.error('Supabase signUp error:', error.message)
-    return { error: 'Erreur lors de la création du compte : ' + error.message }
+    log.error({ err: error, email: parsed.data.email }, 'Échec inscription Supabase')
+    return { error: 'auth.error.creationFailed' }
   }
 
   // Envoyer l'email de bienvenue (non-bloquant)
@@ -92,7 +93,7 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     await sendWelcomeEmail(parsed.data.email, parsed.data.first_name)
   } catch {
     // Ne pas bloquer l'inscription si l'email échoue
-    console.log('Welcome email failed silently')
+    log.warn({ email: parsed.data.email }, 'Email de bienvenue échoué silencieusement')
   }
 
   return { success: true }
@@ -109,7 +110,7 @@ export async function logout() {
 export async function deleteAccount(): Promise<AuthState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   // Supprimer le profil (cascade supprimera les entrées liées via RLS)
   const { error: profileError } = await supabase

@@ -1,18 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { emailLogger as log } from '@/lib/logger'
 
 // API interne pour l'envoi d'emails de bienvenue via Brevo API v3
 // Appelée automatiquement à l'inscription d'un nouvel utilisateur
+// Protégée par clé interne pour empêcher les appels externes
 export async function POST(request: NextRequest) {
   try {
-    const { email, firstName } = await request.json()
+    const { email, firstName, internalKey } = await request.json()
+
+    // Vérification clé interne — seul le server action auth.ts peut appeler
+    if (internalKey !== process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(-16)) {
+      return NextResponse.json({ error: 'error.unauthorized' }, { status: 401 })
+    }
 
     if (!email || !firstName) {
-      return NextResponse.json({ error: 'Email et prénom requis' }, { status: 400 })
+      return NextResponse.json({ error: 'error.missingFields' }, { status: 400 })
     }
 
     const brevoApiKey = process.env.BREVO_API_KEY
     if (!brevoApiKey) {
-      console.log(`[WELCOME EMAIL] Brevo non configuré — email logué : ${email} (${firstName})`)
+      log.warn({ email, firstName }, 'Brevo non configuré — email non envoyé')
       return NextResponse.json({ success: true, message: 'Brevo non configuré, email logué' })
     }
 
@@ -89,12 +96,12 @@ export async function POST(request: NextRequest) {
 
     if (!brevoRes.ok) {
       const error = await brevoRes.text()
-      console.error(`[WELCOME EMAIL] Brevo error: ${error}`)
+      log.error({ err: error, email }, 'Erreur Brevo envoi email')
       return NextResponse.json({ error: 'Erreur envoi email' }, { status: 500 })
     }
 
     const result = await brevoRes.json()
-    console.log(`[WELCOME EMAIL] Envoyé via Brevo → ${email} (messageId: ${result.messageId})`)
+    log.info({ email, messageId: result.messageId }, 'Email de bienvenue envoyé via Brevo')
 
     // Aussi créer le contact dans Brevo pour le CRM
     await fetch('https://api.brevo.com/v3/contacts', {
@@ -109,11 +116,11 @@ export async function POST(request: NextRequest) {
         listIds: process.env.BREVO_LIST_ID ? [parseInt(process.env.BREVO_LIST_ID)] : [],
         updateEnabled: true,
       }),
-    }).catch((err) => console.error('[BREVO] Contact creation error:', err))
+    }).catch((err) => log.error({ err, email }, 'Erreur création contact Brevo'))
 
     return NextResponse.json({ success: true, messageId: result.messageId })
   } catch (error) {
-    console.error('[WELCOME EMAIL] Error:', error)
+    log.error({ err: error }, 'Erreur route send-welcome')
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
   }
 }

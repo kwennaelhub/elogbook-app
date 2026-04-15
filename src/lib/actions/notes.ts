@@ -34,7 +34,7 @@ export async function createNote(title: string, content: string, category: strin
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   const { error } = await supabase.from('notes').insert({
     user_id: user.id,
@@ -55,7 +55,7 @@ export async function updateNote(noteId: string, title: string, content: string,
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   const { error } = await supabase
     .from('notes')
@@ -77,7 +77,7 @@ export async function updateNote(noteId: string, title: string, content: string,
 export async function deleteNote(noteId: string): Promise<NoteState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   const { error } = await supabase
     .from('notes')
@@ -94,7 +94,7 @@ export async function deleteNote(noteId: string): Promise<NoteState> {
 export async function togglePinNote(noteId: string, isPinned: boolean): Promise<NoteState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   const { error } = await supabase
     .from('notes')

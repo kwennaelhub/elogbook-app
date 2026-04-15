@@ -16,7 +16,7 @@ export async function GET(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return Response.json({ error: 'Non authentifié' }, { status: 401 })
+    return Response.json({ error: 'error.unauthorized' }, { status: 401 })
   }
 
   const { data: profile } = await supabase
@@ -25,8 +25,8 @@ export async function GET(
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
-    return Response.json({ error: 'Accès refusé' }, { status: 403 })
+  if (!profile || !['admin', 'superadmin', 'developer'].includes(profile.role)) {
+    return Response.json({ error: 'error.forbidden' }, { status: 403 })
   }
 
   let data: Record<string, unknown>[] = []
@@ -163,7 +163,7 @@ export async function GET(
         .single()
 
       if (!targetProfile) {
-        return Response.json({ error: 'Utilisateur non trouvé' }, { status: 404 })
+        return Response.json({ error: 'error.userNotFound' }, { status: 404 })
       }
 
       // Entrées

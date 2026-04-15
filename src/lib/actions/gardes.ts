@@ -19,7 +19,7 @@ export async function createGarde(_prev: GardeState, formData: FormData): Promis
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   const { error } = await supabase.from('gardes').insert({
     user_id: user.id,
@@ -44,13 +44,22 @@ export async function createGarde(_prev: GardeState, formData: FormData): Promis
 
 export async function getGardes(month: number, year: number) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  // Récupérer le rôle pour filtrer
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, hospital_id')
+    .eq('id', user.id)
+    .single()
 
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`
   const endDate = month === 12
     ? `${year + 1}-01-01`
     : `${year}-${String(month + 1).padStart(2, '0')}-01`
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('gardes')
     .select(`
       *,
@@ -62,6 +71,17 @@ export async function getGardes(month: number, year: number) {
     .lt('date', endDate)
     .order('date', { ascending: true })
 
+  // Étudiants : uniquement leurs propres gardes
+  // Superviseurs : gardes de leur hôpital
+  // Admin/superadmin/developer : tout
+  if (profile?.role === 'student') {
+    query = query.eq('user_id', user.id)
+  } else if (profile?.role === 'supervisor' && profile.hospital_id) {
+    query = query.eq('hospital_id', profile.hospital_id)
+  }
+  // admin/superadmin/developer voient tout
+
+  const { data, error } = await query
   if (error) return []
   return data ?? []
 }
@@ -69,7 +89,7 @@ export async function getGardes(month: number, year: number) {
 export async function deleteGarde(gardeId: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Non authentifié' }
+  if (!user) return { error: 'error.unauthorized' }
 
   const { error } = await supabase
     .from('gardes')
