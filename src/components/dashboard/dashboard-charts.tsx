@@ -26,15 +26,15 @@ interface DashboardChartsProps {
   topProcedures: { name: string; count: number }[]
 }
 
-const ROLE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6']
-const SPEC_COLORS = ['#3b82f6', '#22c55e', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#14b8a6', '#6366f1', '#84cc16', '#e11d48', '#0ea5e9']
-const HOSPITAL_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899']
+// Medcare Navy palette: blue royal, violet, emerald, coral, amber
+const ROLE_COLORS = ['#4f6fff', '#b667ac', '#34d399', '#f08863']
+const SPEC_COLORS = ['#4f6fff', '#b667ac', '#34d399', '#f08863', '#fbbf24', '#818cf8', '#fb7185', '#38bdf8', '#a78bfa', '#4ade80', '#f472b6', '#22d3ee', '#e879f9']
+const HOSPITAL_COLORS = ['#4f6fff', '#b667ac', '#34d399', '#f08863', '#fbbf24', '#818cf8', '#fb7185']
 
 export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalStats, topProcedures }: DashboardChartsProps) {
   const { t, locale } = useI18n()
   const [expandedHospital, setExpandedHospital] = useState<string | null>(null)
 
-  // Locale-aware role labels mapping
   const ROLE_LABEL_KEYS: Record<string, string> = {
     observer: 'dashboard.observer',
     assistant: 'dashboard.assistant',
@@ -47,9 +47,7 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
     value,
   }))
 
-  // Re-format month labels with current locale (server sends fr-FR short months)
   const localizedMonthlyData = useMemo(() => {
-    // Reconstruct locale-aware month labels for the last 6 months
     const months: string[] = []
     for (let i = 5; i >= 0; i--) {
       const d = new Date()
@@ -82,15 +80,15 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
   return (
     <div className="space-y-4">
       {/* Évolution mensuelle */}
-      <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-        <h3 className="mb-3 text-sm font-semibold text-slate-700">{t('dashboard.monthlyEvolution')}</h3>
+      <div className="card-base">
+        <h3 className="mb-3 text-sm font-semibold text-foreground">{t('dashboard.monthlyEvolution')}</h3>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={localizedMonthlyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.26 0.05 260)" />
             <XAxis dataKey="month" tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
             <Tooltip />
-            <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Interventions" />
+            <Bar dataKey="count" fill="#4f6fff" radius={[4, 4, 0, 0]} name="Interventions" />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -98,8 +96,8 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
       {/* Répartition par rôle & spécialité */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {roleData.length > 0 && (
-          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <h3 className="mb-3 text-sm font-semibold text-slate-700">{t('dashboard.byRole')}</h3>
+          <div className="card-base">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">{t('dashboard.byRole')}</h3>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
@@ -123,11 +121,11 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
         )}
 
         {specData.length > 0 && (
-          <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-            <h3 className="mb-3 text-sm font-semibold text-slate-700">{t('dashboard.bySpecialty')}</h3>
+          <div className="card-base">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">{t('dashboard.bySpecialty')}</h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={specData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.26 0.05 260)" />
                 <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
                 <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} width={100} />
                 <Tooltip />
@@ -144,21 +142,21 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
 
       {/* Stats par hôpital — graphique empilé */}
       {hospitalStats.length > 0 && (
-        <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <div className="card-base">
           <div className="mb-3 flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-slate-500" />
-            <h3 className="text-sm font-semibold text-slate-700">{t('dashboard.byHospital')}</h3>
+            <Building2 className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">{t('dashboard.byHospital')}</h3>
           </div>
           <ResponsiveContainer width="100%" height={Math.max(150, hospitalBarData.length * 40)}>
             <BarChart data={hospitalBarData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.26 0.05 260)" />
               <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
               <YAxis dataKey="name" type="category" tick={{ fontSize: 9 }} width={100} />
               <Tooltip />
               <Legend wrapperStyle={{ fontSize: 10 }} />
-              <Bar dataKey={operatorLabel} stackId="a" fill="#22c55e" />
-              <Bar dataKey={assistantLabel} stackId="a" fill="#f59e0b" />
-              <Bar dataKey={observerLabel} stackId="a" fill="#8b5cf6" />
+              <Bar dataKey={operatorLabel} stackId="a" fill="#4f6fff" />
+              <Bar dataKey={assistantLabel} stackId="a" fill="#fbbf24" />
+              <Bar dataKey={observerLabel} stackId="a" fill="#a78bfa" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -166,12 +164,12 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
 
       {/* Détails par hôpital — recommandations */}
       {hospitalStats.length > 0 && (
-        <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <div className="card-base">
           <div className="mb-3 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-slate-500" />
-            <h3 className="text-sm font-semibold text-slate-700">{t('dashboard.whereToGo')}</h3>
+            <TrendingUp className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">{t('dashboard.whereToGo')}</h3>
           </div>
-          <p className="mb-3 text-xs text-slate-500">
+          <p className="mb-3 text-xs text-muted-foreground">
             Basé sur vos données : cliquez sur un hôpital pour voir les détails.
           </p>
           <div className="space-y-2">
@@ -182,57 +180,57 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
               const operatorPct = h.total > 0 ? Math.round((h.asOperator / h.total) * 100) : 0
 
               return (
-                <div key={h.name} className="rounded-lg border border-slate-100">
+                <div key={h.name} className="rounded-lg border border-border/60 transition-colors hover:border-primary/30">
                   <button
                     onClick={() => setExpandedHospital(isExpanded ? null : h.name)}
-                    className="flex w-full items-center justify-between p-3 text-left hover:bg-slate-50"
+                    className="flex w-full items-center justify-between p-3 text-left transition-colors hover:bg-secondary/50"
                   >
                     <div className="flex items-center gap-2">
                       <div
                         className="h-3 w-3 rounded-full"
                         style={{ backgroundColor: HOSPITAL_COLORS[idx % HOSPITAL_COLORS.length] }}
                       />
-                      <span className="text-sm font-medium text-slate-800">{h.name}</span>
+                      <span className="text-sm font-medium text-foreground">{h.name}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <span className="text-sm font-bold text-slate-700">{h.total}</span>
-                        <span className="ml-1 text-[10px] text-slate-400">int.</span>
+                        <span className="text-sm font-bold text-foreground">{h.total}</span>
+                        <span className="ml-1 text-[10px] text-muted-foreground">int.</span>
                       </div>
                       <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                        operatorPct >= 50 ? 'bg-green-100 text-green-700' :
-                        operatorPct >= 25 ? 'bg-amber-100 text-amber-700' :
-                        'bg-slate-100 text-slate-600'
+                        operatorPct >= 50 ? 'bg-accent/10 text-accent' :
+                        operatorPct >= 25 ? 'bg-amber-500/15 text-amber-400' :
+                        'bg-secondary text-muted-foreground'
                       }`}>
                         {operatorPct}% opér.
                       </span>
-                      {isExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+                      {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                     </div>
                   </button>
 
                   {isExpanded && (
-                    <div className="border-t border-slate-100 p-3">
+                    <div className="border-t border-border/60 p-3">
                       <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
-                        <div className="rounded-lg bg-green-50 p-2">
-                          <p className="font-bold text-green-700">{h.asOperator}</p>
-                          <p className="text-[10px] text-green-600">{operatorLabel}</p>
+                        <div className="rounded-lg bg-accent/10 p-2">
+                          <p className="font-bold text-accent">{h.asOperator}</p>
+                          <p className="text-[10px] text-accent/80">{operatorLabel}</p>
                         </div>
-                        <div className="rounded-lg bg-amber-50 p-2">
-                          <p className="font-bold text-amber-700">{h.asAssistant}</p>
-                          <p className="text-[10px] text-amber-600">{assistantLabel}</p>
+                        <div className="rounded-lg bg-amber-500/10 p-2">
+                          <p className="font-bold text-amber-400">{h.asAssistant}</p>
+                          <p className="text-[10px] text-amber-300/80">{assistantLabel}</p>
                         </div>
-                        <div className="rounded-lg bg-purple-50 p-2">
-                          <p className="font-bold text-purple-700">{h.asObserver}</p>
-                          <p className="text-[10px] text-purple-600">{observerLabel}</p>
+                        <div className="rounded-lg bg-violet-500/10 p-2">
+                          <p className="font-bold text-violet-400">{h.asObserver}</p>
+                          <p className="text-[10px] text-violet-300/80">{observerLabel}</p>
                         </div>
                       </div>
 
                       {topSpecs.length > 0 && (
                         <div className="mb-2">
-                          <p className="mb-1 text-[10px] font-semibold text-slate-500 uppercase">Top spécialités</p>
+                          <p className="mb-1 text-[10px] font-semibold text-muted-foreground uppercase">Top spécialités</p>
                           <div className="flex flex-wrap gap-1">
                             {topSpecs.map(([name, count]) => (
-                              <span key={name} className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] text-blue-700">
+                              <span key={name} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">
                                 {name} ({count})
                               </span>
                             ))}
@@ -242,10 +240,10 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
 
                       {topProcs.length > 0 && (
                         <div>
-                          <p className="mb-1 text-[10px] font-semibold text-slate-500 uppercase">Top interventions</p>
+                          <p className="mb-1 text-[10px] font-semibold text-muted-foreground uppercase">Top interventions</p>
                           <div className="flex flex-wrap gap-1">
                             {topProcs.map(([name, count]) => (
-                              <span key={name} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">
+                              <span key={name} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground">
                                 {name} ({count})
                               </span>
                             ))}
@@ -263,23 +261,23 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
 
       {/* Top procédures */}
       {topProcedures.length > 0 && (
-        <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-          <h3 className="mb-3 text-sm font-semibold text-slate-700">{t('dashboard.topProcedures')}</h3>
+        <div className="card-base">
+          <h3 className="mb-3 text-sm font-semibold text-foreground">{t('dashboard.topProcedures')}</h3>
           <div className="space-y-1.5">
             {topProcedures.map((p, i) => {
               const maxCount = topProcedures[0].count
               const pct = maxCount > 0 ? (p.count / maxCount) * 100 : 0
               return (
                 <div key={p.name} className="flex items-center gap-2">
-                  <span className="w-4 text-right text-[10px] font-bold text-slate-400">{i + 1}</span>
+                  <span className="w-4 text-right text-[10px] font-bold text-muted-foreground">{i + 1}</span>
                   <div className="flex-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-700">{p.name}</span>
-                      <span className="font-medium text-slate-800">{p.count}</span>
+                      <span className="text-foreground">{p.name}</span>
+                      <span className="font-semibold text-foreground">{p.count}</span>
                     </div>
-                    <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-secondary">
                       <div
-                        className="h-full rounded-full bg-blue-400"
+                        className="h-full rounded-full bg-primary/60"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -293,9 +291,9 @@ export function DashboardCharts({ monthlyData, roleCounts, specCounts, hospitalS
 
       {/* Message si aucune donnée */}
       {Object.keys(roleCounts).length === 0 && hospitalStats.length === 0 && (
-        <div className="rounded-xl bg-slate-50 p-6 text-center">
-          <p className="text-sm text-slate-500">{t('dashboard.noData')}</p>
-          <a href="/logbook" className="mt-2 inline-block text-sm font-medium text-emerald-600 hover:underline">
+        <div className="rounded-xl border border-border/60 bg-secondary/50 p-6 text-center">
+          <p className="text-sm text-muted-foreground">{t('dashboard.noData')}</p>
+          <a href="/logbook" className="mt-2 inline-block text-sm font-medium text-primary hover:underline">
             {t('dashboard.addEntry')}
           </a>
         </div>
