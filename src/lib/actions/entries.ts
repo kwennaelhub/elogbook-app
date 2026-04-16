@@ -147,7 +147,12 @@ export async function validateEntry(entryId: string) {
     return { error: 'Vous n\'avez pas le droit de valider des actes' }
   }
 
-  const { error } = await supabase
+  // .select() force le retour des lignes updatées, ce qui permet de détecter
+  // un blocage silencieux par une RLS policy (ex: superviseur tente de valider
+  // une entry dont il n'est pas le superviseur désigné).
+  // Sans cette protection, un UPDATE bloqué par RLS renvoie `error: null` mais
+  // `data: []` — l'action retournerait `success: true` sans rien modifier.
+  const { data: updated, error } = await supabase
     .from('entries')
     .update({
       is_validated: true,
@@ -155,8 +160,12 @@ export async function validateEntry(entryId: string) {
       validated_by: user.id,
     })
     .eq('id', entryId)
+    .select('id')
 
   if (error) return { error: error.message }
+  if (!updated || updated.length === 0) {
+    return { error: 'supervision.error.notAllowed' }
+  }
 
   revalidatePath('/logbook')
   revalidatePath('/supervision')
@@ -179,7 +188,9 @@ export async function rejectEntry(entryId: string, reason?: string) {
     return { error: 'Vous n\'avez pas le droit de rejeter des actes' }
   }
 
-  const { error } = await supabase
+  // Même logique que validateEntry — on force .select() pour détecter un blocage
+  // silencieux par RLS et remonter une erreur explicite au lieu d'un faux success.
+  const { data: updated, error } = await supabase
     .from('entries')
     .update({
       is_validated: false,
@@ -188,8 +199,12 @@ export async function rejectEntry(entryId: string, reason?: string) {
       notes: reason ? `[REJETÉ] ${reason.trim().slice(0, 500)}` : null,
     })
     .eq('id', entryId)
+    .select('id')
 
   if (error) return { error: error.message }
+  if (!updated || updated.length === 0) {
+    return { error: 'supervision.error.notAllowed' }
+  }
 
   revalidatePath('/logbook')
   revalidatePath('/supervision')

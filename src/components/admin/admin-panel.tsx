@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Users, BookCheck, Upload, Stethoscope, Search, Download, Plus, X, FileSpreadsheet, UserPlus, AlertCircle, CheckCircle, Settings2, Shield, Building2, ClipboardList } from 'lucide-react'
+import { Users, BookCheck, Upload, Stethoscope, Search, Download, Plus, X, FileSpreadsheet, UserPlus, AlertCircle, CheckCircle, Settings2, Shield, Building2, ClipboardList, Trash2 } from 'lucide-react'
 import type { DesRegistry, Profile, Hospital, DesLevel } from '@/types/database'
 import { SUPERVISOR_TITLE_LABELS } from '@/types/database'
 import type { SupervisorTitle, UserRole } from '@/types/database'
 import { useI18n } from '@/lib/i18n/context'
 import { createSupervisor, updateSupervisor, addDesRegistryEntry, importDesRegistryBatch } from '@/lib/actions/data'
-import { updateUserRole } from '@/lib/actions/admin'
+import { updateUserRole, deleteUser } from '@/lib/actions/admin'
+import { useRouter } from 'next/navigation'
 import { ConfigTab } from './config-tab'
 import { SeatsTab } from './seats-tab'
 
@@ -38,6 +39,7 @@ export function AdminPanel({
   currentUserRole,
 }: AdminPanelProps) {
   const { t } = useI18n()
+  const router = useRouter()
   const [tab, setTab] = useState<'registry' | 'users' | 'supervisors' | 'seats' | 'adhesions' | 'config'>('registry')
   const [adhesions, setAdhesions] = useState(adhesionRequests)
   const [adhesionLoading, setAdhesionLoading] = useState<string | null>(null)
@@ -47,6 +49,10 @@ export function AdminPanel({
   const [selectedRole, setSelectedRole] = useState('')
   const [roleLoading, setRoleLoading] = useState(false)
   const [roleResult, setRoleResult] = useState<{ error?: string; success?: boolean } | null>(null)
+  // Suppression utilisateur (Users tab)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; email: string } | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteResult, setDeleteResult] = useState<{ error?: string; success?: boolean } | null>(null)
 
   const handleRoleChange = async (userId: string) => {
     setRoleLoading(true)
@@ -61,6 +67,23 @@ export function AdminPanel({
   }
 
   const canManageRoles = ['developer', 'superadmin'].includes(currentUserRole)
+  const canDeleteUsers = ['developer', 'superadmin'].includes(currentUserRole)
+
+  const handleDeleteUser = async () => {
+    if (!deleteTarget) return
+    setDeleteLoading(true)
+    setDeleteResult(null)
+    const result = await deleteUser(deleteTarget.id)
+    setDeleteLoading(false)
+    if (result.success) {
+      setDeleteResult({ success: true })
+      setDeleteTarget(null)
+      router.refresh()
+      setTimeout(() => setDeleteResult(null), 4000)
+    } else {
+      setDeleteResult({ error: result.error })
+    }
+  }
   // Superviseur
   const [showAddSupervisor, setShowAddSupervisor] = useState(false)
   const [addForm, setAddForm] = useState({ first_name: '', last_name: '', email: '', title: 'Pr' as string, hospital_id: '', phone: '' })
@@ -609,6 +632,20 @@ export function AdminPanel({
           {roleResult.success ? t('admin.roleUpdated') : t(roleResult.error!)}
         </div>
       )}
+      {tab === 'users' && deleteResult && (
+        <div className={`mb-2 flex items-center gap-2 rounded-lg p-2 text-sm ${
+          deleteResult.success ? 'bg-accent/10 text-accent' : 'bg-destructive/10 text-destructive'
+        }`}>
+          {deleteResult.success ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+          {deleteResult.success
+            ? t('admin.deleteSuccess')
+            : (deleteResult.error?.startsWith('admin.error.deleteBlocked::')
+                ? `${t('admin.error.deleteBlocked')} ${deleteResult.error.split('::')[1]}`
+                : (deleteResult.error?.startsWith('admin.') || deleteResult.error?.startsWith('error.')
+                    ? t(deleteResult.error)
+                    : (deleteResult.error ?? '')))}
+        </div>
+      )}
       {tab === 'users' && (
         <div className="overflow-x-auto rounded-xl bg-card shadow-sm border border-border/60">
           <table className="w-full text-left text-sm">
@@ -683,14 +720,29 @@ export function AdminPanel({
                   <td className="px-3 py-2 text-xs">{u.des_level || '—'}</td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">{u.hospital?.name || '—'}</td>
                   <td className="px-3 py-2">
-                    <button
-                      onClick={() => handleExportUserStats(u.id)}
-                      className="rounded bg-secondary px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-secondary"
-                      title={t('admin.exportStats')}
-                    >
-                      <Download className="inline h-3 w-3 mr-0.5" />
-                      {t('admin.exportStats')}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleExportUserStats(u.id)}
+                        className="rounded bg-secondary px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-secondary"
+                        title={t('admin.exportStats')}
+                      >
+                        <Download className="inline h-3 w-3 mr-0.5" />
+                        {t('admin.exportStats')}
+                      </button>
+                      {canDeleteUsers && u.role !== 'developer' && (
+                        <button
+                          onClick={() => setDeleteTarget({
+                            id: u.id,
+                            name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email || u.id,
+                            email: u.email || '',
+                          })}
+                          className="rounded bg-destructive/10 px-2 py-1 text-[10px] font-medium text-destructive hover:bg-destructive/20"
+                          title={t('admin.confirmDelete.title')}
+                        >
+                          <Trash2 className="inline h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -850,6 +902,58 @@ export function AdminPanel({
           desObjectives={desObjectives}
           currentUserRole={currentUserRole}
         />
+      )}
+
+      {/* Modal de confirmation suppression utilisateur */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl border border-border/60">
+            <div className="mb-4 flex items-start gap-3">
+              <div className="rounded-full bg-destructive/10 p-2">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-foreground">
+                  {t('admin.confirmDelete.title')}
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t('admin.confirmDelete.message')}
+                </p>
+                <p className="mt-2 text-sm font-medium text-foreground">
+                  {deleteTarget.name}
+                  {deleteTarget.email && (
+                    <span className="ml-1 text-xs text-muted-foreground">({deleteTarget.email})</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            {deleteResult?.error && (
+              <div className="mb-3 rounded-lg bg-destructive/10 p-2 text-xs text-destructive">
+                {deleteResult.error.startsWith('admin.error.deleteBlocked::')
+                  ? `${t('admin.error.deleteBlocked')} ${deleteResult.error.split('::')[1]}`
+                  : (deleteResult.error.startsWith('admin.') || deleteResult.error.startsWith('error.')
+                      ? t(deleteResult.error)
+                      : deleteResult.error)}
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => { setDeleteTarget(null); setDeleteResult(null) }}
+                disabled={deleteLoading}
+                className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-secondary disabled:opacity-50"
+              >
+                {t('admin.confirmDelete.cancel')}
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                disabled={deleteLoading}
+                className="rounded-lg bg-destructive px-3 py-1.5 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+              >
+                {deleteLoading ? t('admin.saving') : t('admin.confirmDelete.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

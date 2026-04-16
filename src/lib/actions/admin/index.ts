@@ -24,8 +24,8 @@ export {
   approveReferentialItem, rejectReferentialItem,
 } from './referential'
 
-// Utilisateurs (rôles, profil, email)
-export { updateUserRole, updateProfile, sendWelcomeEmail } from './users'
+// Utilisateurs (rôles, profil, email, suppression)
+export { updateUserRole, updateProfile, sendWelcomeEmail, deleteUser } from './users'
 
 // Sièges institutionnels
 export {
