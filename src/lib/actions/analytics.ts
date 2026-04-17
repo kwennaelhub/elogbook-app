@@ -29,23 +29,37 @@ export interface AnalyticsStats {
   totalGardeHours: number
 }
 
-export async function getAnalyticsStats(): Promise<AnalyticsStats | null> {
+export async function getAnalyticsStats(targetUserId?: string): Promise<AnalyticsStats | null> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+
+  // Si targetUserId fourni, vérifier que le caller est admin/superadmin/developer
+  let userId = user.id
+  if (targetUserId && targetUserId !== user.id) {
+    const { data: callerProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (!callerProfile || !['admin', 'superadmin', 'developer'].includes(callerProfile.role)) {
+      return null // Pas autorisé
+    }
+    userId = targetUserId
+  }
 
   // ── Toutes les entrées (date + validation) ──
   const { data: allEntries } = await supabase
     .from('entries')
     .select('intervention_date, is_validated, operator_role')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .order('intervention_date', { ascending: true })
 
   // ── Toutes les gardes ──
   const { data: allGardes } = await supabase
     .from('gardes')
     .select('date, duration_hours, type, hospital:hospitals(name)')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .order('date', { ascending: false })
 
   const entries = allEntries ?? []
@@ -201,5 +215,259 @@ export async function getAnalyticsStats(): Promise<AnalyticsStats | null> {
     avgPerMonth,
     mostActiveDay,
     totalGardeHours,
+  }
+}
+
+// ═══ ADMIN ANALYTICS — Vue établissement ═══
+
+export interface InstitutionStats {
+  totalUsers: number
+  totalEntries: number
+  totalGardes: number
+  avgEntriesPerUser: number
+  validationRate: number
+  // Par niveau DES
+  byDesLevel: { level: string; users: number; entries: number; avgEntries: number }[]
+  // Top performers (anonymisé pour non-admin)
+  topPerformers: { id: string; name: string; desLevel: string; entries: number; validated: number; gardes: number }[]
+  // Activité mensuelle globale
+  monthlyGlobal: { month: string; entries: number; gardes: number }[]
+  // Par hôpital (agrégé)
+  byHospital: { name: string; entries: number; users: number }[]
+  // Liste utilisateurs pour le sélecteur admin
+  userList: { id: string; name: string; desLevel: string; hospital: string; entries: number }[]
+}
+
+export interface PeerComparison {
+  userEntries: number
+  peerAvg: number
+  peerMedian: number
+  percentile: number
+  rank: number
+  totalPeers: number
+  desLevel: string
+}
+
+export async function getInstitutionStats(): Promise<InstitutionStats | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  // Vérifier rôle admin
+  const { data: callerProfile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+  if (!callerProfile || !['admin', 'superadmin', 'developer'].includes(callerProfile.role)) {
+    return null
+  }
+
+  // ── Tous les profils actifs (étudiants) ──
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, first_name, last_name, title, des_level, hospital_id, hospital:hospitals(name)')
+    .eq('is_active', true)
+    .in('role', ['student', 'admin', 'superadmin', 'developer'])
+
+  // ── Toutes les entrées ──
+  const { data: allEntries } = await supabase
+    .from('entries')
+    .select('user_id, intervention_date, is_validated, operator_role, hospital_id, hospital:hospitals!entries_hospital_id_fkey(name)')
+
+  // ── Toutes les gardes ──
+  const { data: allGardes } = await supabase
+    .from('gardes')
+    .select('user_id, date')
+
+  const users = profiles ?? []
+  const entries = allEntries ?? []
+  const gardes = allGardes ?? []
+
+  const totalUsers = users.length
+  const totalEntries = entries.length
+  const totalGardes = gardes.length
+  const avgEntriesPerUser = totalUsers > 0 ? Math.round((totalEntries / totalUsers) * 10) / 10 : 0
+
+  const validatedCount = entries.filter(e => e.is_validated).length
+  const validationRate = totalEntries > 0 ? Math.round((validatedCount / totalEntries) * 100) : 0
+
+  // ── Par niveau DES ──
+  const desLevelMap: Record<string, { users: Set<string>; entries: number }> = {}
+  users.forEach(u => {
+    const level = u.des_level || 'DES1'
+    if (!desLevelMap[level]) desLevelMap[level] = { users: new Set(), entries: 0 }
+    desLevelMap[level].users.add(u.id)
+  })
+  entries.forEach(e => {
+    const userProfile = users.find(u => u.id === e.user_id)
+    const level = userProfile?.des_level || 'DES1'
+    if (desLevelMap[level]) desLevelMap[level].entries++
+  })
+  const byDesLevel = Object.entries(desLevelMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([level, data]) => ({
+      level,
+      users: data.users.size,
+      entries: data.entries,
+      avgEntries: data.users.size > 0 ? Math.round((data.entries / data.users.size) * 10) / 10 : 0,
+    }))
+
+  // ── Top performers ──
+  const userEntryCounts: Record<string, { entries: number; validated: number; gardes: number }> = {}
+  entries.forEach(e => {
+    if (!userEntryCounts[e.user_id]) userEntryCounts[e.user_id] = { entries: 0, validated: 0, gardes: 0 }
+    userEntryCounts[e.user_id].entries++
+    if (e.is_validated) userEntryCounts[e.user_id].validated++
+  })
+  gardes.forEach(g => {
+    if (!userEntryCounts[g.user_id]) userEntryCounts[g.user_id] = { entries: 0, validated: 0, gardes: 0 }
+    userEntryCounts[g.user_id].gardes++
+  })
+
+  const topPerformers = users
+    .map(u => ({
+      id: u.id,
+      name: `${u.title ? u.title + ' ' : ''}${u.first_name} ${u.last_name}`,
+      desLevel: u.des_level || 'DES1',
+      entries: userEntryCounts[u.id]?.entries ?? 0,
+      validated: userEntryCounts[u.id]?.validated ?? 0,
+      gardes: userEntryCounts[u.id]?.gardes ?? 0,
+    }))
+    .sort((a, b) => b.entries - a.entries)
+    .slice(0, 10)
+
+  // ── Activité mensuelle globale (6 mois) ──
+  const monthlyGlobal: { month: string; entries: number; gardes: number }[] = []
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date()
+    d.setMonth(d.getMonth() - i)
+    const monthStart = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+    const nextMonth = d.getMonth() === 11
+      ? `${d.getFullYear() + 1}-01-01`
+      : `${d.getFullYear()}-${String(d.getMonth() + 2).padStart(2, '0')}-01`
+
+    const monthEntries = entries.filter(e => e.intervention_date >= monthStart && e.intervention_date < nextMonth).length
+    const monthGardes = gardes.filter(g => g.date >= monthStart && g.date < nextMonth).length
+
+    monthlyGlobal.push({
+      month: d.toLocaleDateString('fr-FR', { month: 'short' }),
+      entries: monthEntries,
+      gardes: monthGardes,
+    })
+  }
+
+  // ── Par hôpital (agrégé) ──
+  const hospitalMap: Record<string, { entries: number; users: Set<string> }> = {}
+  entries.forEach(e => {
+    const hospital = e.hospital as unknown as { name: string } | null
+    const hName = hospital?.name || 'Autre'
+    if (!hospitalMap[hName]) hospitalMap[hName] = { entries: 0, users: new Set() }
+    hospitalMap[hName].entries++
+    hospitalMap[hName].users.add(e.user_id)
+  })
+  const byHospital = Object.entries(hospitalMap)
+    .sort((a, b) => b[1].entries - a[1].entries)
+    .map(([name, data]) => ({ name, entries: data.entries, users: data.users.size }))
+
+  // ── Liste utilisateurs pour sélecteur ──
+  const userList = users
+    .map(u => {
+      const hospital = u.hospital as unknown as { name: string } | null
+      return {
+        id: u.id,
+        name: `${u.first_name} ${u.last_name}`,
+        desLevel: u.des_level || 'DES1',
+        hospital: hospital?.name || 'Non assigné',
+        entries: userEntryCounts[u.id]?.entries ?? 0,
+      }
+    })
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  return {
+    totalUsers,
+    totalEntries,
+    totalGardes,
+    avgEntriesPerUser,
+    validationRate,
+    byDesLevel,
+    topPerformers,
+    monthlyGlobal,
+    byHospital,
+    userList,
+  }
+}
+
+// ═══ COMPARATIF ANONYMISÉ — Position vs promotion ═══
+
+export async function getPeerComparison(): Promise<PeerComparison | null> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  // Profil de l'utilisateur
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('des_level')
+    .eq('id', user.id)
+    .single()
+
+  const desLevel = profile?.des_level || 'DES1'
+
+  // Compter les entrées de l'utilisateur
+  const { count: userEntries } = await supabase
+    .from('entries')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+
+  // Trouver tous les peers du même niveau DES
+  const { data: peers } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('des_level', desLevel)
+    .eq('is_active', true)
+
+  if (!peers || peers.length <= 1) {
+    return {
+      userEntries: userEntries ?? 0,
+      peerAvg: 0,
+      peerMedian: 0,
+      percentile: 100,
+      rank: 1,
+      totalPeers: 1,
+      desLevel,
+    }
+  }
+
+  // Compter les entrées de chaque peer
+  const peerCounts: number[] = []
+  for (const peer of peers) {
+    const { count } = await supabase
+      .from('entries')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', peer.id)
+    peerCounts.push(count ?? 0)
+  }
+
+  peerCounts.sort((a, b) => a - b)
+  const myCount = userEntries ?? 0
+  const peerAvg = Math.round((peerCounts.reduce((s, c) => s + c, 0) / peerCounts.length) * 10) / 10
+  const midIdx = Math.floor(peerCounts.length / 2)
+  const peerMedian = peerCounts.length % 2 === 0
+    ? Math.round(((peerCounts[midIdx - 1] + peerCounts[midIdx]) / 2) * 10) / 10
+    : peerCounts[midIdx]
+
+  // Rang et percentile
+  const rank = peerCounts.filter(c => c > myCount).length + 1
+  const percentile = Math.round(((peerCounts.length - rank + 1) / peerCounts.length) * 100)
+
+  return {
+    userEntries: myCount,
+    peerAvg,
+    peerMedian,
+    percentile,
+    rank,
+    totalPeers: peerCounts.length,
+    desLevel,
   }
 }

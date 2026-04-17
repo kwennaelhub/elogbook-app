@@ -1,13 +1,14 @@
 import { getDashboardStats } from '@/lib/actions/data'
-import { getAnalyticsStats } from '@/lib/actions/analytics'
+import { getAnalyticsStats, getInstitutionStats, getPeerComparison } from '@/lib/actions/analytics'
 import { DashboardContent } from '@/components/dashboard/dashboard-content'
 import { getServerT } from '@/lib/i18n/server'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function DashboardPage() {
-  const [stats, analyticsStats, t, supabase] = await Promise.all([
+  const [stats, analyticsStats, peerComparison, t, supabase] = await Promise.all([
     getDashboardStats(),
     getAnalyticsStats(),
+    getPeerComparison(),
     getServerT(),
     createClient(),
   ])
@@ -35,6 +36,10 @@ export default async function DashboardPage() {
     }
   }
 
+  // Charger les stats établissement seulement pour les admins (évite une requête inutile pour les users)
+  const isAdmin = profile?.role && ['admin', 'superadmin', 'developer'].includes(profile.role)
+  const institutionStats = isAdmin ? await getInstitutionStats() : null
+
   if (!stats) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -47,6 +52,8 @@ export default async function DashboardPage() {
     <DashboardContent
       stats={stats}
       analyticsStats={analyticsStats}
+      institutionStats={institutionStats}
+      peerComparison={peerComparison}
       profile={profile}
     />
   )
