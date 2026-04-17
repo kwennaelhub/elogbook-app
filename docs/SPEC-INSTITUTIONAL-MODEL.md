@@ -329,6 +329,37 @@ ALTER TABLE entries ADD COLUMN service_id uuid REFERENCES hospital_services(id);
    Le developer peut aussi le creer sur demande de validation externe/ulterieure.
    Le recteur nomme ensuite ses chefs de service.
 
+   **SECURITE INSCRIPTION INSTITUTIONNELLE** (ajoute 17/04) :
+   L'inscription institutionnelle requiert un **identifiant institutionnel verifiable**
+   (numero d'ordre, code RCCM, numero d'agrement ministeriel, ou equivalent) pour
+   empecher les inscriptions frauduleuses. Workflow :
+
+   1. Le recteur remplit le formulaire avec : nom hopital, ville, pays,
+      identifiant institutionnel (obligatoire), justificatif (document PDF/image)
+   2. La demande passe en statut `pending_verification`
+   3. Le developer (Jean) verifie l'identifiant et le justificatif
+   4. Si valide → statut `verified`, le recteur accede a son espace admin
+   5. Si invalide → statut `rejected` avec motif
+
+   Table `institution_registrations` :
+   ```sql
+   CREATE TABLE institution_registrations (
+     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+     hospital_name text NOT NULL,
+     city text NOT NULL,
+     country text DEFAULT 'Benin',
+     institutional_id text NOT NULL,        -- Numero d'ordre / RCCM / agrement
+     institutional_id_type text NOT NULL,    -- 'ordre_medical' | 'rccm' | 'agrement' | 'autre'
+     justificatif_url text,                  -- Document uploade (PDF/image)
+     rector_user_id uuid REFERENCES profiles(id),
+     status text DEFAULT 'pending_verification', -- pending | verified | rejected
+     rejection_reason text,
+     verified_by uuid REFERENCES profiles(id),
+     verified_at timestamptz,
+     created_at timestamptz DEFAULT now()
+   );
+   ```
+
 3. **Quelles couleurs voit un DES en stage ailleurs ?**
    → **REPONDU** : Toujours les couleurs de son hopital de REFERENCE (home_hospital).
 
