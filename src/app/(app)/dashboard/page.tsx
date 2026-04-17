@@ -1,11 +1,13 @@
 import { getDashboardStats } from '@/lib/actions/data'
+import { getAnalyticsStats } from '@/lib/actions/analytics'
 import { DashboardContent } from '@/components/dashboard/dashboard-content'
 import { getServerT } from '@/lib/i18n/server'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function DashboardPage() {
-  const [stats, t, supabase] = await Promise.all([
+  const [stats, analyticsStats, t, supabase] = await Promise.all([
     getDashboardStats(),
+    getAnalyticsStats(),
     getServerT(),
     createClient(),
   ])
@@ -44,6 +46,7 @@ export default async function DashboardPage() {
   return (
     <DashboardContent
       stats={stats}
+      analyticsStats={analyticsStats}
       profile={profile}
     />
   )

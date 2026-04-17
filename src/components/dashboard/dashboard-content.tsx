@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { DashboardCharts } from './dashboard-charts'
 import { CircularProgress } from './circular-progress'
+import { AnalyticsSection } from './analytics-section'
+import type { AnalyticsStats } from '@/lib/actions/analytics'
 import {
   Activity, CheckCircle2, CalendarDays, TrendingUp,
   Stethoscope, Clock, ChevronLeft, ChevronRight
@@ -67,7 +69,7 @@ function formatDate(): string {
   })
 }
 
-export function DashboardContent({ stats, profile }: { stats: DashboardStats; profile: DashboardProfile | null }) {
+export function DashboardContent({ stats, analyticsStats, profile }: { stats: DashboardStats; analyticsStats: AnalyticsStats | null; profile: DashboardProfile | null }) {
   const { t } = useI18n()
   const globalPct = stats.yearProgress.total.pct
 
@@ -229,6 +231,9 @@ export function DashboardContent({ stats, profile }: { stats: DashboardStats; pr
             hospitalStats={stats.hospitalStats}
             topProcedures={stats.topProcedures}
           />
+
+          {/* ─── Analytics avancés (heatmap, streak, gardes, distribution, validation) ─── */}
+          {analyticsStats && <AnalyticsSection stats={analyticsStats} />}
         </div>
 
         {/* ═══ Colonne droite — Widgets (desktop) ═══ */}
