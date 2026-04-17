@@ -22,6 +22,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 import {
   AppError,
   AuthenticationError,
@@ -233,6 +234,7 @@ function mapSupabaseError(error: SupabaseError): ErrorResponse {
 function logError(code: string, error: unknown) {
   const errorObj = error instanceof Error ? error : new Error(String(error))
 
+  // 1. Log structuré pino (toujours)
   logger.error({
     err: errorObj,
     code,
@@ -241,4 +243,22 @@ function logError(code: string, error: unknown) {
     ...(error instanceof ServiceUnavailableError && { service: error.service }),
     ...(error instanceof AuthorizationError && error.requiredRole && { requiredRole: error.requiredRole }),
   }, errorObj.message)
+
+  // 2. Sentry : capturer les erreurs serveur (5xx), circuit breaker, et erreurs inconnues
+  //    Les 4xx (validation, auth, rate limit) sont attendues → pas de bruit dans Sentry
+  const isServerError =
+    error instanceof CircuitOpenError ||
+    !(error instanceof AppError) ||
+    error.statusCode >= 500
+
+  if (isServerError) {
+    Sentry.withScope((scope) => {
+      scope.setTag('error_code', code)
+      scope.setLevel('error')
+      if (error instanceof ExternalServiceError) scope.setTag('service', error.service)
+      if (error instanceof ServiceUnavailableError) scope.setTag('service', error.service)
+      if (error instanceof CircuitOpenError) scope.setTag('circuit', 'open')
+      Sentry.captureException(errorObj)
+    })
+  }
 }

@@ -10,7 +10,7 @@ export default defineConfig({
   timeout: 60_000,
 
   use: {
-    baseURL: 'https://internlog.app',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://internlog.app',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },

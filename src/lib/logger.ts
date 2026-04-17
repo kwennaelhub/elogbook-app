@@ -13,13 +13,20 @@ import pino from 'pino'
  * Modules enfants (contexte automatique) :
  *   const log = logger.child({ module: 'paypal' })
  *   log.info({ subscriptionId }, 'Subscription created')
+ *
+ * Variables d'environnement :
+ *   LOG_LEVEL — override du niveau (trace|debug|info|warn|error|fatal|silent)
+ *   NODE_ENV  — production=JSON structuré, development=pino-pretty, test=silent
  */
 
 const isProduction = process.env.NODE_ENV === 'production'
 const isTest = process.env.NODE_ENV === 'test'
 
+// LOG_LEVEL env var pour override (utile debug prod temporaire)
+const level = process.env.LOG_LEVEL || (isTest ? 'silent' : isProduction ? 'info' : 'debug')
+
 export const logger = pino({
-  level: isTest ? 'silent' : isProduction ? 'info' : 'debug',
+  level,
   ...(isProduction
     ? {
         // Production : JSON structuré (parsable par Vercel/Sentry/Datadog)
@@ -28,14 +35,19 @@ export const logger = pino({
         },
         timestamp: pino.stdTimeFunctions.isoTime,
       }
-    : {
-        // Dev : lisible dans le terminal
-        transport: {
-          target: 'pino/file',
-          options: { destination: 1 }, // stdout
-        },
-        timestamp: pino.stdTimeFunctions.isoTime,
-      }),
+    : isTest
+      ? {}
+      : {
+          // Dev : pino-pretty pour lisibilité terminal
+          transport: {
+            target: 'pino-pretty',
+            options: {
+              colorize: true,
+              translateTime: 'HH:MM:ss.l',
+              ignore: 'pid,hostname',
+            },
+          },
+        }),
 })
 
 // Loggers enfants pré-configurés par module
