@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, X, Pencil, Trash2, Check, Building2, Target, BookOpen, ChevronDown, ChevronUp, Shield, AlertCircle, CheckCircle } from 'lucide-react'
+import { Plus, X, Pencil, Trash2, Check, Building2, Target, BookOpen, ChevronDown, ChevronUp, Shield, AlertCircle, CheckCircle, ImagePlus, Image } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import type { DesLevel, Hospital, UserRole } from '@/types/database'
 import {
-  addHospital, updateHospital, deleteHospital,
+  addHospital, updateHospital, deleteHospital, removeHospitalLogo,
   addSpecialty, updateSpecialty, deleteSpecialty,
   addProcedure, deleteProcedure,
   upsertDesObjective, deleteDesObjective,
@@ -110,6 +110,7 @@ function HospitalsManager({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editCity, setEditCity] = useState('')
+  const [uploadingLogoId, setUploadingLogoId] = useState<string | null>(null)
 
   const handleAdd = async () => {
     if (!name.trim() || !city.trim()) return
@@ -144,6 +145,42 @@ function HospitalsManager({
       onFeedback('error', result.error)
     } else {
       onFeedback('success', h.is_active ? t('config.deactivated') : t('config.reactivated'))
+    }
+  }
+
+  const handleLogoUpload = async (hospitalId: string, file: File) => {
+    setUploadingLogoId(hospitalId)
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('hospitalId', hospitalId)
+
+    try {
+      const res = await fetch('/api/upload-hospital-logo', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        onFeedback('error', data.error || 'Erreur upload')
+      } else {
+        onFeedback('success', 'Logo mis à jour')
+      }
+    } catch {
+      onFeedback('error', 'Erreur réseau')
+    } finally {
+      setUploadingLogoId(null)
+    }
+  }
+
+  const handleRemoveLogo = async (hospitalId: string) => {
+    if (!confirm('Supprimer le logo de cet hôpital ?')) return
+    setUploadingLogoId(hospitalId)
+    const result = await removeHospitalLogo(hospitalId)
+    setUploadingLogoId(null)
+    if (result.error) {
+      onFeedback('error', result.error)
+    } else {
+      onFeedback('success', 'Logo supprimé')
     }
   }
 
@@ -198,9 +235,9 @@ function HospitalsManager({
       )}
 
       {/* Liste */}
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {hospitals.map(h => (
-          <div key={h.id} className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${
+          <div key={h.id} className={`rounded-lg px-3 py-2 text-sm ${
             h.is_active ? 'bg-secondary/50' : 'bg-destructive/10'
           }`}>
             {editingId === h.id ? (
@@ -223,12 +260,66 @@ function HospitalsManager({
                 </button>
               </div>
             ) : (
-              <>
-                <div>
-                  <span className={`font-medium ${h.is_active ? 'text-foreground' : 'text-muted-foreground line-through'}`}>{h.name}</span>
-                  <span className="ml-2 text-xs text-muted-foreground">{h.city}</span>
+              <div className="flex items-center gap-3">
+                {/* Logo aperçu */}
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-card ring-1 ring-border/30">
+                  {h.logo_url ? (
+                    <img src={h.logo_url} alt={`Logo ${h.name}`} className="h-full w-full object-contain" />
+                  ) : (
+                    <Building2 className="h-5 w-5 text-muted-foreground/40" />
+                  )}
                 </div>
-                <div className="flex items-center gap-1">
+
+                {/* Infos */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className={`font-medium truncate ${h.is_active ? 'text-foreground' : 'text-muted-foreground line-through'}`}>{h.name}</span>
+                    <span className="text-xs text-muted-foreground">{h.city}</span>
+                  </div>
+                  {h.logo_url && (
+                    <span className="text-[10px] text-accent">Logo configuré</span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-1 shrink-0">
+                  {/* Upload logo */}
+                  <label
+                    className={`cursor-pointer rounded p-1 transition-colors ${
+                      uploadingLogoId === h.id ? 'animate-pulse text-primary' : 'text-muted-foreground hover:bg-primary/10 hover:text-primary'
+                    }`}
+                    title={h.logo_url ? 'Changer le logo' : 'Ajouter un logo'}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (file) handleLogoUpload(h.id, file)
+                        e.target.value = ''
+                      }}
+                      disabled={uploadingLogoId === h.id}
+                    />
+                    {uploadingLogoId === h.id ? (
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    ) : (
+                      <ImagePlus className="h-3.5 w-3.5" />
+                    )}
+                  </label>
+
+                  {/* Supprimer logo */}
+                  {h.logo_url && (
+                    <button
+                      onClick={() => handleRemoveLogo(h.id)}
+                      className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      title="Supprimer le logo"
+                    >
+                      <Image className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+
+                  {/* Modifier */}
                   <button
                     onClick={() => { setEditingId(h.id); setEditName(h.name); setEditCity(h.city) }}
                     className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-muted-foreground"
@@ -236,6 +327,8 @@ function HospitalsManager({
                   >
                     <Pencil className="h-3 w-3" />
                   </button>
+
+                  {/* Activer/Désactiver */}
                   <button
                     onClick={() => handleToggle(h)}
                     className={`rounded px-2 py-0.5 text-[10px] font-medium ${
@@ -247,13 +340,18 @@ function HospitalsManager({
                     {h.is_active ? t('admin.active') : t('admin.inactive')}
                   </button>
                 </div>
-              </>
+              </div>
             )}
           </div>
         ))}
         {hospitals.length === 0 && (
           <p className="py-4 text-center text-xs text-muted-foreground">{t('config.noHospitals')}</p>
         )}
+      </div>
+
+      {/* Info logo */}
+      <div className="mt-3 rounded-lg bg-secondary/50 p-2 text-[10px] text-muted-foreground">
+        <p>Cliquez sur l&apos;icône image pour ajouter ou changer le logo d&apos;un hôpital (PNG, JPG, max 2 Mo).</p>
       </div>
     </div>
   )

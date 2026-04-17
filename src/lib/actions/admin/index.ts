@@ -10,7 +10,7 @@
 
 // Config (hôpitaux, spécialités, procédures, objectifs DES)
 export {
-  addHospital, updateHospital, deleteHospital,
+  addHospital, updateHospital, deleteHospital, removeHospitalLogo,
   addSpecialty, updateSpecialty, deleteSpecialty,
   addProcedure, deleteProcedure,
   getSpecialtiesWithProcedures,

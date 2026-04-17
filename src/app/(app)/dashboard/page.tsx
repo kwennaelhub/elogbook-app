@@ -18,12 +18,13 @@ export default async function DashboardPage() {
   if (user) {
     const { data } = await supabase
       .from('profiles')
-      .select('first_name, last_name, title, des_level, avatar_url, role, hospital_id, hospitals(name)')
+      .select('first_name, last_name, title, des_level, avatar_url, role, hospital_id, hospitals(name, logo_url)')
       .eq('id', user.id)
       .single()
 
     if (data) {
-      const hospitalData = data.hospitals as unknown as { name: string } | { name: string }[] | null
+      const hospitalData = data.hospitals as unknown as { name: string; logo_url: string | null } | { name: string; logo_url: string | null }[] | null
+      const hospital = Array.isArray(hospitalData) ? hospitalData[0] ?? null : hospitalData
       profile = {
         first_name: data.first_name,
         last_name: data.last_name,
@@ -31,7 +32,7 @@ export default async function DashboardPage() {
         des_level: data.des_level,
         avatar_url: data.avatar_url,
         role: data.role,
-        hospital: Array.isArray(hospitalData) ? hospitalData[0] ?? null : hospitalData,
+        hospital: hospital ? { name: hospital.name, logo_url: hospital.logo_url } : null,
       }
     }
   }

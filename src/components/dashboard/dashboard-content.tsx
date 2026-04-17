@@ -19,7 +19,7 @@ interface DashboardProfile {
   des_level: string | null
   avatar_url: string | null
   role: string | null
-  hospital: { name: string } | null
+  hospital: { name: string; logo_url?: string | null } | null
 }
 
 interface DashboardStats {
@@ -95,26 +95,41 @@ export function DashboardContent({ stats, analyticsStats, institutionStats, peer
         <div className="absolute -right-4 bottom-0 h-24 w-24 rounded-full bg-white/5" />
         <div className="absolute right-20 top-4 h-16 w-16 rounded-full bg-white/5" />
 
-        <div className="relative z-10">
-          <div className="mb-1 flex items-center gap-2 text-xs font-medium text-white/70">
-            <CalendarDays className="h-3.5 w-3.5" />
-            <span className="capitalize">{formatDate()}</span>
-          </div>
-          <h1 className="text-xl font-bold lg:text-2xl">
-            {getGreeting()}, {displayName} !
-          </h1>
-          <p className="mt-1 text-sm text-white/80">
-            Bienvenue sur votre tableau de bord InternLog
-          </p>
+        <div className="relative z-10 flex items-start justify-between">
+          <div>
+            <div className="mb-1 flex items-center gap-2 text-xs font-medium text-white/70">
+              <CalendarDays className="h-3.5 w-3.5" />
+              <span className="capitalize">{formatDate()}</span>
+            </div>
+            <h1 className="text-xl font-bold lg:text-2xl">
+              {getGreeting()}, {displayName} !
+            </h1>
+            <p className="mt-1 text-sm text-white/80">
+              Bienvenue sur votre tableau de bord InternLog
+            </p>
 
-          {/* Badge DES */}
-          <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
-            <Stethoscope className="h-3.5 w-3.5" />
-            {t(`des.${stats.desLevel}`) || stats.desLevel}
-            {profile?.hospital && (
-              <span className="text-white/60">• {(profile.hospital as { name: string }).name}</span>
-            )}
+            {/* Badge DES */}
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
+              <Stethoscope className="h-3.5 w-3.5" />
+              {t(`des.${stats.desLevel}`) || stats.desLevel}
+              {profile?.hospital && (
+                <span className="text-white/60">• {profile.hospital.name}</span>
+              )}
+            </div>
           </div>
+
+          {/* Logo hôpital */}
+          {profile?.hospital?.logo_url && (
+            <div className="hidden shrink-0 sm:block">
+              <div className="h-16 w-16 overflow-hidden rounded-xl bg-white/20 p-1.5 backdrop-blur-sm lg:h-20 lg:w-20">
+                <img
+                  src={profile.hospital.logo_url}
+                  alt={`Logo ${profile.hospital.name}`}
+                  className="h-full w-full object-contain"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

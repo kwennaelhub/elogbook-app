@@ -26,6 +26,38 @@ export async function deleteHospital(id: string) {
   return { success: true }
 }
 
+// ========== LOGO HÔPITAL ==========
+
+export async function removeHospitalLogo(hospitalId: string) {
+  const { supabase } = await requireAdmin()
+
+  // Supprimer le fichier du storage
+  const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+  const serviceClient = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  // Lister les fichiers dans le dossier de l'hôpital
+  const { data: files } = await serviceClient.storage
+    .from('hospital-logos')
+    .list(hospitalId)
+
+  if (files && files.length > 0) {
+    const filePaths = files.map(f => `${hospitalId}/${f.name}`)
+    await serviceClient.storage.from('hospital-logos').remove(filePaths)
+  }
+
+  // Réinitialiser logo_url
+  const { error } = await supabase
+    .from('hospitals')
+    .update({ logo_url: null })
+    .eq('id', hospitalId)
+
+  if (error) return { error: error.message }
+  return { success: true }
+}
+
 // ========== SPÉCIALITÉS ==========
 
 export async function addSpecialty(data: { name: string; parent_id?: string; level?: number; sort_order?: number }) {
