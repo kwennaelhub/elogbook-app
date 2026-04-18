@@ -230,7 +230,20 @@ export function ServicesTab({ hospitals, defaultHospitalId, lockToHospital = fal
                   </option>
                 ))}
               </select>
+              {candidates.length === 0 && (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Aucun superviseur disponible pour cet hôpital. Créez-en un dans l&apos;onglet
+                  <strong> Superviseurs</strong>, puis revenez ici.
+                </p>
+              )}
             </div>
+          </div>
+
+          {/* Note explicative sur le workflow */}
+          <div className="mt-2 rounded-lg bg-primary/5 p-2 text-[11px] text-muted-foreground border border-primary/10">
+            <strong>À savoir :</strong> un chef de service doit d&apos;abord être un superviseur
+            de cet hôpital. Quand vous l&apos;assignez comme chef, son rôle passe automatiquement de
+            <em> superviseur</em> à <em>chef de service</em> (il garde tous ses droits de validation).
           </div>
           <button
             onClick={handleCreate}
@@ -392,11 +405,29 @@ export function ServicesTab({ hospitals, defaultHospitalId, lockToHospital = fal
         </table>
       </div>
 
-      {/* Aide forfait */}
-      <p className="mt-3 text-xs text-muted-foreground">
-        <strong>Forfaits institutionnels :</strong> Starter (3 services) · Pro (6 services) · Enterprise (illimité).
-        La limite est appliquée automatiquement côté serveur.
-      </p>
+      {/* Aide forfait + raccourci superviseurs */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          <strong>Forfaits institutionnels :</strong> Starter (3 services) · Pro (6 services) · Enterprise (illimité).
+        </p>
+        {candidates.length === 0 && (
+          <p className="text-xs text-muted-foreground">
+            Besoin d&apos;ajouter un superviseur ?
+            {' '}
+            <button
+              type="button"
+              onClick={() => {
+                // Scroll vers le haut puis déclenche un event pour que le parent
+                // bascule sur l'onglet Superviseurs (via CustomEvent — léger et non invasif)
+                window.dispatchEvent(new CustomEvent('admin:switch-tab', { detail: 'supervisors' }))
+              }}
+              className="underline font-medium text-primary hover:text-primary/80"
+            >
+              Aller à l&apos;onglet Superviseurs →
+            </button>
+          </p>
+        )}
+      </div>
     </div>
   )
 }

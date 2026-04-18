@@ -104,9 +104,20 @@ export async function createSupervisor(data: {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'error.unauthorized' }
 
-  // Vérifier rôle admin
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (!profile || !['admin', 'superadmin', 'developer'].includes(profile.role)) {
+  // Phase B — vérifier rôle admin OU institution_admin scopé à son hôpital
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, hospital_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile) return { error: 'error.forbidden' }
+
+  const isGlobalAdmin = ['admin', 'superadmin', 'developer'].includes(profile.role)
+  const isScopedAdmin =
+    profile.role === 'institution_admin' && profile.hospital_id === data.hospital_id
+
+  if (!isGlobalAdmin && !isScopedAdmin) {
     return { error: 'error.forbidden' }
   }
 

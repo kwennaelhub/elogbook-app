@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Users, BookCheck, Upload, Stethoscope, Search, Download, Plus, X, FileSpreadsheet, UserPlus, AlertCircle, CheckCircle, Settings2, Shield, Building2, ClipboardList, Trash2, Layers } from 'lucide-react'
 import type { DesRegistry, Profile, Hospital, DesLevel } from '@/types/database'
 import { SUPERVISOR_TITLE_LABELS } from '@/types/database'
@@ -263,6 +263,21 @@ export function AdminPanel({
 
   // Phase B — onglet Services accessible aux admins globaux + institution_admin
   const canManageServices = ['developer', 'superadmin', 'admin', 'institution_admin'].includes(currentUserRole)
+
+  // Phase B — listener pour le raccourci « Aller à l'onglet Superviseurs »
+  // depuis ServicesTab. Utilise un CustomEvent pour éviter de passer setTab en prop.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<string>).detail
+      if (detail === 'supervisors' || detail === 'services' || detail === 'users' ||
+          detail === 'registry' || detail === 'seats' || detail === 'adhesions' ||
+          detail === 'config') {
+        setTab(detail as typeof tab)
+      }
+    }
+    window.addEventListener('admin:switch-tab', handler)
+    return () => window.removeEventListener('admin:switch-tab', handler)
+  }, [])
 
   const tabs = [
     { key: 'registry' as const, label: `${t('admin.registryTab')} (${registryCount})`, icon: BookCheck },
