@@ -99,7 +99,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
 
                 {/* Navigation Links */}
                 <div className="py-1">
-                  {(profile?.role === 'supervisor' || profile?.role === 'admin' || profile?.role === 'superadmin' || profile?.role === 'developer') && (
+                  {(profile?.role === 'supervisor' || profile?.role === 'service_chief' || profile?.role === 'institution_admin' || profile?.role === 'admin' || profile?.role === 'superadmin' || profile?.role === 'developer') && (
                     <a
                       href="/supervision"
                       className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-secondary/50"
@@ -110,7 +110,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
                     </a>
                   )}
 
-                  {(profile?.role === 'admin' || profile?.role === 'superadmin' || profile?.role === 'developer') && (
+                  {(profile?.role === 'institution_admin' || profile?.role === 'admin' || profile?.role === 'superadmin' || profile?.role === 'developer') && (
                     <a
                       href="/admin"
                       className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-secondary/50"

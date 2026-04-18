@@ -34,8 +34,8 @@ export function AppSidebar({ profile }: { profile: ProfileWithSubscription | nul
   const secondaryNav: NavItem[] = [
     { href: '/notes', label: t('nav.notes'), icon: StickyNote },
     { href: '/followups', label: t('nav.followups'), icon: HeartPulse },
-    { href: '/supervision', label: t('nav.supervision'), icon: ClipboardCheck, roles: ['supervisor', 'admin', 'superadmin', 'developer'] },
-    { href: '/admin', label: t('nav.admin'), icon: Shield, roles: ['admin', 'superadmin', 'developer'] },
+    { href: '/supervision', label: t('nav.supervision'), icon: ClipboardCheck, roles: ['supervisor', 'service_chief', 'institution_admin', 'admin', 'superadmin', 'developer'] },
+    { href: '/admin', label: t('nav.admin'), icon: Shield, roles: ['institution_admin', 'admin', 'superadmin', 'developer'] },
   ]
 
   const filteredSecondary = secondaryNav.filter(
