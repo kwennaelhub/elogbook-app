@@ -32,3 +32,11 @@ export {
   getInstitutionalSeats, getSeatAssignments,
   assignSeat, removeSeatAssignment, searchUsersForSeat,
 } from './seats'
+
+// Phase B — Services hospitaliers (CRUD + assignation chef)
+export {
+  getHospitalServices, getHospitalService,
+  createHospitalService, updateHospitalService,
+  deactivateHospitalService, deleteHospitalService,
+  assignServiceChief, getServiceChiefCandidates,
+} from './services'

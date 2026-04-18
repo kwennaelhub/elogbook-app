@@ -3,7 +3,18 @@
 
 // ========== ENUMS ==========
 
-export type UserRole = 'student' | 'supervisor' | 'admin' | 'superadmin' | 'developer'
+export type UserRole =
+  | 'student'
+  | 'supervisor'
+  | 'service_chief'      // Phase B — chef de service (admin scopé à un service)
+  | 'institution_admin'  // Phase B — recteur/directeur (admin scopé à un hôpital)
+  | 'admin'
+  | 'superadmin'
+  | 'developer'
+
+export type InstitutionalPlanTier = 'starter' | 'pro' | 'enterprise'
+export type InstitutionalIdType = 'ordre_medical' | 'rccm' | 'agrement' | 'autre'
+export type InstitutionRegistrationStatus = 'pending_verification' | 'verified' | 'rejected'
 export type DesLevel = 'DES1' | 'DES2' | 'DES3' | 'DES4' | 'DES5'
 export type SurgeryContext = 'programmed' | 'emergency'
 export type PatientType = 'real' | 'simulation'
@@ -51,6 +62,10 @@ export interface Profile {
   role: UserRole
   des_level: DesLevel | null
   hospital_id: string | null
+  /** Phase B — hôpital de RÉFÉRENCE permanent ; contrôle la suppression/modification du profil. */
+  home_hospital_id: string | null
+  /** Phase B — service actuel (stage ou poste). Null si pas encore affecté. */
+  service_id: string | null
   phone: string | null
   title: string | null // titre académique : Pr, Pr Ag, Dr, MC, CC
   matricule: string | null
@@ -60,6 +75,135 @@ export interface Profile {
   is_active: boolean
   created_at: string
   updated_at: string
+}
+
+// ========== PHASE B — MODÈLE INSTITUTIONNEL ==========
+
+export interface HospitalService {
+  id: string
+  hospital_id: string
+  name: string
+  chief_id: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface HospitalServiceWithDetails extends HospitalService {
+  hospital?: Pick<Hospital, 'id' | 'name' | 'city'>
+  chief?: Pick<Profile, 'id' | 'first_name' | 'last_name' | 'title' | 'email'> | null
+  des_count?: number
+  supervisor_count?: number
+}
+
+export type HospitalServiceInsert = Pick<HospitalService, 'hospital_id' | 'name'> & {
+  chief_id?: string | null
+  is_active?: boolean
+}
+
+export type HospitalServiceUpdate = Partial<
+  Pick<HospitalService, 'name' | 'chief_id' | 'is_active'>
+>
+
+export interface StageAssignment {
+  id: string
+  des_id: string
+  hospital_id: string
+  service_id: string
+  start_date: string
+  end_date: string | null
+  is_current: boolean
+  assigned_by: string | null
+  notes: string | null
+  created_at: string
+}
+
+export interface StageAssignmentWithDetails extends StageAssignment {
+  hospital?: Pick<Hospital, 'id' | 'name' | 'city'>
+  service?: Pick<HospitalService, 'id' | 'name'>
+  des?: Pick<Profile, 'id' | 'first_name' | 'last_name' | 'matricule' | 'des_level'>
+}
+
+export type StageAssignmentInsert = Pick<
+  StageAssignment,
+  'des_id' | 'hospital_id' | 'service_id' | 'start_date'
+> & {
+  end_date?: string | null
+  notes?: string | null
+}
+
+export interface HospitalSettings {
+  id: string
+  hospital_id: string
+  primary_color: string
+  secondary_color: string
+  accent_color: string
+  plan_tier: InstitutionalPlanTier
+  max_services: number
+  updated_at: string
+  updated_by: string | null
+}
+
+export type HospitalSettingsUpdate = Partial<
+  Pick<
+    HospitalSettings,
+    'primary_color' | 'secondary_color' | 'accent_color' | 'plan_tier' | 'max_services'
+  >
+>
+
+export interface InstitutionRegistration {
+  id: string
+  hospital_name: string
+  city: string
+  country: string
+  institutional_id: string
+  institutional_id_type: InstitutionalIdType
+  justificatif_url: string | null
+  rector_user_id: string | null
+  rector_email: string
+  rector_full_name: string
+  rector_phone: string | null
+  status: InstitutionRegistrationStatus
+  rejection_reason: string | null
+  verified_by: string | null
+  verified_at: string | null
+  hospital_id: string | null
+  created_at: string
+}
+
+export type InstitutionRegistrationInsert = Pick<
+  InstitutionRegistration,
+  | 'hospital_name'
+  | 'city'
+  | 'institutional_id'
+  | 'institutional_id_type'
+  | 'rector_email'
+  | 'rector_full_name'
+> & {
+  country?: string
+  justificatif_url?: string | null
+  rector_phone?: string | null
+  rector_user_id?: string | null
+}
+
+// Tarifs indicatifs des forfaits institutionnels (à ajuster commercialement)
+export const INSTITUTIONAL_PLAN_LIMITS: Record<InstitutionalPlanTier, number> = {
+  starter: 3,
+  pro: 6,
+  enterprise: 999,
+}
+
+export const INSTITUTIONAL_PLAN_LABELS: Record<InstitutionalPlanTier, string> = {
+  starter: 'Starter — jusqu\'à 3 services',
+  pro: 'Pro — jusqu\'à 6 services',
+  enterprise: 'Enterprise — services illimités',
+}
+
+export const INSTITUTIONAL_ID_TYPE_LABELS: Record<InstitutionalIdType, string> = {
+  ordre_medical: 'Numéro d\'ordre médical',
+  rccm: 'RCCM',
+  agrement: 'Agrément ministériel',
+  autre: 'Autre',
 }
 
 export interface Specialty {
@@ -92,6 +236,8 @@ export interface Entry {
   patient_type: PatientType
   operator_role: OperatorRole
   hospital_id: string
+  /** Phase B — service dans lequel l'intervention a eu lieu. Null si hôpital sans services. */
+  service_id: string | null
   other_hospital: string | null
   specialty_id: string | null
   segment_id: string | null
@@ -341,22 +487,41 @@ export const SUPERVISOR_TITLE_LABELS: Record<SupervisorTitle, string> = {
   'CC': 'Chef de Clinique',
 }
 
-// Hiérarchie des rôles : developer (irrevocable) > superadmin > admin > supervisor > student
+// Hiérarchie des rôles (Phase B) :
+// developer > superadmin > admin (legacy) > institution_admin > service_chief > supervisor > student
+// Les rôles service_chief et institution_admin sont scopés (hôpital/service) —
+// ils ont moins de puissance globale que admin mais pleine autorité sur leur périmètre.
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
   student: 0,
   supervisor: 1,
-  admin: 2,
-  superadmin: 3,
-  developer: 4,
+  service_chief: 2,
+  institution_admin: 3,
+  admin: 4,
+  superadmin: 5,
+  developer: 6,
 }
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   student: 'Étudiant',
   supervisor: 'Superviseur',
+  service_chief: 'Chef de service',
+  institution_admin: 'Recteur / Directeur',
   admin: 'Administrateur',
   superadmin: 'Super Admin',
   developer: 'Développeur',
 }
+
+// Rôles ayant un pouvoir administratif (à ≥1 niveau — global ou scopé)
+export const ADMIN_ROLES: UserRole[] = [
+  'service_chief',
+  'institution_admin',
+  'admin',
+  'superadmin',
+  'developer',
+]
+
+// Rôles ayant accès admin transverse (non scopé)
+export const GLOBAL_ADMIN_ROLES: UserRole[] = ['admin', 'superadmin', 'developer']
 
 export const SUBSCRIPTION_FEATURES: Record<SubscriptionPlan, string[]> = {
   free: [

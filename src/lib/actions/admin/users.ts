@@ -1,20 +1,37 @@
 'use server'
 
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { requireAdmin } from './helpers'
+import { requireAdmin, canManageDES } from './helpers'
 import { adminLogger as log } from '@/lib/logger'
+import type { UserRole } from '@/types/database'
 
 // ========== GESTION DES RÔLES ==========
 
 export async function updateUserRole(userId: string, newRole: string) {
   const { supabase, role: callerRole } = await requireAdmin()
 
-  const validRoles = ['student', 'supervisor', 'admin', 'superadmin', 'developer']
-  if (!validRoles.includes(newRole)) {
+  // Phase B — les rôles scopés (service_chief, institution_admin) sont
+  // attribuables par developer/admin/superadmin. service_chief est aussi
+  // auto-attribué via assignServiceChief(), mais on autorise la voie manuelle.
+  const validRoles: UserRole[] = [
+    'student',
+    'supervisor',
+    'service_chief',
+    'institution_admin',
+    'admin',
+    'superadmin',
+    'developer',
+  ]
+  if (!validRoles.includes(newRole as UserRole)) {
     return { error: 'admin.error.invalidRole' }
   }
 
   if (['developer', 'superadmin'].includes(newRole) && callerRole !== 'developer') {
+    return { error: 'admin.error.developerOnly' }
+  }
+
+  // Seul le developer peut créer un institution_admin (pouvoir sensible sur tout un hôpital)
+  if (newRole === 'institution_admin' && callerRole !== 'developer') {
     return { error: 'admin.error.developerOnly' }
   }
 
@@ -91,6 +108,11 @@ export async function updateProfile(data: {
  *    validé des actes, le supprimer ferait perdre la traçabilité des validations.
  *    Dans ces cas, l'admin doit passer par une procédure d'anonymisation
  *    (non implémentée ici — à ajouter si besoin).
+ *
+ * Phase B — Scoping home_hospital_id :
+ *  - developer/superadmin/admin → peuvent supprimer n'importe quel DES
+ *  - institution_admin → peut supprimer uniquement les DES dont
+ *    home_hospital_id = son hospital_id
  */
 export async function deleteUser(userId: string) {
   const { supabase, user: caller, role: callerRole } = await requireAdmin()
@@ -103,12 +125,23 @@ export async function deleteUser(userId: string) {
   // 2. Récupérer le profil cible (pour logs + checks)
   const { data: target, error: targetError } = await supabase
     .from('profiles')
-    .select('id, role, first_name, last_name, email, matricule')
+    .select('id, role, first_name, last_name, email, matricule, home_hospital_id')
     .eq('id', userId)
     .single()
 
   if (targetError || !target) {
     return { error: 'admin.error.userNotFound' }
+  }
+
+  // 2bis. Phase B — scoping home_hospital pour institution_admin
+  // (requireAdmin l'exclut déjà, mais on prépare le terrain pour quand
+  // on élargira les helpers. Si on rend institution_admin compatible avec
+  // requireAdmin plus tard, canManageDES garantira le scoping correct.)
+  if (!['admin', 'superadmin', 'developer'].includes(callerRole)) {
+    const allowed = await canManageDES(userId)
+    if (!allowed) {
+      return { error: 'admin.error.cannotDeleteOutsideHomeHospital' }
+    }
   }
 
   // 3. Protection rôles élevés

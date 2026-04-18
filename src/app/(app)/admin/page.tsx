@@ -10,11 +10,15 @@ export default async function AdminPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, hospital_id')
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['admin', 'superadmin', 'developer'].includes(profile.role)) {
+  // Phase B — institution_admin a désormais accès à l'admin (scopé à son hôpital)
+  if (
+    !profile ||
+    !['admin', 'superadmin', 'developer', 'institution_admin'].includes(profile.role)
+  ) {
     redirect('/logbook')
   }
 
@@ -61,6 +65,7 @@ export default async function AdminPage() {
         adhesionRequests={adhesionRequests ?? []}
         adhesionCount={adhesionCount ?? 0}
         currentUserRole={profile.role}
+        currentUserHospitalId={profile.hospital_id}
       />
     </div>
   )

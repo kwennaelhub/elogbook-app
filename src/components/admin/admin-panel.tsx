@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Users, BookCheck, Upload, Stethoscope, Search, Download, Plus, X, FileSpreadsheet, UserPlus, AlertCircle, CheckCircle, Settings2, Shield, Building2, ClipboardList, Trash2 } from 'lucide-react'
+import { Users, BookCheck, Upload, Stethoscope, Search, Download, Plus, X, FileSpreadsheet, UserPlus, AlertCircle, CheckCircle, Settings2, Shield, Building2, ClipboardList, Trash2, Layers } from 'lucide-react'
 import type { DesRegistry, Profile, Hospital, DesLevel } from '@/types/database'
 import { SUPERVISOR_TITLE_LABELS } from '@/types/database'
 import type { SupervisorTitle, UserRole } from '@/types/database'
@@ -11,6 +11,7 @@ import { updateUserRole, deleteUser } from '@/lib/actions/admin'
 import { useRouter } from 'next/navigation'
 import { ConfigTab } from './config-tab'
 import { SeatsTab } from './seats-tab'
+import { ServicesTab } from './services-tab'
 
 interface AdminPanelProps {
   registryEntries: DesRegistry[]
@@ -27,6 +28,7 @@ interface AdminPanelProps {
   adhesionRequests: { id: string; first_name: string; last_name: string; email: string; phone?: string | null; hospital_id?: string | null; hospital_other?: string | null; specialty_id?: string | null; des_level: string; promotion_year?: number | null; motivation?: string | null; status: string; created_at: string }[]
   adhesionCount: number
   currentUserRole: string
+  currentUserHospitalId?: string | null
 }
 
 export function AdminPanel({
@@ -37,10 +39,11 @@ export function AdminPanel({
   institutionalSeats,
   adhesionRequests, adhesionCount,
   currentUserRole,
+  currentUserHospitalId,
 }: AdminPanelProps) {
   const { t } = useI18n()
   const router = useRouter()
-  const [tab, setTab] = useState<'registry' | 'users' | 'supervisors' | 'seats' | 'adhesions' | 'config'>('registry')
+  const [tab, setTab] = useState<'registry' | 'users' | 'supervisors' | 'services' | 'seats' | 'adhesions' | 'config'>('registry')
   const [adhesions, setAdhesions] = useState(adhesionRequests)
   const [adhesionLoading, setAdhesionLoading] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -258,10 +261,16 @@ export function AdminPanel({
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  // Phase B — onglet Services accessible aux admins globaux + institution_admin
+  const canManageServices = ['developer', 'superadmin', 'admin', 'institution_admin'].includes(currentUserRole)
+
   const tabs = [
     { key: 'registry' as const, label: `${t('admin.registryTab')} (${registryCount})`, icon: BookCheck },
     { key: 'users' as const, label: `${t('admin.usersTab')} (${usersCount})`, icon: Users },
     { key: 'supervisors' as const, label: `${t('admin.supervisorsTab')} (${supervisorsCount})`, icon: Stethoscope },
+    ...(canManageServices
+      ? [{ key: 'services' as const, label: 'Services', icon: Layers }]
+      : []),
     { key: 'seats' as const, label: `${t('admin.seatsTab')} (${institutionalSeats.length})`, icon: Building2 },
     { key: 'adhesions' as const, label: `Adhésions (${adhesions.filter(a => a.status === 'pending').length})`, icon: ClipboardList },
     { key: 'config' as const, label: t('admin.configTab'), icon: Settings2 },
@@ -810,6 +819,15 @@ export function AdminPanel({
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Services hospitaliers — Phase B */}
+      {tab === 'services' && canManageServices && (
+        <ServicesTab
+          hospitals={hospitals}
+          defaultHospitalId={currentUserHospitalId ?? undefined}
+          lockToHospital={currentUserRole === 'institution_admin'}
+        />
       )}
 
       {/* Sièges institutionnels */}
