@@ -25,6 +25,17 @@ export default async function AdminPage() {
   const { createServiceClient } = await import('@/lib/supabase/server')
   const serviceClient = await createServiceClient()
 
+  // Phase B — getInstitutionalSeats() utilise requireAdmin() qui refuse
+  // institution_admin. On le wrappe pour ne pas faire planter la page.
+  // TODO Phase C : scoping seats par hôpital pour institution_admin.
+  const safeGetInstitutionalSeats = async () => {
+    try {
+      return await getInstitutionalSeats()
+    } catch {
+      return []
+    }
+  }
+
   const [
     { data: registryEntries, count: registryCount },
     { data: users, count: usersCount },
@@ -43,7 +54,7 @@ export default async function AdminPage() {
     supabase.from('specialties').select('*').eq('is_active', true).eq('level', 0).order('name'),
     supabase.from('procedures').select('*, specialty:specialties(name)').eq('is_active', true).order('sort_order'),
     supabase.from('des_objectives').select('*').order('des_level, category'),
-    getInstitutionalSeats(),
+    safeGetInstitutionalSeats(),
     serviceClient.from('adhesion_requests').select('*', { count: 'exact' }).order('created_at', { ascending: false }).limit(100),
   ])
 
