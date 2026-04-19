@@ -1,6 +1,5 @@
 'use server'
 
-import { after } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export async function getHospitals() {
@@ -169,21 +168,20 @@ export async function createSupervisor(data: {
 
   if (error) return { error: error.message }
 
-  // Email d'invitation — fire-and-forget après la réponse (Next.js `after()`).
-  // L'admin voit immédiatement "Superviseur créé + tempPassword" dans l'UI ;
-  // l'envoi Brevo (qui peut prendre 2–5s sur cold start) s'exécute en arrière-plan.
-  after(async () => {
-    try {
-      const { sendWelcomeEmail } = await import('@/lib/actions/admin')
-      await sendWelcomeEmail(data.email, data.first_name, {
-        tempPassword,
-        role: 'supervisor',
-        title: data.title,
-      })
-    } catch {
-      // Si Brevo échoue, le tempPassword reste visible côté admin pour relais manuel.
-    }
-  })
+  // Email d'invitation — await direct (appel Brevo direct, pas de HTTP hop).
+  // after() ne s'exécutait pas de manière fiable sur Vercel Hobby ; un await
+  // classique garantit l'envoi, au prix de ~1–2s sur la réponse UX.
+  // Si Brevo échoue, le tempPassword reste affiché dans l'UI pour relais manuel.
+  try {
+    const { sendWelcomeEmail } = await import('@/lib/actions/admin')
+    await sendWelcomeEmail(data.email, data.first_name, {
+      tempPassword,
+      role: 'supervisor',
+      title: data.title,
+    })
+  } catch {
+    // Non bloquant — tempPassword dans l'UI
+  }
 
   return { success: true, tempPassword }
 }

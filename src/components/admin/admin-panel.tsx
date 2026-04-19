@@ -140,6 +140,7 @@ export function AdminPanel({
     setAddLoading(false)
     if (result.success) {
       setAddForm({ first_name: '', last_name: '', email: '', title: 'Pr', hospital_id: lockedHospitalId, phone: '' })
+      router.refresh()
     }
   }
 
