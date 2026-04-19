@@ -1,18 +1,15 @@
 'use server'
 
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { requireAdmin, canManageDES } from './helpers'
+import { requireAdminScope, canManageDES } from './helpers'
 import { adminLogger as log } from '@/lib/logger'
 import type { UserRole } from '@/types/database'
 
 // ========== GESTION DES RÔLES ==========
 
 export async function updateUserRole(userId: string, newRole: string) {
-  const { supabase, role: callerRole } = await requireAdmin()
+  const { supabase, role: callerRole } = await requireAdminScope()
 
-  // Phase B — les rôles scopés (service_chief, institution_admin) sont
-  // attribuables par developer/admin/superadmin. service_chief est aussi
-  // auto-attribué via assignServiceChief(), mais on autorise la voie manuelle.
   const validRoles: UserRole[] = [
     'student',
     'supervisor',
@@ -26,13 +23,22 @@ export async function updateUserRole(userId: string, newRole: string) {
     return { error: 'admin.error.invalidRole' }
   }
 
-  if (['developer', 'superadmin'].includes(newRole) && callerRole !== 'developer') {
+  // Rôles réservés developer
+  if (['developer', 'superadmin', 'institution_admin'].includes(newRole) && callerRole !== 'developer') {
     return { error: 'admin.error.developerOnly' }
   }
 
-  // Seul le developer peut créer un institution_admin (pouvoir sensible sur tout un hôpital)
-  if (newRole === 'institution_admin' && callerRole !== 'developer') {
-    return { error: 'admin.error.developerOnly' }
+  // Phase C — institution_admin peut promouvoir dans son hôpital mais
+  // uniquement vers student/supervisor/service_chief, et seulement sur ses DES.
+  if (callerRole === 'institution_admin') {
+    const institutionAllowed: UserRole[] = ['student', 'supervisor', 'service_chief']
+    if (!institutionAllowed.includes(newRole as UserRole)) {
+      return { error: 'admin.error.developerOnly' }
+    }
+    const canManage = await canManageDES(userId)
+    if (!canManage) {
+      return { error: 'admin.error.userBelongsToOtherHospital' }
+    }
   }
 
   const { data: target } = await supabase
@@ -43,6 +49,14 @@ export async function updateUserRole(userId: string, newRole: string) {
 
   if (target?.role === 'developer') {
     return { error: 'admin.error.devRoleIrrevocable' }
+  }
+
+  // Empêche institution_admin de modifier un autre admin (global ou scopé)
+  if (callerRole === 'institution_admin' && target?.role) {
+    const upperTargetRoles: UserRole[] = ['admin', 'superadmin', 'developer', 'institution_admin']
+    if (upperTargetRoles.includes(target.role as UserRole)) {
+      return { error: 'admin.error.developerOnly' }
+    }
   }
 
   const { error } = await supabase
@@ -115,7 +129,7 @@ export async function updateProfile(data: {
  *    home_hospital_id = son hospital_id
  */
 export async function deleteUser(userId: string) {
-  const { supabase, user: caller, role: callerRole } = await requireAdmin()
+  const { supabase, user: caller, role: callerRole } = await requireAdminScope()
 
   // 1. Protection auto-suppression
   if (userId === caller.id) {
@@ -133,10 +147,7 @@ export async function deleteUser(userId: string) {
     return { error: 'admin.error.userNotFound' }
   }
 
-  // 2bis. Phase B — scoping home_hospital pour institution_admin
-  // (requireAdmin l'exclut déjà, mais on prépare le terrain pour quand
-  // on élargira les helpers. Si on rend institution_admin compatible avec
-  // requireAdmin plus tard, canManageDES garantira le scoping correct.)
+  // 2bis. Phase C — scoping home_hospital pour institution_admin
   if (!['admin', 'superadmin', 'developer'].includes(callerRole)) {
     const allowed = await canManageDES(userId)
     if (!allowed) {

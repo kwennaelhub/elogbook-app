@@ -1,13 +1,13 @@
 'use server'
 
-import { requireAdmin } from './helpers'
+import { requireAdminScope, requireHospitalAdmin } from './helpers'
 
 // ========== SIÈGES INSTITUTIONNELS ==========
 
 export async function getInstitutionalSeats() {
-  const { supabase } = await requireAdmin()
+  const { supabase, scope, hospitalId } = await requireAdminScope()
 
-  const { data: seats } = await supabase
+  let query = supabase
     .from('institutional_seats')
     .select(`
       *,
@@ -16,11 +16,33 @@ export async function getInstitutionalSeats() {
     `)
     .order('created_at', { ascending: false })
 
+  if (scope === 'hospital' && hospitalId) {
+    query = query.eq('hospital_id', hospitalId)
+  }
+
+  const { data: seats } = await query
   return seats ?? []
 }
 
+async function requireSeatAccess(seatId: string) {
+  // Deux étapes : on lit le hospital_id du siège (sous RLS admin-only),
+  // puis on repasse par requireHospitalAdmin pour que la règle de scope
+  // soit appliquée uniformément avec les autres actions Phase B.
+  const { supabase: probe } = await requireAdminScope()
+  const { data: seat } = await probe
+    .from('institutional_seats')
+    .select('hospital_id')
+    .eq('id', seatId)
+    .single()
+
+  if (!seat || !seat.hospital_id) {
+    throw new Error('admin.error.seatNotFound')
+  }
+  return requireHospitalAdmin(seat.hospital_id)
+}
+
 export async function getSeatAssignments(seatId: string) {
-  const { supabase } = await requireAdmin()
+  const { supabase } = await requireSeatAccess(seatId)
 
   const { data } = await supabase
     .from('seat_assignments')
@@ -37,16 +59,27 @@ export async function getSeatAssignments(seatId: string) {
 }
 
 export async function assignSeat(seatId: string, userId: string) {
-  const { supabase, user } = await requireAdmin()
+  const { supabase, user } = await requireSeatAccess(seatId)
 
   const { data: seat } = await supabase
     .from('institutional_seats')
-    .select('max_seats, used_seats')
+    .select('max_seats, used_seats, hospital_id')
     .eq('id', seatId)
     .single()
 
   if (!seat) return { error: 'admin.error.seatNotFound' }
   if (seat.used_seats >= seat.max_seats) return { error: `Capacité maximale atteinte (${seat.max_seats} postes)` }
+
+  // Empêche un institution_admin d'assigner un user d'un autre hôpital à son siège.
+  const { data: target } = await supabase
+    .from('profiles')
+    .select('home_hospital_id')
+    .eq('id', userId)
+    .single()
+
+  if (target?.home_hospital_id && target.home_hospital_id !== seat.hospital_id) {
+    return { error: 'admin.error.userBelongsToOtherHospital' }
+  }
 
   const { data: existing } = await supabase
     .from('seat_assignments')
@@ -79,7 +112,7 @@ export async function assignSeat(seatId: string, userId: string) {
 }
 
 export async function removeSeatAssignment(assignmentId: string, seatId: string) {
-  const { supabase } = await requireAdmin()
+  const { supabase } = await requireSeatAccess(seatId)
 
   const { error: deactivateError } = await supabase
     .from('seat_assignments')
@@ -105,15 +138,20 @@ export async function removeSeatAssignment(assignmentId: string, seatId: string)
 }
 
 export async function searchUsersForSeat(query: string) {
-  const { supabase } = await requireAdmin()
+  const { supabase, scope, hospitalId } = await requireAdminScope()
 
-  const { data } = await supabase
+  let q = supabase
     .from('profiles')
-    .select('id, first_name, last_name, email, role, title, des_level')
+    .select('id, first_name, last_name, email, role, title, des_level, home_hospital_id')
     .eq('is_active', true)
     .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%`)
     .order('last_name')
     .limit(10)
 
+  if (scope === 'hospital' && hospitalId) {
+    q = q.eq('home_hospital_id', hospitalId)
+  }
+
+  const { data } = await q
   return data ?? []
 }

@@ -50,6 +50,37 @@ export async function requireDeveloper() {
 }
 
 /**
+ * Accès admin sans hôpital cible explicite — pour les listes/searches.
+ * Retourne le scope du caller :
+ *   - scope='global' → admins globaux, pas de filtre hôpital à appliquer
+ *   - scope='hospital' → institution_admin, filtrer les résultats par hospitalId
+ *
+ * Phase C — utilisé par les actions LIST (getInstitutionalSeats, searchUsers…)
+ * qui ne reçoivent pas de hospitalId mais doivent rester scopées.
+ */
+export async function requireAdminScope() {
+  const { supabase, user, profile } = await getCurrentProfile()
+
+  const role = profile.role as UserRole
+
+  if (GLOBAL_ADMIN_ROLES.includes(role)) {
+    return { supabase, user, role, scope: 'global' as const, hospitalId: null as string | null }
+  }
+
+  if (role === 'institution_admin' && profile.hospital_id) {
+    return {
+      supabase,
+      user,
+      role,
+      scope: 'hospital' as const,
+      hospitalId: profile.hospital_id as string,
+    }
+  }
+
+  throw new Error('error.forbidden')
+}
+
+/**
  * Admin d'un hôpital donné :
  *   - developer / superadmin / admin → toujours autorisé (cross-hôpital)
  *   - institution_admin → seulement si hospitalId = son hospital_id
