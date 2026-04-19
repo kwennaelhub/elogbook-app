@@ -11,7 +11,7 @@ export default function OfflinePage() {
         </div>
         <h1 className="mb-2 text-xl font-bold text-foreground">Mode hors-ligne</h1>
         <p className="mb-6 text-sm text-muted-foreground">
-          Vous n'avez pas de connexion internet.<br />
+          Vous n&apos;avez pas de connexion internet.<br />
           Les pages visitées sont disponibles en cache.
         </p>
         <button

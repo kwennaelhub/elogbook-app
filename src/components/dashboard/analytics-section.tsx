@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, Legend,
@@ -104,8 +104,10 @@ function ActivityHeatmap({ data }: { data: { date: string; count: number }[] }) 
 // ═══ STREAK & STATS RAPIDES ═══
 
 function StatsCards({ stats }: { stats: AnalyticsStats }) {
+  // Capture l'instant au mount pour éviter `Date.now()` pendant le render (règle pure).
+  const [mountTs] = useState(() => Date.now())
   const daysSinceLastEntry = stats.lastEntryDate
-    ? Math.floor((Date.now() - new Date(stats.lastEntryDate).getTime()) / (1000 * 60 * 60 * 24))
+    ? Math.floor((mountTs - new Date(stats.lastEntryDate).getTime()) / (1000 * 60 * 60 * 24))
     : null
 
   return (

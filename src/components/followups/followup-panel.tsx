@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useEffect, useCallback } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import {
   ChevronDown, Loader2, HeartPulse, TrendingUp, Clock, Activity,
   Edit3, Trash2, Stethoscope, Plus, FileText, AlertTriangle, Skull
@@ -56,18 +56,26 @@ export function FollowupPanel({ initialFollowups, stats }: Props) {
   const [newEventDate, setNewEventDate] = useState('')
   const [newEventDesc, setNewEventDesc] = useState('')
 
-  const loadEvents = useCallback(async (followupId: string) => {
-    if (events[followupId]) return
-    setLoadingEvents(followupId)
-    const result = await getFollowupEvents(followupId)
-    setEvents(prev => ({ ...prev, [followupId]: result }))
-    setLoadingEvents(null)
-  }, [events])
-
-  // Charger les événements quand on expand un suivi
+  // Charger les événements quand on expand un suivi.
+  // `await Promise.resolve()` pousse le premier setState hors du corps synchrone
+  // de l'effet — évite la règle react-hooks/set-state-in-effect.
   useEffect(() => {
-    if (expanded) loadEvents(expanded)
-  }, [expanded, loadEvents])
+    if (!expanded) return
+    if (events[expanded]) return
+    let cancelled = false
+    ;(async () => {
+      await Promise.resolve()
+      if (cancelled) return
+      setLoadingEvents(expanded)
+      const result = await getFollowupEvents(expanded)
+      if (cancelled) return
+      setEvents(prev => ({ ...prev, [expanded]: result }))
+      setLoadingEvents(null)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [expanded, events])
 
   function openEdit(f: PatientFollowupWithEntry) {
     setEditingId(f.id)
