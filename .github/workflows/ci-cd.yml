@@ -111,7 +111,9 @@ jobs:
       - name: Smoke test
         run: |
           sleep 10
-          STATUS=$(curl -s -o /dev/null -w '%{http_code}' https://internlog.app)
+          # /login est public (le middleware redirige les anonymes vers /login),
+          # donc 200 attendu. L'ancien test sur / retournait 307 → faux négatif.
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' https://internlog.app/login)
           if [ "$STATUS" != "200" ]; then
             echo "Smoke test failed: HTTP $STATUS"
             exit 1
