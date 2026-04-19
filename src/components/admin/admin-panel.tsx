@@ -87,9 +87,11 @@ export function AdminPanel({
       setDeleteResult({ error: result.error })
     }
   }
-  // Superviseur
+  // Superviseur — institution_admin verrouille hospital_id sur son hôpital
+  const isInstitutionAdmin = currentUserRole === 'institution_admin'
+  const lockedHospitalId = isInstitutionAdmin ? (currentUserHospitalId || '') : ''
   const [showAddSupervisor, setShowAddSupervisor] = useState(false)
-  const [addForm, setAddForm] = useState({ first_name: '', last_name: '', email: '', title: 'Pr' as string, hospital_id: '', phone: '' })
+  const [addForm, setAddForm] = useState({ first_name: '', last_name: '', email: '', title: 'Pr' as string, hospital_id: lockedHospitalId, phone: '' })
   const [addLoading, setAddLoading] = useState(false)
   const [addResult, setAddResult] = useState<{ error?: string; success?: boolean; tempPassword?: string } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -137,7 +139,7 @@ export function AdminPanel({
     setAddResult(result)
     setAddLoading(false)
     if (result.success) {
-      setAddForm({ first_name: '', last_name: '', email: '', title: 'Pr', hospital_id: '', phone: '' })
+      setAddForm({ first_name: '', last_name: '', email: '', title: 'Pr', hospital_id: lockedHospitalId, phone: '' })
     }
   }
 
@@ -154,7 +156,7 @@ export function AdminPanel({
     setAddLoading(false)
     if (result.success) {
       setAddResult({ success: true })
-      setAddForm({ first_name: '', last_name: '', email: '', title: 'Pr', hospital_id: '', phone: '' })
+      setAddForm({ first_name: '', last_name: '', email: '', title: 'Pr', hospital_id: lockedHospitalId, phone: '' })
       router.refresh()
     } else {
       setAddResult({ error: result.error })
@@ -433,16 +435,22 @@ export function AdminPanel({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('admin.hospital')}</label>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                {t('admin.hospital')}
+                {isInstitutionAdmin && <span className="ml-1 text-amber-400">🔒</span>}
+              </label>
               <select
                 value={addForm.hospital_id}
                 onChange={e => setAddForm(p => ({ ...p, hospital_id: e.target.value }))}
-                className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                disabled={isInstitutionAdmin}
+                className="w-full rounded-lg border border-input px-3 py-2 text-sm focus:border-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-70"
               >
                 <option value="">{t('common.select')}</option>
-                {hospitals.map(h => (
-                  <option key={h.id} value={h.id}>{h.name}</option>
-                ))}
+                {hospitals
+                  .filter(h => !isInstitutionAdmin || h.id === lockedHospitalId)
+                  .map(h => (
+                    <option key={h.id} value={h.id}>{h.name}</option>
+                  ))}
               </select>
             </div>
             <div>

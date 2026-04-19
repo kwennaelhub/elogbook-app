@@ -408,11 +408,16 @@ export async function getPeerComparison(): Promise<PeerComparison | null> {
   // Profil de l'utilisateur
   const { data: profile } = await supabase
     .from('profiles')
-    .select('des_level')
+    .select('role, des_level')
     .eq('id', user.id)
     .single()
 
-  const desLevel = profile?.des_level || 'DES1'
+  // Le comparatif "Top X% de votre promotion" n'a de sens que pour les DES (role=student).
+  // Les superviseurs / chefs de service / institution_admin / admins ne sont pas comparés
+  // à une promotion DES — ils n'ont pas de des_level pertinent.
+  if (!profile || profile.role !== 'student') return null
+
+  const desLevel = profile.des_level || 'DES1'
 
   // Compter les entrées de l'utilisateur
   const { count: userEntries } = await supabase
