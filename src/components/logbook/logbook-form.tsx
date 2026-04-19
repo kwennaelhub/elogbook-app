@@ -22,9 +22,47 @@ const STEP_KEYS = [
   'logbook.step.summary',
 ]
 
-export function LogbookForm({ hospitals, specialties, procedures, supervisors }: LogbookFormProps) {
-  const { t, locale } = useI18n()
+export function LogbookForm(props: LogbookFormProps) {
   const [state, action, isPending] = useActionState<EntryState, FormData>(createEntry, {})
+  const resetKey = state.submittedAt ?? 0
+
+  return (
+    <>
+      {state.success && <SuccessBanner key={resetKey} />}
+      <LogbookFormBody
+        key={resetKey}
+        state={state}
+        action={action}
+        isPending={isPending}
+        {...props}
+      />
+    </>
+  )
+}
+
+function SuccessBanner() {
+  const { t } = useI18n()
+  const [visible, setVisible] = useState(true)
+  useEffect(() => {
+    const id = setTimeout(() => setVisible(false), 3000)
+    return () => clearTimeout(id)
+  }, [])
+  if (!visible) return null
+  return (
+    <div className="mb-4 flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 p-3 text-sm text-accent">
+      <Check className="h-4 w-4" /> {t('logbook.success')}
+    </div>
+  )
+}
+
+interface LogbookFormBodyProps extends LogbookFormProps {
+  state: EntryState
+  action: (formData: FormData) => void
+  isPending: boolean
+}
+
+function LogbookFormBody({ state, action, isPending, hospitals, specialties, procedures, supervisors }: LogbookFormBodyProps) {
+  const { t, locale } = useI18n()
   const [step, setStep] = useState(0)
   const [formData, setFormData] = useState({
     intervention_date: new Date().toISOString().split('T')[0],
@@ -46,7 +84,6 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
   })
   const [geoLocation, setGeoLocation] = useState<{ latitude: number; longitude: number; accuracy: number } | null>(null)
   const [geoError, setGeoError] = useState('')
-  const [showSuccess, setShowSuccess] = useState(false)
 
   // Déterminer le mode (prospectif/rétrospectif)
   const isRetrospective = (() => {
@@ -88,24 +125,6 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
     )
   }
 
-  // Succès → reset
-  useEffect(() => {
-    if (state.success) {
-      setShowSuccess(true)
-      setStep(0)
-      setFormData({
-        intervention_date: new Date().toISOString().split('T')[0],
-        context: '', patient_type: '', operator_role: '',
-        hospital_id: '', other_hospital: '',
-        specialty_id: '', segment_id: '', procedure_id: '',
-        other_specialty: '', other_procedure: '',
-        notes: '', supervisor_id: '', body_region: '', attestation_checked: false, enable_followup: false,
-      })
-      setGeoLocation(null)
-      setTimeout(() => setShowSuccess(false), 3000)
-    }
-  }, [state.success])
-
   const updateField = (field: string, value: string | boolean) => {
     setFormData((prev) => {
       const updated = { ...prev, [field]: value }
@@ -131,13 +150,6 @@ export function LogbookForm({ hospitals, specialties, procedures, supervisors }:
 
   return (
     <div className="mb-6">
-      {/* Notification succès */}
-      {showSuccess && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/10 p-3 text-sm text-accent">
-          <Check className="h-4 w-4" /> {t('logbook.success')}
-        </div>
-      )}
-
       {/* Indicateur d'étapes */}
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold text-foreground">{t('logbook.newEntry')}</h2>

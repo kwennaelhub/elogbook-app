@@ -148,7 +148,11 @@ export async function createSupervisor(data: {
 
   if (!response.ok) {
     const err = await response.json()
-    return { error: err.msg || err.message || 'auth.error.creationFailed' }
+    const rawMsg = err.msg || err.message || ''
+    if (rawMsg.toLowerCase().includes('already registered')) {
+      return { error: 'auth.error.emailExists' }
+    }
+    return { error: rawMsg || 'auth.error.creationFailed' }
   }
 
   const authData = await response.json()

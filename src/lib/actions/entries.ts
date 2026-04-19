@@ -9,6 +9,7 @@ import { generateDeterministicPatientId } from '@/lib/actions/followups'
 export type EntryState = {
   error?: string
   success?: boolean
+  submittedAt?: number
 }
 
 function determineEntryMode(interventionDate: string): 'prospective' | 'retrospective' {
@@ -107,7 +108,7 @@ export async function createEntry(_prev: EntryState, formData: FormData): Promis
   revalidatePath('/logbook')
   revalidatePath('/dashboard')
   revalidatePath('/followups')
-  return { success: true }
+  return { success: true, submittedAt: Date.now() }
 }
 
 export async function getEntries(page = 1, limit = 20) {
