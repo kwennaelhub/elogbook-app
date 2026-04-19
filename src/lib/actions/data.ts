@@ -168,6 +168,18 @@ export async function createSupervisor(data: {
 
   if (error) return { error: error.message }
 
+  // Email d'invitation avec mot de passe temporaire (non-bloquant)
+  try {
+    const { sendWelcomeEmail } = await import('@/lib/actions/admin')
+    await sendWelcomeEmail(data.email, data.first_name, {
+      tempPassword,
+      role: 'supervisor',
+      title: data.title,
+    })
+  } catch {
+    // L'email n'est pas bloquant — le tempPassword est déjà affiché dans l'UI
+  }
+
   return { success: true, tempPassword }
 }
 

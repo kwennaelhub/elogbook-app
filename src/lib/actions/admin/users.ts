@@ -232,14 +232,25 @@ export async function deleteUser(userId: string) {
 
 // ========== EMAIL DE BIENVENUE ==========
 
-export async function sendWelcomeEmail(email: string, firstName: string) {
+export async function sendWelcomeEmail(
+  email: string,
+  firstName: string,
+  opts: { tempPassword?: string; role?: string; title?: string } = {},
+) {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const internalKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(-16) || ''
     const response = await fetch(`${baseUrl}/api/send-welcome`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, firstName, internalKey }),
+      body: JSON.stringify({
+        email,
+        firstName,
+        internalKey,
+        tempPassword: opts.tempPassword,
+        role: opts.role,
+        title: opts.title,
+      }),
     })
     if (!response.ok) {
       log.warn({ email }, 'Email de bienvenue non envoyé (réponse non-ok)')

@@ -2,8 +2,8 @@
 
 import { useState, useRef } from 'react'
 import Image from 'next/image'
-import { User, Hospital, AlertTriangle, Trash2, Camera, Pencil, Check, X, Save, Globe } from 'lucide-react'
-import { deleteAccount } from '@/lib/actions/auth'
+import { User, Hospital, AlertTriangle, Trash2, Camera, Pencil, Check, X, Save, Globe, Lock, Eye, EyeOff } from 'lucide-react'
+import { deleteAccount, changePassword } from '@/lib/actions/auth'
 import { updateProfile } from '@/lib/actions/admin'
 import { useI18n } from '@/lib/i18n/context'
 import type { Locale } from '@/lib/i18n/dictionaries'
@@ -35,6 +35,36 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatar_url || null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Changement de mot de passe
+  const [pwOpen, setPwOpen] = useState(false)
+  const [pwCurrent, setPwCurrent] = useState('')
+  const [pwNew, setPwNew] = useState('')
+  const [pwConfirm, setPwConfirm] = useState('')
+  const [pwShow, setPwShow] = useState(false)
+  const [pwLoading, setPwLoading] = useState(false)
+  const [pwResult, setPwResult] = useState<{ error?: string; success?: boolean } | null>(null)
+
+  const handleChangePassword = async () => {
+    setPwResult(null)
+    if (pwNew !== pwConfirm) {
+      setPwResult({ error: 'auth.error.passwordMismatch' })
+      return
+    }
+    setPwLoading(true)
+    const result = await changePassword(pwCurrent, pwNew)
+    setPwLoading(false)
+    setPwResult(result)
+    if (result.success) {
+      setPwCurrent('')
+      setPwNew('')
+      setPwConfirm('')
+      setTimeout(() => {
+        setPwOpen(false)
+        setPwResult(null)
+      }, 2500)
+    }
+  }
 
   const confirmWord = t('settings.deleteConfirmWord')
 
@@ -339,6 +369,99 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
             <span className="mr-1.5 inline-block text-xs font-bold uppercase">EN</span> English
           </button>
         </div>
+      </div>
+
+      {/* Sécurité — Changement de mot de passe */}
+      <div className="rounded-xl bg-card p-4 shadow-sm ring-1 ring-border/40">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Lock className="h-4 w-4 text-amber-400" />
+            <h3 className="text-sm font-semibold text-foreground">{t('settings.security')}</h3>
+          </div>
+          {!pwOpen && (
+            <button
+              onClick={() => setPwOpen(true)}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              {t('settings.changePassword')}
+            </button>
+          )}
+        </div>
+
+        {!pwOpen ? (
+          <p className="text-xs text-muted-foreground">{t('settings.passwordHint')}</p>
+        ) : (
+          <div className="space-y-3">
+            {pwResult?.error && (
+              <div className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">{t(pwResult.error)}</div>
+            )}
+            {pwResult?.success && (
+              <div className="rounded-lg bg-accent/10 p-2 text-xs text-accent">{t('settings.passwordChanged')}</div>
+            )}
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('settings.currentPassword')}</label>
+              <div className="relative">
+                <input
+                  type={pwShow ? 'text' : 'password'}
+                  value={pwCurrent}
+                  onChange={(e) => setPwCurrent(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-card px-3 py-2 pr-10 text-sm text-foreground focus:border-primary focus:outline-none"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPwShow((s) => !s)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={pwShow ? t('settings.hidePassword') : t('settings.showPassword')}
+                >
+                  {pwShow ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('settings.newPassword')}</label>
+              <input
+                type={pwShow ? 'text' : 'password'}
+                value={pwNew}
+                onChange={(e) => setPwNew(e.target.value)}
+                minLength={8}
+                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+                autoComplete="new-password"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">{t('settings.passwordMinLength')}</p>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">{t('settings.confirmPassword')}</label>
+              <input
+                type={pwShow ? 'text' : 'password'}
+                value={pwConfirm}
+                onChange={(e) => setPwConfirm(e.target.value)}
+                minLength={8}
+                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+                autoComplete="new-password"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setPwOpen(false); setPwCurrent(''); setPwNew(''); setPwConfirm(''); setPwResult(null) }}
+                className="flex-1 rounded-lg border border-input px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary/50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleChangePassword}
+                disabled={pwLoading || !pwCurrent || pwNew.length < 8 || !pwConfirm}
+                className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+              >
+                {pwLoading ? t('settings.saving') : t('settings.saveNewPassword')}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Zone dangereuse */}

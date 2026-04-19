@@ -107,6 +107,42 @@ export async function logout() {
   redirect('/login')
 }
 
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<AuthState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !user.email) return { error: 'error.unauthorized' }
+
+  if (!newPassword || newPassword.length < 8) {
+    return { error: 'auth.error.passwordTooShort' }
+  }
+  if (newPassword === currentPassword) {
+    return { error: 'auth.error.samePassword' }
+  }
+
+  // Ré-authentifier via signInWithPassword pour confirmer que le currentPassword
+  // est correct AVANT d'accepter le changement. updateUser seul ne vérifie pas
+  // l'ancien mot de passe — c'est un vecteur d'attaque si la session est volée.
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  })
+  if (signInError) {
+    return { error: 'auth.error.currentPasswordInvalid' }
+  }
+
+  const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
+  if (updateError) {
+    log.error({ err: updateError, userId: user.id }, 'Échec changement mot de passe')
+    return { error: updateError.message }
+  }
+
+  log.info({ userId: user.id }, 'Mot de passe changé avec succès')
+  return { success: true }
+}
+
 export async function deleteAccount(): Promise<AuthState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
