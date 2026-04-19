@@ -6,7 +6,7 @@ import type { DesRegistry, Profile, Hospital, DesLevel } from '@/types/database'
 import { SUPERVISOR_TITLE_LABELS } from '@/types/database'
 import type { SupervisorTitle, UserRole } from '@/types/database'
 import { useI18n } from '@/lib/i18n/context'
-import { createSupervisor, updateSupervisor, addDesRegistryEntry, importDesRegistryBatch } from '@/lib/actions/data'
+import { createSupervisor, updateSupervisor, addDesRegistryEntry, importDesRegistryBatch, promoteUserToSupervisor } from '@/lib/actions/data'
 import { updateUserRole, deleteUser } from '@/lib/actions/admin'
 import { useRouter } from 'next/navigation'
 import { ConfigTab } from './config-tab'
@@ -138,6 +138,26 @@ export function AdminPanel({
     setAddLoading(false)
     if (result.success) {
       setAddForm({ first_name: '', last_name: '', email: '', title: 'Pr', hospital_id: '', phone: '' })
+    }
+  }
+
+  const handlePromoteExistingUser = async () => {
+    setAddLoading(true)
+    const result = await promoteUserToSupervisor({
+      email: addForm.email,
+      hospital_id: addForm.hospital_id,
+      title: addForm.title,
+      phone: addForm.phone,
+      first_name: addForm.first_name,
+      last_name: addForm.last_name,
+    })
+    setAddLoading(false)
+    if (result.success) {
+      setAddResult({ success: true })
+      setAddForm({ first_name: '', last_name: '', email: '', title: 'Pr', hospital_id: '', phone: '' })
+      router.refresh()
+    } else {
+      setAddResult({ error: result.error })
     }
   }
 
@@ -370,14 +390,32 @@ export function AdminPanel({
             </button>
           </div>
 
-          {addResult?.error && (
+          {addResult?.error === 'auth.error.emailExists' ? (
+            <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
+              <p className="mb-1 font-medium">{t('admin.promote.title')}</p>
+              <p className="mb-2 text-xs">{t('admin.promote.explain')}</p>
+              <button
+                type="button"
+                onClick={handlePromoteExistingUser}
+                disabled={addLoading}
+                className="rounded-lg bg-amber-500/20 px-3 py-1.5 text-xs font-medium text-amber-300 hover:bg-amber-500/30 disabled:opacity-50"
+              >
+                {addLoading ? t('admin.promote.loading') : t('admin.promote.button')}
+              </button>
+            </div>
+          ) : addResult?.error ? (
             <div className="mb-3 rounded-lg bg-destructive/10 p-2 text-sm text-destructive">{t(addResult.error)}</div>
-          )}
-          {addResult?.success && (
+          ) : null}
+          {addResult?.success && addResult.tempPassword && (
             <div className="mb-3 rounded-lg bg-accent/10 p-3 text-sm text-accent">
               <p className="font-medium">{t('admin.supervisorCreated')}</p>
               <p className="mt-1">{t('admin.tempPassword')} : <code className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-xs">{addResult.tempPassword}</code></p>
               <p className="mt-1 text-xs">{t('admin.tempPasswordHint')}</p>
+            </div>
+          )}
+          {addResult?.success && !addResult.tempPassword && (
+            <div className="mb-3 rounded-lg bg-accent/10 p-3 text-sm text-accent">
+              <p className="font-medium">{t('admin.promote.success')}</p>
             </div>
           )}
 

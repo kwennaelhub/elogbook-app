@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export async function getHospitals() {
   const supabase = await createClient()
@@ -172,6 +172,77 @@ export async function createSupervisor(data: {
   if (error) return { error: error.message }
 
   return { success: true, tempPassword }
+}
+
+/**
+ * Promeut un utilisateur existant (ex-student ou profil orphelin) au rôle de
+ * superviseur dans l'hôpital indiqué. Utilisé quand createSupervisor retourne
+ * 'auth.error.emailExists' — évite de forcer un doublon auth.users.
+ *
+ * Règles :
+ *   - Caller doit être admin global OU institution_admin scopé à data.hospital_id
+ *   - Target profile trouvé via email (service role bypass RLS pour cross-hospital)
+ *   - Refuse si target a déjà un rôle ≥ supervisor
+ *   - Refuse le "poaching" cross-hôpital par institution_admin
+ */
+export async function promoteUserToSupervisor(data: {
+  email: string
+  hospital_id: string
+  title: string
+  phone?: string
+  first_name?: string
+  last_name?: string
+}) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'error.unauthorized' }
+
+  const { data: callerProfile } = await supabase
+    .from('profiles')
+    .select('role, hospital_id')
+    .eq('id', user.id)
+    .single()
+  if (!callerProfile) return { error: 'error.forbidden' }
+
+  const isGlobalAdmin = ['admin', 'superadmin', 'developer'].includes(callerProfile.role)
+  const isScopedAdmin =
+    callerProfile.role === 'institution_admin' &&
+    callerProfile.hospital_id === data.hospital_id
+  if (!isGlobalAdmin && !isScopedAdmin) return { error: 'error.forbidden' }
+
+  const adminClient = await createServiceClient()
+  const { data: target } = await adminClient
+    .from('profiles')
+    .select('id, role, home_hospital_id, first_name, last_name')
+    .eq('email', data.email.toLowerCase())
+    .single()
+
+  if (!target) return { error: 'admin.error.userNotFound' }
+
+  const elevatedRoles = ['supervisor', 'service_chief', 'institution_admin', 'admin', 'superadmin', 'developer']
+  if (elevatedRoles.includes(target.role)) {
+    return { error: 'admin.error.userAlreadyElevated' }
+  }
+
+  if (!isGlobalAdmin && target.home_hospital_id && target.home_hospital_id !== data.hospital_id) {
+    return { error: 'admin.error.userBelongsToOtherHospital' }
+  }
+
+  const { error } = await adminClient
+    .from('profiles')
+    .update({
+      role: 'supervisor',
+      title: data.title,
+      hospital_id: data.hospital_id,
+      home_hospital_id: data.hospital_id,
+      phone: data.phone || null,
+      ...(data.first_name && !target.first_name ? { first_name: data.first_name } : {}),
+      ...(data.last_name && !target.last_name ? { last_name: data.last_name } : {}),
+    })
+    .eq('id', target.id)
+
+  if (error) return { error: error.message }
+  return { success: true, promoted: true, userId: target.id }
 }
 
 // ========== REGISTRE DES ==========
