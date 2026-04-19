@@ -220,15 +220,16 @@ export async function getEntriesForSupervisor() {
   // Vérifier le rôle
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, hospital_id')
+    .select('role, hospital_id, service_id')
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['supervisor', 'admin', 'superadmin', 'developer'].includes(profile.role)) {
+  const allowedRoles = ['supervisor', 'service_chief', 'institution_admin', 'admin', 'superadmin', 'developer']
+  if (!profile || !allowedRoles.includes(profile.role)) {
     return { pending: [], validated: [], rejected: [] }
   }
 
-  // Requête de base : entrées où ce superviseur est assigné OU entrées de son hôpital (pour admin/superadmin/developer)
+  // Requête de base : entrées avec scoping selon le rôle.
   let query = supabase
     .from('entries')
     .select(`
@@ -245,14 +246,18 @@ export async function getEntriesForSupervisor() {
   if (profile.role === 'supervisor') {
     // Superviseur : voit uniquement les entrées où il est assigné
     query = query.eq('supervisor_id', user.id)
-  } else if (profile.role === 'admin') {
+  } else if (profile.role === 'service_chief') {
+    // Chef de service : voit toutes les entrées de son service
+    if (!profile.service_id) {
+      return { pending: [], validated: [], rejected: [] }
+    }
+    query = query.eq('service_id', profile.service_id)
+  } else if (profile.role === 'admin' || profile.role === 'institution_admin') {
+    // Admin global (legacy) et institution_admin : toutes les entrées de leur hôpital
     if (!profile.hospital_id) {
-      // Admin sans hôpital : accès refusé (évite l'exposition de toutes les entrées)
       return { pending: [], validated: [], rejected: [] }
     }
     query = query.eq('hospital_id', profile.hospital_id)
-  } else if (profile.role !== 'superadmin' && profile.role !== 'developer') {
-    return { pending: [], validated: [], rejected: [] }
   }
   // superadmin/developer : voit tout (pas de filtre)
 

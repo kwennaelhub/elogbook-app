@@ -121,50 +121,47 @@ export async function createSupervisor(data: {
     return { error: 'error.forbidden' }
   }
 
-  // Créer le compte auth via l'API admin (mot de passe temporaire)
+  // Créer le compte auth via l'API admin (mot de passe temporaire, email auto-confirmé).
+  // On utilise auth.admin.createUser() du service role pour :
+  //   - éviter la friction "confirmer votre email" sur un compte créé par un admin
+  //   - récupérer directement l'user.id (l'endpoint /auth/v1/signup retourne un shape
+  //     imbriqué { user: {...} } qui cassait l'update profil avec "uuid: undefined")
   const { randomBytes } = await import('crypto')
   const tempPassword = `ELog${randomBytes(16).toString('base64url')}!`
 
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/signup`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      },
-      body: JSON.stringify({
-        email: data.email,
-        password: tempPassword,
-        options: {
-          data: {
-            first_name: data.first_name,
-            last_name: data.last_name,
-          },
-        },
-      }),
-    }
-  )
+  const adminClient = await createServiceClient()
+  const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
+    email: data.email,
+    password: tempPassword,
+    email_confirm: true,
+    user_metadata: {
+      first_name: data.first_name,
+      last_name: data.last_name,
+    },
+  })
 
-  if (!response.ok) {
-    const err = await response.json()
-    const rawMsg = err.msg || err.message || ''
-    if (rawMsg.toLowerCase().includes('already registered')) {
+  if (authError) {
+    const msg = authError.message.toLowerCase()
+    if (msg.includes('already registered') || msg.includes('already been registered')) {
       return { error: 'auth.error.emailExists' }
     }
-    return { error: rawMsg || 'auth.error.creationFailed' }
+    return { error: authError.message || 'auth.error.creationFailed' }
   }
 
-  const authData = await response.json()
-  const userId = authData.id
+  const userId = authData.user?.id
+  if (!userId) {
+    return { error: 'auth.error.creationFailed' }
+  }
 
-  // Mettre à jour le profil (créé par le trigger) avec le rôle et le titre
-  const { error } = await supabase
+  // Mettre à jour le profil (créé par le trigger) avec le rôle et le titre.
+  // Phase B — home_hospital_id = hospital_id pour aligner sur le scoping DES.
+  const { error } = await adminClient
     .from('profiles')
     .update({
       role: 'supervisor',
       title: data.title,
       hospital_id: data.hospital_id,
+      home_hospital_id: data.hospital_id,
       phone: data.phone || null,
     })
     .eq('id', userId)

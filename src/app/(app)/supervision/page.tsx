@@ -14,7 +14,10 @@ export default async function SupervisionPage() {
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['supervisor', 'admin', 'superadmin', 'developer'].includes(profile.role)) {
+  if (
+    !profile ||
+    !['supervisor', 'service_chief', 'institution_admin', 'admin', 'superadmin', 'developer'].includes(profile.role)
+  ) {
     redirect('/logbook')
   }
 
