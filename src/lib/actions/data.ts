@@ -1,5 +1,6 @@
 'use server'
 
+import { after } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export async function getHospitals() {
@@ -168,17 +169,21 @@ export async function createSupervisor(data: {
 
   if (error) return { error: error.message }
 
-  // Email d'invitation avec mot de passe temporaire (non-bloquant)
-  try {
-    const { sendWelcomeEmail } = await import('@/lib/actions/admin')
-    await sendWelcomeEmail(data.email, data.first_name, {
-      tempPassword,
-      role: 'supervisor',
-      title: data.title,
-    })
-  } catch {
-    // L'email n'est pas bloquant — le tempPassword est déjà affiché dans l'UI
-  }
+  // Email d'invitation — fire-and-forget après la réponse (Next.js `after()`).
+  // L'admin voit immédiatement "Superviseur créé + tempPassword" dans l'UI ;
+  // l'envoi Brevo (qui peut prendre 2–5s sur cold start) s'exécute en arrière-plan.
+  after(async () => {
+    try {
+      const { sendWelcomeEmail } = await import('@/lib/actions/admin')
+      await sendWelcomeEmail(data.email, data.first_name, {
+        tempPassword,
+        role: 'supervisor',
+        title: data.title,
+      })
+    } catch {
+      // Si Brevo échoue, le tempPassword reste visible côté admin pour relais manuel.
+    }
+  })
 
   return { success: true, tempPassword }
 }
