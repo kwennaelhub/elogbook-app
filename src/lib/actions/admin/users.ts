@@ -312,7 +312,12 @@ export async function sendWelcomeEmail(
         <a href="https://internlog.app/login" class="cta">Se connecter</a>
         <a href="https://internlog.app/settings" class="cta-secondary">Changer le mot de passe</a>
       </p>
-      <p style="font-size:12px;color:#94a3b8;margin-top:24px">
+      <p style="font-size:12px;color:#94a3b8;margin-top:16px;line-height:1.6">
+        Si les boutons ne s'affichent pas, copiez-collez ces liens dans votre navigateur :<br>
+        🔗 <a href="https://internlog.app/login" style="color:#0f172a">https://internlog.app/login</a><br>
+        🔗 <a href="https://internlog.app/settings" style="color:#0f172a">https://internlog.app/settings</a>
+      </p>
+      <p style="font-size:12px;color:#94a3b8;margin-top:16px">
         Si vous n'êtes pas à l'origine de cette demande ou ne connaissez pas InternLog, ignorez
         simplement cet email — aucune action ne sera engagée sur votre adresse.
       </p>`

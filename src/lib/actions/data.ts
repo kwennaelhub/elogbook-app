@@ -124,10 +124,11 @@ export async function createSupervisor(data: {
   // Créer le compte auth via l'API admin (mot de passe temporaire, email auto-confirmé).
   // On utilise auth.admin.createUser() du service role pour :
   //   - éviter la friction "confirmer votre email" sur un compte créé par un admin
-  //   - récupérer directement l'user.id (l'endpoint /auth/v1/signup retourne un shape
-  //     imbriqué { user: {...} } qui cassait l'update profil avec "uuid: undefined")
-  const { randomBytes } = await import('crypto')
-  const tempPassword = `ELog${randomBytes(16).toString('base64url')}!`
+  //   - récupérer directement l'user.id
+  // Le tempPassword est généré via un générateur lisible (pas de chars ambigus
+  // comme 0/O/l/1/I, pas de `!` qui cassait le copy-paste dans Yahoo webmail).
+  const { generateTempPassword } = await import('@/lib/password')
+  const tempPassword = await generateTempPassword(12)
 
   const adminClient = await createServiceClient()
   const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
@@ -181,6 +182,72 @@ export async function createSupervisor(data: {
     })
   } catch {
     // Non bloquant — tempPassword dans l'UI
+  }
+
+  return { success: true, tempPassword }
+}
+
+/**
+ * Réinitialise le mot de passe d'un superviseur et renvoie l'email d'invitation
+ * avec le nouveau tempPassword. Utile quand le user a perdu le mot de passe
+ * initial (copy-paste cassé, email dans les spams supprimé, etc.).
+ *
+ * Règles :
+ *   - Caller admin global OU institution_admin sur le même hôpital que la cible
+ *   - Cible doit être role=supervisor (pas de reset sur student/service_chief/admin
+ *     via cette route — utiliser les flows dédiés ou Supabase dashboard)
+ */
+export async function regenerateSupervisorPassword(userId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'error.unauthorized' }
+
+  const { data: callerProfile } = await supabase
+    .from('profiles')
+    .select('role, hospital_id')
+    .eq('id', user.id)
+    .single()
+  if (!callerProfile) return { error: 'error.forbidden' }
+
+  const adminClient = await createServiceClient()
+  const { data: target } = await adminClient
+    .from('profiles')
+    .select('id, email, role, first_name, last_name, title, hospital_id, home_hospital_id')
+    .eq('id', userId)
+    .single()
+
+  if (!target) return { error: 'admin.error.userNotFound' }
+  if (target.role !== 'supervisor') {
+    return { error: 'admin.error.resetOnlyForSupervisor' }
+  }
+
+  const isGlobalAdmin = ['admin', 'superadmin', 'developer'].includes(callerProfile.role)
+  const targetHospital = target.hospital_id || target.home_hospital_id
+  const isScopedAdmin =
+    callerProfile.role === 'institution_admin' &&
+    callerProfile.hospital_id === targetHospital
+  if (!isGlobalAdmin && !isScopedAdmin) {
+    return { error: 'error.forbidden' }
+  }
+
+  const { generateTempPassword } = await import('@/lib/password')
+  const tempPassword = await generateTempPassword(12)
+
+  const { error: updateError } = await adminClient.auth.admin.updateUserById(target.id, {
+    password: tempPassword,
+  })
+  if (updateError) return { error: updateError.message }
+
+  // Email non bloquant
+  try {
+    const { sendWelcomeEmail } = await import('@/lib/actions/admin')
+    await sendWelcomeEmail(target.email ?? '', target.first_name ?? '', {
+      tempPassword,
+      role: 'supervisor',
+      title: target.title ?? undefined,
+    })
+  } catch {
+    // Email non bloquant — tempPassword retourné dans l'UI
   }
 
   return { success: true, tempPassword }

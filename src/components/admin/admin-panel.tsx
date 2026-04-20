@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Users, BookCheck, Upload, Stethoscope, Search, Download, Plus, X, FileSpreadsheet, UserPlus, AlertCircle, CheckCircle, Settings2, Shield, Building2, ClipboardList, Trash2, Layers } from 'lucide-react'
+import { Users, BookCheck, Upload, Stethoscope, Search, Download, Plus, X, FileSpreadsheet, UserPlus, AlertCircle, CheckCircle, Settings2, Shield, Building2, ClipboardList, Trash2, Layers, Copy, Check as CheckIcon, KeyRound } from 'lucide-react'
 import type { DesRegistry, Profile, Hospital, DesLevel } from '@/types/database'
 import { SUPERVISOR_TITLE_LABELS } from '@/types/database'
 import type { SupervisorTitle, UserRole } from '@/types/database'
 import { useI18n } from '@/lib/i18n/context'
-import { createSupervisor, updateSupervisor, addDesRegistryEntry, importDesRegistryBatch, promoteUserToSupervisor } from '@/lib/actions/data'
+import { createSupervisor, updateSupervisor, addDesRegistryEntry, importDesRegistryBatch, promoteUserToSupervisor, regenerateSupervisorPassword } from '@/lib/actions/data'
 import { updateUserRole, deleteUser } from '@/lib/actions/admin'
 import { useRouter } from 'next/navigation'
 import { ConfigTab } from './config-tab'
@@ -99,6 +99,12 @@ export function AdminPanel({
   const [addResult, setAddResult] = useState<{ error?: string; success?: boolean; tempPassword?: string } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
+  // Copy-to-clipboard pour le tempPassword affiché
+  const [copied, setCopied] = useState(false)
+  // Reset mot de passe superviseur
+  const [resetTarget, setResetTarget] = useState<{ id: string; name: string } | null>(null)
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetResult, setResetResult] = useState<{ error?: string; tempPassword?: string; name?: string } | null>(null)
   // Registre DES — ajout manuel
   const [showAddStudent, setShowAddStudent] = useState(false)
   const [studentForm, setStudentForm] = useState({
@@ -144,6 +150,30 @@ export function AdminPanel({
     if (result.success) {
       setAddForm({ first_name: '', last_name: '', email: '', title: 'Pr', hospital_id: lockedHospitalId, phone: '' })
       router.refresh()
+    }
+  }
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // Clipboard API indisponible — fallback silencieux
+    }
+  }
+
+  const handleResetPassword = async () => {
+    if (!resetTarget) return
+    setResetLoading(true)
+    setResetResult(null)
+    const result = await regenerateSupervisorPassword(resetTarget.id)
+    setResetLoading(false)
+    if (result.success) {
+      setResetResult({ tempPassword: result.tempPassword, name: resetTarget.name })
+      setResetTarget(null)
+    } else {
+      setResetResult({ error: result.error })
     }
   }
 
@@ -415,7 +445,19 @@ export function AdminPanel({
           {addResult?.success && addResult.tempPassword && (
             <div className="mb-3 rounded-lg bg-accent/10 p-3 text-sm text-accent">
               <p className="font-medium">{t('admin.supervisorCreated')}</p>
-              <p className="mt-1">{t('admin.tempPassword')} : <code className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-xs">{addResult.tempPassword}</code></p>
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-xs">{t('admin.tempPassword')} :</span>
+                <code className="rounded bg-accent/10 px-1.5 py-0.5 font-mono text-xs">{addResult.tempPassword}</code>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(addResult.tempPassword!)}
+                  className="rounded p-1 text-accent/70 hover:bg-accent/10 hover:text-accent"
+                  title={t('admin.copyPassword')}
+                  aria-label={t('admin.copyPassword')}
+                >
+                  {copied ? <CheckIcon className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                </button>
+              </div>
               <p className="mt-1 text-xs">{t('admin.tempPasswordHint')}</p>
             </div>
           )}
@@ -880,7 +922,15 @@ export function AdminPanel({
                     <span className={`h-2 w-2 inline-block rounded-full ${s.is_active ? 'bg-accent/100' : 'bg-destructive/100'}`} />
                   </td>
                   {canDeleteUsers && (
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right whitespace-nowrap">
+                      <button
+                        onClick={() => setResetTarget({ id: s.id, name: `${s.title || ''} ${s.first_name} ${s.last_name}`.trim() })}
+                        className="mr-1 rounded p-1 text-amber-500/70 hover:bg-amber-500/10 hover:text-amber-500"
+                        title={t('admin.resetPassword')}
+                        aria-label={t('admin.resetPassword')}
+                      >
+                        <KeyRound className="h-4 w-4" />
+                      </button>
                       <button
                         onClick={() => setDeleteTarget({ id: s.id, name: `${s.title || ''} ${s.first_name} ${s.last_name}`.trim(), email: s.email || '' })}
                         className="rounded p-1 text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
@@ -1000,6 +1050,83 @@ export function AdminPanel({
           desObjectives={desObjectives}
           currentUserRole={currentUserRole}
         />
+      )}
+
+      {/* Modal confirmation reset mot de passe superviseur */}
+      {resetTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl border border-border/60">
+            <div className="mb-4 flex items-start gap-3">
+              <div className="rounded-full bg-amber-500/10 p-2">
+                <KeyRound className="h-5 w-5 text-amber-500" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold text-foreground">{t('admin.resetPassword.title')}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{t('admin.resetPassword.message')}</p>
+                <p className="mt-2 text-sm font-medium text-foreground">{resetTarget.name}</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setResetTarget(null)}
+                disabled={resetLoading}
+                className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-secondary disabled:opacity-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleResetPassword}
+                disabled={resetLoading}
+                className="rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-600 disabled:opacity-50"
+              >
+                {resetLoading ? t('admin.saving') : t('admin.resetPassword.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success banner après reset — affiche le nouveau tempPassword */}
+      {resetResult?.tempPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-xl bg-card p-6 shadow-xl border border-accent/50">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="rounded-full bg-accent/10 p-2">
+                <CheckIcon className="h-5 w-5 text-accent" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">{t('admin.resetPassword.successTitle')}</h3>
+            </div>
+            <p className="mb-3 text-sm text-muted-foreground">
+              {t('admin.resetPassword.successMsg')} <strong>{resetResult.name}</strong>
+            </p>
+            <div className="mb-3 flex items-center gap-2 rounded-lg bg-accent/5 p-3">
+              <code className="flex-1 rounded bg-accent/10 px-2 py-1.5 font-mono text-sm break-all">{resetResult.tempPassword}</code>
+              <button
+                type="button"
+                onClick={() => copyToClipboard(resetResult.tempPassword!)}
+                className="rounded p-1.5 text-accent/70 hover:bg-accent/10 hover:text-accent"
+                title={t('admin.copyPassword')}
+              >
+                {copied ? <CheckIcon className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </button>
+            </div>
+            <p className="mb-4 text-xs text-muted-foreground">{t('admin.resetPassword.emailSent')}</p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setResetResult(null)}
+                className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90"
+              >
+                {t('common.close')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {resetResult?.error && (
+        <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded-lg bg-destructive/10 p-3 text-sm text-destructive shadow-lg">
+          {t(resetResult.error)}
+        </div>
       )}
 
       {/* Modal de confirmation suppression utilisateur */}
