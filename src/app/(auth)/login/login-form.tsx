@@ -1,9 +1,10 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { login, type AuthState } from '@/lib/actions/auth'
+import { createClient as createBrowserClient } from '@/lib/supabase/client'
 import { useI18n } from '@/lib/i18n/context'
 
 function EyeIcon({ open }: { open: boolean }) {
@@ -26,8 +27,38 @@ export function LoginForm() {
   const { t } = useI18n()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') || ''
+  const invitedEmail = searchParams.get('email') || ''
+  const isInvite = searchParams.get('invite') === '1'
   const [state, action, isPending] = useActionState<AuthState, FormData>(login, {})
   const [showPassword, setShowPassword] = useState(false)
+  const [inviteReady, setInviteReady] = useState(!isInvite)
+
+  // Flow invite : si ?invite=1, d'abord déconnecter la session admin du navigateur
+  // (Pr Adjagba qui a créé le superviseur) AVANT d'afficher le formulaire
+  // pour que le superviseur se logge en tant que lui-même.
+  useEffect(() => {
+    if (!isInvite) return
+    let cancelled = false
+    ;(async () => {
+      await Promise.resolve()
+      try {
+        const supabase = createBrowserClient()
+        await supabase.auth.signOut()
+      } catch {
+        // Session déjà absente ou réseau down : on passe quand même au form
+      }
+      if (!cancelled) setInviteReady(true)
+    })()
+    return () => { cancelled = true }
+  }, [isInvite])
+
+  if (!inviteReady) {
+    return (
+      <div className="rounded-2xl bg-card p-8 shadow-xl text-sm text-muted-foreground">
+        {t('auth.invitePreparing')}
+      </div>
+    )
+  }
 
   return (
     <form action={action} className="rounded-2xl bg-card p-8 shadow-xl">
@@ -41,6 +72,12 @@ export function LoginForm() {
 
       <input type="hidden" name="redirect" value={redirectTo} />
 
+      {isInvite && (
+        <div className="mb-4 rounded-lg border border-accent/30 bg-accent/10 p-3 text-xs text-accent">
+          {t('auth.inviteBanner')}
+        </div>
+      )}
+
       <div className="mb-4">
         <label htmlFor="email" className="label">
           Adresse email
@@ -53,6 +90,7 @@ export function LoginForm() {
           autoComplete="email"
           className="input-field"
           placeholder="prenom.nom@example.com"
+          defaultValue={invitedEmail}
         />
       </div>
 

@@ -258,6 +258,9 @@ export async function sendWelcomeEmail(
     const subject = isSupervisorInvite
       ? `Votre compte InternLog est prêt — ${displayName}`
       : `Bienvenue sur InternLog, ${firstName} !`
+    // URL d'invitation : force la déconnexion de toute session admin déjà
+    // ouverte dans le navigateur du destinataire + pré-remplit son email.
+    const inviteLoginUrl = `https://internlog.app/login?invite=1&email=${encodeURIComponent(email)}`
 
     const styles = `
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background: #f1f5f9; }
@@ -309,13 +312,12 @@ export async function sendWelcomeEmail(
         </p>
       </div>
       <p>
-        <a href="https://internlog.app/login" class="cta">Se connecter</a>
-        <a href="https://internlog.app/settings" class="cta-secondary">Changer le mot de passe</a>
+        <a href="${inviteLoginUrl}" class="cta">Se connecter</a>
+        <a href="${inviteLoginUrl}" class="cta-secondary">Changer le mot de passe</a>
       </p>
       <p style="font-size:12px;color:#94a3b8;margin-top:16px;line-height:1.6">
-        Si les boutons ne s'affichent pas, copiez-collez ces liens dans votre navigateur :<br>
-        🔗 <a href="https://internlog.app/login" style="color:#0f172a">https://internlog.app/login</a><br>
-        🔗 <a href="https://internlog.app/settings" style="color:#0f172a">https://internlog.app/settings</a>
+        Si les boutons ne s'affichent pas, copiez-collez ce lien dans votre navigateur :<br>
+        🔗 <a href="${inviteLoginUrl}" style="color:#0f172a">${inviteLoginUrl}</a>
       </p>
       <p style="font-size:12px;color:#94a3b8;margin-top:16px">
         Si vous n'êtes pas à l'origine de cette demande ou ne connaissez pas InternLog, ignorez

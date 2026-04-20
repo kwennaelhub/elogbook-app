@@ -36,6 +36,8 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     'auth.noAccount': 'Pas de compte ?',
     'auth.hasAccount': 'Déjà un compte ?',
     'auth.error.credentials': 'Email ou mot de passe incorrect',
+    'auth.invitePreparing': 'Préparation de la session…',
+    'auth.inviteBanner': '👋 Bienvenue sur InternLog. Connectez-vous avec le mot de passe temporaire reçu par email, puis changez-le depuis Paramètres → Sécurité.',
 
     // Logbook
     'logbook.title': 'Logbook',
@@ -723,6 +725,8 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     'auth.noAccount': 'No account?',
     'auth.hasAccount': 'Already have an account?',
     'auth.error.credentials': 'Invalid email or password',
+    'auth.invitePreparing': 'Preparing session…',
+    'auth.inviteBanner': '👋 Welcome to InternLog. Sign in with the temporary password received by email, then change it from Settings → Security.',
 
     // Logbook
     'logbook.title': 'Logbook',

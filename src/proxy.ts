@@ -85,8 +85,14 @@ export async function proxy(request: NextRequest) {
       return supabaseResponse
     }
     // login/register : si connecté, rediriger vers logbook
+    // Exception : ?invite=1 force l'affichage de la page login même authentifié
+    // (le recipient d'un email d'invitation doit pouvoir se logger en tant que
+    // lui-même, pas rester sur le compte d'un admin déjà loggé dans le navigateur)
     if (user) {
-      return NextResponse.redirect(new URL('/logbook', request.url))
+      const isInvite = request.nextUrl.searchParams.get('invite') === '1'
+      if (!isInvite) {
+        return NextResponse.redirect(new URL('/logbook', request.url))
+      }
     }
     return supabaseResponse
   }
