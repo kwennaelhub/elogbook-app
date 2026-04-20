@@ -37,8 +37,8 @@ export default async function AdminPage() {
     { data: adhesionRequests, count: adhesionCount },
   ] = await Promise.all([
     supabase.from('des_registry').select('*', { count: 'exact' }).order('last_name').limit(500),
-    supabase.from('profiles').select('*, hospital:hospitals(name)', { count: 'exact' }).order('last_name').limit(500),
-    supabase.from('profiles').select('*, hospital:hospitals(name)', { count: 'exact' }).eq('role', 'supervisor').order('last_name').limit(500),
+    supabase.from('profiles').select('*, hospital:hospitals!profiles_hospital_id_fkey(name)', { count: 'exact' }).order('last_name').limit(500),
+    supabase.from('profiles').select('*, hospital:hospitals!profiles_hospital_id_fkey(name)', { count: 'exact' }).eq('role', 'supervisor').order('last_name').limit(500),
     supabase.from('hospitals').select('*').order('name'),
     supabase.from('specialties').select('*').eq('is_active', true).eq('level', 0).order('name'),
     supabase.from('procedures').select('*, specialty:specialties(name)').eq('is_active', true).order('sort_order'),

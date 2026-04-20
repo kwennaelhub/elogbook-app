@@ -59,7 +59,7 @@ export async function getSupervisorsWithDetails() {
   const supabase = await createClient()
   const { data } = await supabase
     .from('profiles')
-    .select('*, hospital:hospitals(id, name)')
+    .select('*, hospital:hospitals!profiles_hospital_id_fkey(id, name)')
     .eq('role', 'supervisor')
     .order('last_name')
   return data ?? []
@@ -563,7 +563,7 @@ export async function getUserStatsForExport(userId?: string) {
   // Profil cible
   const { data: targetProfile } = await supabase
     .from('profiles')
-    .select('*, hospital:hospitals(name)')
+    .select('*, hospital:hospitals!profiles_hospital_id_fkey(name)')
     .eq('id', targetId)
     .single()
 

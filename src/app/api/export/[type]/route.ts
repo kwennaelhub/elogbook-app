@@ -88,7 +88,7 @@ export async function GET(
       sheetName = 'Superviseurs'
       const { data: supervisors } = await supabase
         .from('profiles')
-        .select('*, hospital:hospitals(name)')
+        .select('*, hospital:hospitals!profiles_hospital_id_fkey(name)')
         .eq('role', 'supervisor')
         .order('last_name')
 
@@ -108,7 +108,7 @@ export async function GET(
       sheetName = 'Utilisateurs'
       const { data: students } = await supabase
         .from('profiles')
-        .select('*, hospital:hospitals(name)')
+        .select('*, hospital:hospitals!profiles_hospital_id_fkey(name)')
         .order('last_name')
         .limit(5000)
 
@@ -158,7 +158,7 @@ export async function GET(
       // Profil
       const { data: targetProfile } = await supabase
         .from('profiles')
-        .select('*, hospital:hospitals(name)')
+        .select('*, hospital:hospitals!profiles_hospital_id_fkey(name)')
         .eq('id', userId)
         .single()
 

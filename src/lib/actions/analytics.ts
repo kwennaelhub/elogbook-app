@@ -266,7 +266,7 @@ export async function getInstitutionStats(): Promise<InstitutionStats | null> {
   // ── Tous les profils actifs (étudiants) ──
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, first_name, last_name, title, des_level, hospital_id, hospital:hospitals(name)')
+    .select('id, first_name, last_name, title, des_level, hospital_id, hospital:hospitals!profiles_hospital_id_fkey(name)')
     .eq('is_active', true)
     .in('role', ['student', 'admin', 'superadmin', 'developer'])
 

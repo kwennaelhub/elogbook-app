@@ -11,7 +11,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*, hospital:hospitals(name)')
+    .select('*, hospital:hospitals!profiles_hospital_id_fkey(name)')
     .eq('id', user.id)
     .single()
 
