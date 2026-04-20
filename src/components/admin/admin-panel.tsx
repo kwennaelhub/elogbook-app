@@ -840,6 +840,9 @@ export function AdminPanel({
                 <th className="px-3 py-2 text-xs font-medium text-muted-foreground">{t('admin.hospital')}</th>
                 <th className="px-3 py-2 text-xs font-medium text-muted-foreground">{t('admin.phone')}</th>
                 <th className="px-3 py-2 text-xs font-medium text-muted-foreground">{t('admin.status')}</th>
+                {canDeleteUsers && (
+                  <th className="px-3 py-2 text-xs font-medium text-muted-foreground text-right">{t('admin.actions')}</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -876,10 +879,22 @@ export function AdminPanel({
                   <td className="px-3 py-2">
                     <span className={`h-2 w-2 inline-block rounded-full ${s.is_active ? 'bg-accent/100' : 'bg-destructive/100'}`} />
                   </td>
+                  {canDeleteUsers && (
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        onClick={() => setDeleteTarget({ id: s.id, name: `${s.title || ''} ${s.first_name} ${s.last_name}`.trim(), email: s.email || '' })}
+                        className="rounded p-1 text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
+                        title={t('admin.deleteUser')}
+                        aria-label={t('admin.deleteUser')}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
               {filteredSupervisors.length === 0 && (
-                <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-muted-foreground">{t('admin.noResults')}</td></tr>
+                <tr><td colSpan={canDeleteUsers ? 7 : 6} className="px-3 py-6 text-center text-sm text-muted-foreground">{t('admin.noResults')}</td></tr>
               )}
             </tbody>
           </table>
