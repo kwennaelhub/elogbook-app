@@ -69,8 +69,11 @@ export function AdminPanel({
     }
   }
 
-  const canManageRoles = ['developer', 'superadmin'].includes(currentUserRole)
-  const canDeleteUsers = ['developer', 'superadmin'].includes(currentUserRole)
+  // Phase C — institution_admin peut gérer les rôles student↔supervisor↔service_chief
+  // (scope hôpital) et supprimer ses propres DES. Le serveur (updateUserRole /
+  // deleteUser) fait la vérification fine via canManageDES / home_hospital_id.
+  const canManageRoles = ['developer', 'superadmin', 'institution_admin'].includes(currentUserRole)
+  const canDeleteUsers = ['developer', 'superadmin', 'institution_admin'].includes(currentUserRole)
 
   const handleDeleteUser = async () => {
     if (!deleteTarget) return
