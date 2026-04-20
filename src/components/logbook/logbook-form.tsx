@@ -13,6 +13,9 @@ interface LogbookFormProps {
   specialties: Specialty[]
   procedures: Procedure[]
   supervisors: { id: string; first_name: string; last_name: string }[]
+  /** Role du caller. Si supervisor/service_chief → mode self-log (pas de
+   *  sélecteur superviseur, entry auto-validée côté server). */
+  userRole?: string
 }
 
 const STEP_KEYS = [
@@ -61,8 +64,9 @@ interface LogbookFormBodyProps extends LogbookFormProps {
   isPending: boolean
 }
 
-function LogbookFormBody({ state, action, isPending, hospitals, specialties, procedures, supervisors }: LogbookFormBodyProps) {
+function LogbookFormBody({ state, action, isPending, hospitals, specialties, procedures, supervisors, userRole }: LogbookFormBodyProps) {
   const { t, locale } = useI18n()
+  const isSelfLog = userRole === 'supervisor' || userRole === 'service_chief'
   const [step, setStep] = useState(0)
   const [formData, setFormData] = useState({
     intervention_date: new Date().toISOString().split('T')[0],
@@ -316,21 +320,27 @@ function LogbookFormBody({ state, action, isPending, hospitals, specialties, pro
             <p className="mt-1 text-[10px] text-muted-foreground">{t('logbook.geoOptional')}</p>
           </div>
 
-          <div>
-            <label className="label">{t('logbook.seniorSupervisor')}</label>
-            <select
-              value={formData.supervisor_id}
-              onChange={(e) => updateField('supervisor_id', e.target.value)}
-              className="input-field"
-            >
-              <option value="">{t('common.select')}</option>
-              {supervisors.map((s) => (
-                <option key={s.id} value={s.id}>
-                  Dr {s.last_name} {s.first_name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {isSelfLog ? (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-400">
+              ✓ {t('logbook.selfLogNote')}
+            </div>
+          ) : (
+            <div>
+              <label className="label">{t('logbook.seniorSupervisor')}</label>
+              <select
+                value={formData.supervisor_id}
+                onChange={(e) => updateField('supervisor_id', e.target.value)}
+                className="input-field"
+              >
+                <option value="">{t('common.select')}</option>
+                {supervisors.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    Dr {s.last_name} {s.first_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       )}
 

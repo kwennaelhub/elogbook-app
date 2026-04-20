@@ -49,6 +49,20 @@ export async function createEntry(_prev: EntryState, formData: FormData): Promis
     return { error: 'logbook.error.attestationRequired' }
   }
 
+  // Récupérer le rôle + service pour décider de l'auto-validation et du
+  // scoping service. Un supervisor/service_chief qui saisit sa propre
+  // intervention n'a pas besoin d'être validé par un tiers — on bypass
+  // le workflow pending→validated.
+  const { data: callerProfile } = await supabase
+    .from('profiles')
+    .select('role, service_id')
+    .eq('id', user.id)
+    .single()
+
+  const selfValidated = !!callerProfile && (
+    callerProfile.role === 'supervisor' || callerProfile.role === 'service_chief'
+  )
+
   const now = new Date().toISOString()
 
   const { data: newEntry, error } = await supabase.from('entries').insert({
@@ -67,7 +81,9 @@ export async function createEntry(_prev: EntryState, formData: FormData): Promis
     other_specialty: parsed.data.other_specialty || null,
     other_procedure: parsed.data.other_procedure || null,
     notes: parsed.data.notes || null,
-    supervisor_id: parsed.data.supervisor_id || null,
+    // Supervisor ignoré quand le saisisseur est lui-même supervisor/chief
+    supervisor_id: selfValidated ? null : (parsed.data.supervisor_id || null),
+    service_id: callerProfile?.service_id || null,
     geo_latitude: parsed.data.geo_latitude || null,
     geo_longitude: parsed.data.geo_longitude || null,
     geo_accuracy: parsed.data.geo_accuracy || null,
@@ -77,6 +93,10 @@ export async function createEntry(_prev: EntryState, formData: FormData): Promis
       ? `J'atteste sur l'honneur avoir été présent(e) sur site le ${parsed.data.intervention_date} en tant que ${parsed.data.operator_role}.`
       : null,
     attestation_at: entryMode === 'retrospective' ? now : null,
+    // Auto-validation pour supervisor / service_chief
+    is_validated: selfValidated ? true : false,
+    validated_at: selfValidated ? now : null,
+    validated_by: selfValidated ? user.id : null,
   }).select('id').single()
 
   if (error) {
