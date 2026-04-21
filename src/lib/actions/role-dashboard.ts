@@ -14,22 +14,33 @@ import { createClient } from '@/lib/supabase/server'
 // getAnalyticsStats + getPeerComparison).
 
 export interface SupervisorDashboard {
-  pendingValidations: number
-  validatedByMeThisMonth: number
-  supervisedDesCount: number
-  hospitalEntriesThisMonth: number
   hospitalName: string | null
+  // ── Section 1 : supervision des DES ──
+  pendingValidations: number
+  desValidatedThisMonth: number          // validations DES (exclut self-logs)
+  supervisedDesCount: number
   recentDes: { id: string; name: string; desLevel: string | null; entryCount: number }[]
+  // ── Section 2 : mon activité perso ──
+  myEntriesThisMonth: number
+  myEntriesTotal: number
+  myActiveFollowups: number
+  // ── Section 3 : contexte hôpital (DES) ──
+  hospitalDesEntriesThisMonth: number
 }
 
 export interface ServiceChiefDashboard {
   serviceName: string | null
   hospitalName: string | null
+  // ── Section 1 : mon service ──
   serviceDesCount: number
   serviceSupervisorsCount: number
   servicePendingValidations: number
-  serviceEntriesThisMonth: number
+  serviceDesEntriesThisMonth: number     // entries des DES du service (exclut supervisor self-logs)
   desByLevel: { level: string; count: number }[]
+  // ── Section 2 : mon activité perso ──
+  myEntriesThisMonth: number
+  myEntriesTotal: number
+  myActiveFollowups: number
 }
 
 export interface InstitutionAdminDashboard {
@@ -70,10 +81,15 @@ export async function getSupervisorDashboard(): Promise<SupervisorDashboard | nu
   const hospitalData = profile.hospitals as unknown as { name: string } | { name: string }[] | null
   const hospital = Array.isArray(hospitalData) ? hospitalData[0] ?? null : hospitalData
 
+  // Pour distinguer "DES entries" vs "mes auto-logs" : on filtre par user_id
+  // (exclut self) pour les KPI de supervision + par user_id=me pour perso.
   const [
     { count: pending },
-    { count: validatedByMe },
-    { count: hospitalEntries },
+    { count: desValidated },
+    { count: myEntriesMonth },
+    { count: myEntriesAll },
+    { count: myFollowups },
+    { count: hospitalDesEntries },
     { data: supervisedEntries },
   ] = await Promise.all([
     supabase
@@ -82,16 +98,38 @@ export async function getSupervisorDashboard(): Promise<SupervisorDashboard | nu
       .eq('supervisor_id', user.id)
       .is('is_validated', false)
       .is('validated_at', null),
+    // Validations que j'ai faites SUR DES D'AUTRES (pas mes self-logs)
     supabase
       .from('entries')
       .select('id', { count: 'exact', head: true })
       .eq('validated_by', user.id)
+      .neq('user_id', user.id)
       .gte('validated_at', since),
+    // Mes propres interventions ce mois
+    supabase
+      .from('entries')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('intervention_date', since.slice(0, 10)),
+    // Mes propres interventions — total
+    supabase
+      .from('entries')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id),
+    // Mes patients en suivi actif
+    supabase
+      .from('patient_followups')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('outcome', 'en_cours'),
+    // Activité DES à mon hôpital (contexte — exclut mes self-logs
+    // puisque ma role !== student)
     hospitalId
       ? supabase
           .from('entries')
-          .select('id', { count: 'exact', head: true })
+          .select('id, student:profiles!entries_user_id_fkey(role)', { count: 'exact', head: true })
           .eq('hospital_id', hospitalId)
+          .eq('student.role', 'student')
           .gte('intervention_date', since.slice(0, 10))
       : Promise.resolve({ count: 0 as number | null }),
     supabase
@@ -131,12 +169,15 @@ export async function getSupervisorDashboard(): Promise<SupervisorDashboard | nu
     .slice(0, 8)
 
   return {
-    pendingValidations: pending ?? 0,
-    validatedByMeThisMonth: validatedByMe ?? 0,
-    supervisedDesCount: desMap.size,
-    hospitalEntriesThisMonth: hospitalEntries ?? 0,
     hospitalName: hospital?.name ?? null,
+    pendingValidations: pending ?? 0,
+    desValidatedThisMonth: desValidated ?? 0,
+    supervisedDesCount: desMap.size,
     recentDes,
+    myEntriesThisMonth: myEntriesMonth ?? 0,
+    myEntriesTotal: myEntriesAll ?? 0,
+    myActiveFollowups: myFollowups ?? 0,
+    hospitalDesEntriesThisMonth: hospitalDesEntries ?? 0,
   }
 }
 
@@ -166,28 +207,34 @@ export async function getServiceChiefDashboard(): Promise<ServiceChiefDashboard 
     .eq('id', profile.service_id)
     .single()
 
-  // DES rattachés au service (via stage_assignments actives OU home_hospital = ce service)
-  // Pour simplifier le MVP : on compte les profils qui ont des entries dans ce service.
+  // MVP : on compte les profils DES qui ont des entries dans ce service
+  // (pour distinguer DES activity vs supervisor self-logs).
   const [
     { count: pending },
-    { count: serviceEntries },
+    { count: desEntries },
     { data: desInService },
     { count: supervisors },
+    { count: myEntriesMonth },
+    { count: myEntriesAll },
+    { count: myFollowups },
   ] = await Promise.all([
     supabase
       .from('entries')
-      .select('id', { count: 'exact', head: true })
+      .select('id, student:profiles!entries_user_id_fkey(role)', { count: 'exact', head: true })
       .eq('service_id', profile.service_id)
+      .eq('student.role', 'student')
       .is('is_validated', false)
       .is('validated_at', null),
+    // Actes DES du service ce mois (exclut self-logs des supervisors/chef)
     supabase
       .from('entries')
-      .select('id', { count: 'exact', head: true })
+      .select('id, student:profiles!entries_user_id_fkey(role)', { count: 'exact', head: true })
       .eq('service_id', profile.service_id)
+      .eq('student.role', 'student')
       .gte('intervention_date', since.slice(0, 10)),
     supabase
       .from('entries')
-      .select('user_id, student:profiles!entries_user_id_fkey(des_level)')
+      .select('user_id, student:profiles!entries_user_id_fkey(des_level, role)')
       .eq('service_id', profile.service_id)
       .limit(500),
     supabase
@@ -195,20 +242,38 @@ export async function getServiceChiefDashboard(): Promise<ServiceChiefDashboard 
       .select('id', { count: 'exact', head: true })
       .eq('service_id', profile.service_id)
       .eq('role', 'supervisor'),
+    // Mes propres interventions ce mois
+    supabase
+      .from('entries')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('intervention_date', since.slice(0, 10)),
+    // Mes propres interventions — total
+    supabase
+      .from('entries')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id),
+    // Mes patients en suivi actif
+    supabase
+      .from('patient_followups')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('outcome', 'en_cours'),
   ])
 
-  // Distinct DES + repartition par niveau
+  // Distinct DES (role=student uniquement) + repartition par niveau
   const desSet = new Set<string>()
   const levelMap = new Map<string, number>()
   for (const row of desInService ?? []) {
     const r = row as unknown as {
       user_id: string
-      student?: { des_level: string | null } | { des_level: string | null }[] | null
+      student?: { des_level: string | null; role: string } | { des_level: string | null; role: string }[] | null
     }
     if (!r.user_id) continue
+    const studentObj = Array.isArray(r.student) ? r.student[0] ?? null : r.student
+    if (studentObj?.role !== 'student') continue
     if (!desSet.has(r.user_id)) {
       desSet.add(r.user_id)
-      const studentObj = Array.isArray(r.student) ? r.student[0] ?? null : r.student
       const lvl = studentObj?.des_level || 'N/A'
       levelMap.set(lvl, (levelMap.get(lvl) ?? 0) + 1)
     }
@@ -220,10 +285,13 @@ export async function getServiceChiefDashboard(): Promise<ServiceChiefDashboard 
     serviceDesCount: desSet.size,
     serviceSupervisorsCount: supervisors ?? 0,
     servicePendingValidations: pending ?? 0,
-    serviceEntriesThisMonth: serviceEntries ?? 0,
+    serviceDesEntriesThisMonth: desEntries ?? 0,
     desByLevel: Array.from(levelMap.entries())
       .map(([level, count]) => ({ level, count }))
       .sort((a, b) => a.level.localeCompare(b.level)),
+    myEntriesThisMonth: myEntriesMonth ?? 0,
+    myEntriesTotal: myEntriesAll ?? 0,
+    myActiveFollowups: myFollowups ?? 0,
   }
 }
 

@@ -12,6 +12,9 @@ import {
   ArrowRight,
   Hospital,
   Users,
+  BookOpen,
+  HeartPulse,
+  TrendingUp,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import type {
@@ -87,6 +90,14 @@ function Header({
 // SUPERVISOR
 // ═══════════════════════════════════════════════════════════════════
 
+function SectionTitle({ label }: { label: string }) {
+  return (
+    <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      {label}
+    </h3>
+  )
+}
+
 export function SupervisorDashboardView({ data }: { data: SupervisorDashboard }) {
   const { t } = useI18n()
   return (
@@ -97,34 +108,66 @@ export function SupervisorDashboardView({ data }: { data: SupervisorDashboard })
         subtitle={data.hospitalName ? `${t('dashboard.at')} ${data.hospitalName}` : undefined}
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard
-          icon={ClipboardCheck}
-          color="bg-amber-400/10 text-amber-400"
-          label={t('dashboard.supervisor.pendingValidations')}
-          value={data.pendingValidations}
-          href="/supervision"
-        />
-        <StatCard
-          icon={Activity}
-          color="bg-emerald-400/10 text-emerald-400"
-          label={t('dashboard.supervisor.validatedMonth')}
-          value={data.validatedByMeThisMonth}
-        />
-        <StatCard
-          icon={GraduationCap}
-          color="bg-sky-400/10 text-sky-400"
-          label={t('dashboard.supervisor.desSupervised')}
-          value={data.supervisedDesCount}
-        />
-        <StatCard
-          icon={Hospital}
-          color="bg-violet-400/10 text-violet-400"
-          label={t('dashboard.supervisor.hospitalEntriesMonth')}
-          value={data.hospitalEntriesThisMonth}
-        />
+      {/* Section 1 — Supervision des DES */}
+      <div>
+        <SectionTitle label={t('dashboard.supervisor.sectionSupervision')} />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard
+            icon={ClipboardCheck}
+            color="bg-amber-400/10 text-amber-400"
+            label={t('dashboard.supervisor.pendingValidations')}
+            value={data.pendingValidations}
+            href="/supervision"
+          />
+          <StatCard
+            icon={Activity}
+            color="bg-emerald-400/10 text-emerald-400"
+            label={t('dashboard.supervisor.desValidatedMonth')}
+            value={data.desValidatedThisMonth}
+          />
+          <StatCard
+            icon={GraduationCap}
+            color="bg-sky-400/10 text-sky-400"
+            label={t('dashboard.supervisor.desSupervised')}
+            value={data.supervisedDesCount}
+          />
+          <StatCard
+            icon={Hospital}
+            color="bg-violet-400/10 text-violet-400"
+            label={t('dashboard.supervisor.hospitalDesMonth')}
+            value={data.hospitalDesEntriesThisMonth}
+          />
+        </div>
       </div>
 
+      {/* Section 2 — Mon activité personnelle */}
+      <div>
+        <SectionTitle label={t('dashboard.supervisor.sectionMyActivity')} />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <StatCard
+            icon={BookOpen}
+            color="bg-teal-400/10 text-teal-400"
+            label={t('dashboard.supervisor.myEntriesMonth')}
+            value={data.myEntriesThisMonth}
+            href="/logbook"
+          />
+          <StatCard
+            icon={TrendingUp}
+            color="bg-indigo-400/10 text-indigo-400"
+            label={t('dashboard.supervisor.myEntriesTotal')}
+            value={data.myEntriesTotal}
+          />
+          <StatCard
+            icon={HeartPulse}
+            color="bg-rose-400/10 text-rose-400"
+            label={t('dashboard.supervisor.myFollowups')}
+            value={data.myActiveFollowups}
+            href="/followups"
+          />
+        </div>
+      </div>
+
+      {/* Liste des DES les plus actifs */}
       <div className="card-base p-4">
         <h3 className="mb-3 text-sm font-semibold text-foreground">
           {t('dashboard.supervisor.mostActiveDes')}
@@ -173,32 +216,63 @@ export function ServiceChiefDashboardView({ data }: { data: ServiceChiefDashboar
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard
-          icon={GraduationCap}
-          color="bg-sky-400/10 text-sky-400"
-          label={t('dashboard.serviceChief.desInService')}
-          value={data.serviceDesCount}
-        />
-        <StatCard
-          icon={Stethoscope}
-          color="bg-emerald-400/10 text-emerald-400"
-          label={t('dashboard.serviceChief.supervisors')}
-          value={data.serviceSupervisorsCount}
-        />
-        <StatCard
-          icon={ClipboardCheck}
-          color="bg-amber-400/10 text-amber-400"
-          label={t('dashboard.serviceChief.pending')}
-          value={data.servicePendingValidations}
-          href="/supervision"
-        />
-        <StatCard
-          icon={Activity}
-          color="bg-violet-400/10 text-violet-400"
-          label={t('dashboard.serviceChief.entriesMonth')}
-          value={data.serviceEntriesThisMonth}
-        />
+      {/* Section 1 — Mon service */}
+      <div>
+        <SectionTitle label={t('dashboard.serviceChief.sectionService')} />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatCard
+            icon={GraduationCap}
+            color="bg-sky-400/10 text-sky-400"
+            label={t('dashboard.serviceChief.desInService')}
+            value={data.serviceDesCount}
+          />
+          <StatCard
+            icon={Stethoscope}
+            color="bg-emerald-400/10 text-emerald-400"
+            label={t('dashboard.serviceChief.supervisors')}
+            value={data.serviceSupervisorsCount}
+          />
+          <StatCard
+            icon={ClipboardCheck}
+            color="bg-amber-400/10 text-amber-400"
+            label={t('dashboard.serviceChief.pending')}
+            value={data.servicePendingValidations}
+            href="/supervision"
+          />
+          <StatCard
+            icon={Activity}
+            color="bg-violet-400/10 text-violet-400"
+            label={t('dashboard.serviceChief.desEntriesMonth')}
+            value={data.serviceDesEntriesThisMonth}
+          />
+        </div>
+      </div>
+
+      {/* Section 2 — Mon activité personnelle */}
+      <div>
+        <SectionTitle label={t('dashboard.serviceChief.sectionMyActivity')} />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <StatCard
+            icon={BookOpen}
+            color="bg-teal-400/10 text-teal-400"
+            label={t('dashboard.supervisor.myEntriesMonth')}
+            value={data.myEntriesThisMonth}
+            href="/logbook"
+          />
+          <StatCard
+            icon={TrendingUp}
+            color="bg-indigo-400/10 text-indigo-400"
+            label={t('dashboard.supervisor.myEntriesTotal')}
+            value={data.myEntriesTotal}
+          />
+          <StatCard
+            icon={HeartPulse}
+            color="bg-rose-400/10 text-rose-400"
+            label={t('dashboard.supervisor.myFollowups')}
+            value={data.myActiveFollowups}
+            href="/followups"
+          />
+        </div>
       </div>
 
       <div className="card-base p-4">
