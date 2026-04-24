@@ -42,20 +42,44 @@ export async function POST(request: NextRequest) {
           })
           .eq('payment_reference', subscriptionId)
 
-        // Mettre à jour le profil si c'est un plan institutionnel
+        // Si plan institutionnel, créer les sièges — rattacher au hospital du souscripteur
         const { data: sub } = await supabase
           .from('subscriptions')
-          .select('plan, user_id')
+          .select('id, plan, user_id')
           .eq('payment_reference', subscriptionId)
           .single()
 
-        if (sub?.plan === 'institutional') {
-          // Créer les sièges institutionnels
-          await supabase.from('institutional_seats').insert({
-            subscription_id: sub.user_id,
-            max_seats: 20,
-            used_seats: 0,
-          })
+        if (sub?.plan === 'institutional' && sub.user_id) {
+          // Idempotence : ne pas recréer si le webhook est rejoué
+          const { data: existing } = await supabase
+            .from('institutional_seats')
+            .select('id')
+            .eq('subscription_id', sub.id)
+            .limit(1)
+            .maybeSingle()
+
+          if (!existing) {
+            // Le hospital_id vient du profil du souscripteur (institution_admin)
+            const { data: subscriber } = await supabase
+              .from('profiles')
+              .select('hospital_id')
+              .eq('id', sub.user_id)
+              .single()
+
+            if (subscriber?.hospital_id) {
+              await supabase.from('institutional_seats').insert({
+                subscription_id: sub.id,
+                hospital_id: subscriber.hospital_id,
+                max_seats: 20,
+                used_seats: 0,
+              })
+            } else {
+              log.error(
+                { subscriptionId: sub.id, userId: sub.user_id },
+                'Institutional seat non créé — souscripteur sans hospital_id'
+              )
+            }
+          }
         }
 
         log.info({ userId: customId, subscriptionId }, 'Abonnement activé')
