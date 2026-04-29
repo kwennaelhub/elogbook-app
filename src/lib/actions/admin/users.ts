@@ -112,16 +112,18 @@ export async function updateProfile(data: {
  *  - Le développeur est indélébile
  *  - Le superadmin n'est supprimable QUE par un développeur
  *  - Impossible de se supprimer soi-même
- *  - Refus si l'utilisateur a des références non-cascade (activité historique) :
- *      • entries.supervisor_id ou entries.validated_by pointant sur lui
- *      • audit_log.user_id (historique d'actions admin)
+ *  - Refus atomique si références historiques existantes. Les FKs suivantes
+ *    sont ON DELETE RESTRICT (migration 00000000000007), Postgres échoue
+ *    avec SQLSTATE 23503 — pas de TOCTOU entre check et delete :
+ *      • entries.supervisor_id, entries.validated_by
+ *      • audit_log.user_id
  *      • feedback.user_id
- *      • templates (cro, prescription, surgical, des_objectives, des_registry)
- *      • gardes.created_by ou gardes.senior_id
- *    Ces refus protègent l'intégrité du dossier médical — si un superviseur a
- *    validé des actes, le supprimer ferait perdre la traçabilité des validations.
- *    Dans ces cas, l'admin doit passer par une procédure d'anonymisation
- *    (non implémentée ici — à ajouter si besoin).
+ *      • gardes.senior_id, gardes.created_by
+ *      • cro_templates.created_by, prescription_templates.created_by
+ *      • des_registry.added_by, des_objectives.(created_by|updated_by)
+ *    Ces refus protègent l'intégrité du dossier médical. Pour réattribuer
+ *    ces références avant suppression, une procédure d'anonymisation
+ *    dédiée est à implémenter (hors scope MVP).
  *
  * Phase B — Scoping home_hospital_id :
  *  - developer/superadmin/admin → peuvent supprimer n'importe quel DES
@@ -163,47 +165,37 @@ export async function deleteUser(userId: string) {
     return { error: 'admin.error.superadminOnlyByDev' }
   }
 
-  // 4. Vérifier les références non-cascade qui bloqueraient le DELETE
-  //    (on utilise le client cookie — superadmin a les SELECT policies nécessaires)
-  const blockingChecks = await Promise.all([
-    supabase.from('entries').select('id', { count: 'exact', head: true }).eq('supervisor_id', userId),
-    supabase.from('entries').select('id', { count: 'exact', head: true }).eq('validated_by', userId),
-    supabase.from('audit_log').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-    supabase.from('feedback').select('id', { count: 'exact', head: true }).eq('user_id', userId),
-  ])
-
-  const [supervisedEntries, validatedEntries, auditEntries, feedbackEntries] = blockingChecks
-  const blockers: string[] = []
-  if ((supervisedEntries.count ?? 0) > 0) blockers.push(`${supervisedEntries.count} actes supervisés`)
-  if ((validatedEntries.count ?? 0) > 0) blockers.push(`${validatedEntries.count} actes validés`)
-  if ((auditEntries.count ?? 0) > 0) blockers.push(`${auditEntries.count} entrées d'audit`)
-  if ((feedbackEntries.count ?? 0) > 0) blockers.push(`${feedbackEntries.count} feedbacks`)
-
-  if (blockers.length > 0) {
-    log.warn(
-      { targetId: userId, targetEmail: target.email, blockers },
-      'Suppression utilisateur bloquée par références historiques'
-    )
-    return {
-      error: `admin.error.deleteBlocked::${blockers.join(', ')}`,
-    }
-  }
-
-  // 5. Snapshot pour audit AVANT la suppression (impossible de retrouver après)
+  // 4. Snapshot pour audit AVANT la suppression (impossible de retrouver après)
   const snapshot = { ...target }
 
-  // 6. Suppression effective via service_role
-  //    auth.admin.deleteUser() supprime auth.users → cascade sur profiles
-  //    → cascade sur entries(user_id), gardes, subscriptions, etc.
+  // 5. Suppression effective via service_role.
+  //    Les FKs entries.supervisor_id / entries.validated_by / audit_log.user_id /
+  //    feedback.user_id / gardes.senior_id / templates.created_by sont toutes
+  //    ON DELETE RESTRICT (migration 00000000000007). Postgres rejette le
+  //    DELETE atomiquement avec code 23503 si une référence existe, ce qui
+  //    ferme la fenêtre TOCTOU qu'un check préalable laissait ouverte.
+  //    Les FKs CASCADE restantes (entries.user_id, gardes.user_id,
+  //    subscriptions, seat_assignments, notes, patient_followups,
+  //    followup_events, supervisor_assignments.student_id) se propagent
+  //    correctement — c'est le logbook du DES supprimé.
   const serviceClient = await createServiceClient()
   const { error: deleteError } = await serviceClient.auth.admin.deleteUser(userId)
 
   if (deleteError) {
+    const code = (deleteError as { code?: string }).code
+    const msg = deleteError.message || ''
+    if (code === '23503' || msg.includes('foreign key') || msg.includes('violates')) {
+      log.warn(
+        { targetId: userId, targetEmail: target.email, err: msg },
+        'Suppression utilisateur bloquée par références historiques (FK RESTRICT)'
+      )
+      return { error: 'admin.error.deleteBlocked' }
+    }
     log.error(
-      { targetId: userId, targetEmail: target.email, error: deleteError.message },
+      { targetId: userId, targetEmail: target.email, error: msg },
       'Échec suppression utilisateur (service_role)'
     )
-    return { error: deleteError.message }
+    return { error: 'admin.error.deleteFailed' }
   }
 
   // 7. Audit log de l'action (inséré via service_role car le profil cible

@@ -755,11 +755,9 @@ export function AdminPanel({
           {deleteResult.success ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
           {deleteResult.success
             ? t('admin.deleteSuccess')
-            : (deleteResult.error?.startsWith('admin.error.deleteBlocked::')
-                ? `${t('admin.error.deleteBlocked')} ${deleteResult.error.split('::')[1]}`
-                : (deleteResult.error?.startsWith('admin.') || deleteResult.error?.startsWith('error.')
-                    ? t(deleteResult.error)
-                    : (deleteResult.error ?? '')))}
+            : (deleteResult.error?.startsWith('admin.') || deleteResult.error?.startsWith('error.')
+                ? t(deleteResult.error)
+                : (deleteResult.error ?? ''))}
         </div>
       )}
       {tab === 'users' && (
@@ -1154,11 +1152,9 @@ export function AdminPanel({
             </div>
             {deleteResult?.error && (
               <div className="mb-3 rounded-lg bg-destructive/10 p-2 text-xs text-destructive">
-                {deleteResult.error.startsWith('admin.error.deleteBlocked::')
-                  ? `${t('admin.error.deleteBlocked')} ${deleteResult.error.split('::')[1]}`
-                  : (deleteResult.error.startsWith('admin.') || deleteResult.error.startsWith('error.')
-                      ? t(deleteResult.error)
-                      : deleteResult.error)}
+                {deleteResult.error.startsWith('admin.') || deleteResult.error.startsWith('error.')
+                  ? t(deleteResult.error)
+                  : deleteResult.error}
               </div>
             )}
             <div className="flex justify-end gap-2">
