@@ -1,0 +1,117 @@
+name: DB Backup (Free plan DIY)
+
+# Backup quotidien chiffré pendant la phase pré-lancement (Supabase Free).
+# À RETIRER ou désactiver dès le passage à Supabase Pro (backups managés natifs).
+# Voir docs/runbooks/disaster-recovery.md (section Mode pré-lancement).
+
+on:
+  schedule:
+    - cron: '2 2 * * *'  # 2h02 UTC tous les jours (≈ 4h02 Paris en été)
+  workflow_dispatch:      # Déclenchement manuel depuis l'onglet Actions
+
+permissions:
+  contents: write  # nécessaire pour créer/supprimer des releases
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client + GnuPG
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client gnupg
+
+      - name: Dump database
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PROJECT_REF: nnoeiacqmjltpmokcmce
+          POOLER_HOST: aws-0-eu-west-1.pooler.supabase.com
+        run: |
+          set -euo pipefail
+          DATE=$(date -u +%Y-%m-%d_%Hh%M)
+          BACKUP_FILE="internlog_${DATE}.sql"
+          echo "Dumping to ${BACKUP_FILE}..."
+
+          pg_dump \
+            "postgresql://postgres.${PROJECT_REF}:${PGPASSWORD}@${POOLER_HOST}:5432/postgres" \
+            --no-owner \
+            --no-privileges \
+            --clean \
+            --if-exists \
+            --exclude-schema=auth \
+            --exclude-schema=storage \
+            --exclude-schema=realtime \
+            --exclude-schema=supabase_functions \
+            --exclude-schema=vault \
+            --exclude-schema=extensions \
+            --exclude-schema=graphql \
+            --exclude-schema=graphql_public \
+            --exclude-schema=net \
+            --exclude-schema=pgsodium \
+            --exclude-schema=pgsodium_masks \
+            --no-comments \
+            > "${BACKUP_FILE}"
+
+          # Vérification basique : doit contenir au moins les tables critiques
+          for tbl in profiles entries gardes audit_log; do
+            if ! grep -q "TABLE.*\.${tbl} " "${BACKUP_FILE}"; then
+              echo "::error::Table ${tbl} absente du dump — abort"
+              exit 1
+            fi
+          done
+
+          # Stats
+          echo "=== Backup stats ==="
+          echo "Lines: $(wc -l < ${BACKUP_FILE})"
+          echo "Size : $(du -h ${BACKUP_FILE} | cut -f1)"
+
+          # Compression + chiffrement GPG symétrique
+          gzip "${BACKUP_FILE}"
+          echo "${{ secrets.BACKUP_GPG_PASSPHRASE }}" | \
+            gpg --batch --yes --passphrase-fd 0 \
+                --cipher-algo AES256 \
+                --compress-algo none \
+                -c "${BACKUP_FILE}.gz"
+
+          ENCRYPTED="${BACKUP_FILE}.gz.gpg"
+          echo "Encrypted: $(du -h ${ENCRYPTED} | cut -f1)"
+          echo "BACKUP_FILE=${ENCRYPTED}" >> "$GITHUB_ENV"
+          echo "BACKUP_DATE=${DATE}" >> "$GITHUB_ENV"
+
+      - name: Upload as GitHub Release (private repo)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: backup-${{ env.BACKUP_DATE }}
+          name: "DB Backup ${{ env.BACKUP_DATE }}"
+          files: ${{ env.BACKUP_FILE }}
+          prerelease: true
+          body: |
+            Automated database backup (Free plan DIY mode).
+            **Encrypted** with GPG AES256 — passphrase stored offline.
+            Schemas excluded: auth, storage, realtime, supabase_functions, vault.
+            See `docs/runbooks/disaster-recovery.md` for restore procedure.
+
+      - name: Cleanup backups older than 30 days
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Garder les 30 derniers backups, supprimer le reste
+          gh release list --limit 200 --json tagName,name,createdAt \
+            --jq '.[] | select(.tagName | startswith("backup-")) | .tagName' \
+            | tail -n +31 \
+            | while read -r tag; do
+                echo "Deleting old backup: ${tag}"
+                gh release delete "${tag}" --yes --cleanup-tag || true
+              done
+
+      - name: Notify on failure (manual)
+        if: failure()
+        run: |
+          echo "::error::DB backup failed — check logs and run manually via 'workflow_dispatch'"
+          echo "Owner action required: vérifier SUPABASE_DB_PASSWORD + BACKUP_GPG_PASSPHRASE secrets"
