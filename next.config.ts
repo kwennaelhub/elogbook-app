@@ -28,9 +28,15 @@ const nextConfig: NextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self), payment=()' },
           {
             key: 'Content-Security-Policy',
+            // Retrait de 'unsafe-inline' et 'unsafe-eval' sur script-src.
+            // Le SW registration est désormais dans /public/sw-register.js (externe).
+            // Next.js peut encore injecter quelques scripts inline (hydration, chunks) —
+            // pour un support complet avec nonce, voir migration future via proxy.ts.
+            // 'unsafe-inline' reste sur style-src car Tailwind + next/font génèrent
+            // des styles inline non contournables sans réécriture majeure.
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.paypal.com https://www.sandbox.paypal.com",
+              "script-src 'self' https://www.paypal.com https://www.sandbox.paypal.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://*.supabase.co",

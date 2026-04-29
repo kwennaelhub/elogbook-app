@@ -56,17 +56,7 @@ export default function RootLayout({
     <html lang="fr" className={cn("h-full dark", figtree.variable, notoSans.variable)}>
       <body className="min-h-full bg-background font-sans text-foreground antialiased">
         {children}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                  navigator.serviceWorker.register('/sw.js').catch(() => {});
-                });
-              }
-            `,
-          }}
-        />
+        <script src="/sw-register.js" defer />
       </body>
     </html>
   )
