@@ -137,14 +137,28 @@ export async function removeSeatAssignment(assignmentId: string, seatId: string)
   return { success: true }
 }
 
+/**
+ * Retire les caractères qui ont une signification dans la DSL de filtre
+ * PostgREST (`.or()`) — virgule, parenthèses, étoile, antislash — pour
+ * empêcher une injection qui casserait le scope (ex: `,role.eq.developer`
+ * injecté via le query). La troncature 50 chars limite aussi les payloads
+ * de déni de service par regex coûteuse.
+ */
+function sanitizePostgrestFilter(raw: string): string {
+  return raw.replace(/[(),*\\]/g, '').trim().slice(0, 50)
+}
+
 export async function searchUsersForSeat(query: string) {
   const { supabase, scope, hospitalId } = await requireAdminScope()
+
+  const safe = sanitizePostgrestFilter(query)
+  if (!safe) return []
 
   let q = supabase
     .from('profiles')
     .select('id, first_name, last_name, email, role, title, des_level, home_hospital_id')
     .eq('is_active', true)
-    .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%`)
+    .or(`first_name.ilike.%${safe}%,last_name.ilike.%${safe}%,email.ilike.%${safe}%`)
     .order('last_name')
     .limit(10)
 
