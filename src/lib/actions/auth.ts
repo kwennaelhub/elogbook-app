@@ -102,7 +102,10 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
         { err: error.message, code: (error as { code?: string }).code, email: parsed.data.email },
         'Échec inscription Supabase',
       )
-      return { error: 'auth.error.creationFailed' }
+      // DEBUG BETA — remonter le message brut au client pour faciliter le
+      // diagnostic pendant la phase de test. À remplacer par 'auth.error.creationFailed'
+      // une fois le bug identifié et fixé.
+      return { error: `DEBUG: ${error.message}${(error as { code?: string }).code ? ` [${(error as { code?: string }).code}]` : ''}` }
     }
 
     log.info({ email: parsed.data.email }, 'register: signUp OK')
@@ -134,7 +137,9 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
       },
       'register: exception non gérée',
     )
-    return { error: 'auth.error.creationFailed' }
+    // DEBUG BETA — remonter l'exception brute au client pour faciliter le
+    // diagnostic. À remplacer par 'auth.error.creationFailed' une fois fixé.
+    return { error: `DEBUG-EXC: ${e.message}${e.code ? ` [${e.code}]` : ''}${e.details ? ` — ${e.details}` : ''}` }
   }
 }
 
