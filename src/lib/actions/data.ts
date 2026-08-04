@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { firstJoin } from '@/lib/supabase/helpers'
 
 export async function getHospitals() {
   const supabase = await createClient()
@@ -496,7 +497,7 @@ export async function getDashboardStats() {
   // Répartition par spécialité
   const specCounts: Record<string, number> = {}
   allEntries?.forEach((e) => {
-    const spec = e.specialty as unknown as { name: string } | null
+    const spec = firstJoin<{ name: string }>(e.specialty)
     const name = spec?.name || 'Autre'
     specCounts[name] = (specCounts[name] || 0) + 1
   })
@@ -513,7 +514,7 @@ export async function getDashboardStats() {
   }> = {}
 
   allEntries?.forEach((e) => {
-    const h = e.hospital as unknown as { name: string } | null
+    const h = firstJoin<{ name: string }>(e.hospital)
     const hName = h?.name || 'Autre'
     const hId = e.hospital_id || 'other'
     if (!hospitalStats[hId]) {
@@ -528,12 +529,12 @@ export async function getDashboardStats() {
       hospitalStats[hId].asObserver++
     }
     // Spécialités par hôpital
-    const spec = e.specialty as unknown as { name: string } | null
+    const spec = firstJoin<{ name: string }>(e.specialty)
     if (spec?.name) {
       hospitalStats[hId].specialties[spec.name] = (hospitalStats[hId].specialties[spec.name] || 0) + 1
     }
     // Procédures par hôpital
-    const proc = e.procedure as unknown as { name: string } | null
+    const proc = firstJoin<{ name: string }>(e.procedure)
     if (proc?.name) {
       hospitalStats[hId].procedures[proc.name] = (hospitalStats[hId].procedures[proc.name] || 0) + 1
     }
@@ -580,7 +581,7 @@ export async function getDashboardStats() {
   // Top procédures
   const procCounts: Record<string, number> = {}
   allEntries?.forEach((e) => {
-    const proc = e.procedure as unknown as { name: string } | null
+    const proc = firstJoin<{ name: string }>(e.procedure)
     if (proc?.name) {
       procCounts[proc.name] = (procCounts[proc.name] || 0) + 1
     }

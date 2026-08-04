@@ -401,7 +401,7 @@ export function TemplatesTabs({
           {croTemplates.length === 0 ? (
             <EmptyState label={t('templates.noCro')} isAdmin={isAdmin} t={t} />
           ) : croTemplates.map((cro) => (
-            <ExpandableCard key={cro.id} id={cro.id} title={cro.title} status={(cro as unknown as Record<string, unknown>).status as string} isAdmin={isAdmin} selectedId={selectedId} setSelectedId={setSelectedId} validationLoading={validationLoading} onApprove={handleApprove} onReject={handleReject} t={t}>
+            <ExpandableCard key={cro.id} id={cro.id} title={cro.title} status={cro.status ?? undefined} isAdmin={isAdmin} selectedId={selectedId} setSelectedId={setSelectedId} validationLoading={validationLoading} onApprove={handleApprove} onReject={handleReject} t={t}>
               <CroContent content={cro.content} />
             </ExpandableCard>
           ))}
@@ -414,7 +414,7 @@ export function TemplatesTabs({
           {prescriptionTemplates.length === 0 ? (
             <EmptyState label={t('templates.noPrescriptions')} isAdmin={isAdmin} t={t} />
           ) : prescriptionTemplates.map((presc) => (
-            <ExpandableCard key={presc.id} id={presc.id} title={presc.title} status={(presc as unknown as Record<string, unknown>).status as string} isAdmin={isAdmin} selectedId={selectedId} setSelectedId={setSelectedId} validationLoading={validationLoading} onApprove={handleApprove} onReject={handleReject} t={t}>
+            <ExpandableCard key={presc.id} id={presc.id} title={presc.title} status={presc.status ?? undefined} isAdmin={isAdmin} selectedId={selectedId} setSelectedId={setSelectedId} validationLoading={validationLoading} onApprove={handleApprove} onReject={handleReject} t={t}>
               <TemplateContent content={presc.content} />
             </ExpandableCard>
           ))}
@@ -427,7 +427,7 @@ export function TemplatesTabs({
           {preopTemplates.length === 0 ? (
             <EmptyState label={t('templates.noPreop')} isAdmin={isAdmin} t={t} />
           ) : preopTemplates.map((preop) => (
-            <ExpandableCard key={preop.id} id={preop.id} title={preop.title} status={(preop as unknown as Record<string, unknown>).status as string} isAdmin={isAdmin} selectedId={selectedId} setSelectedId={setSelectedId} validationLoading={validationLoading} onApprove={handleApprove} onReject={handleReject} t={t}>
+            <ExpandableCard key={preop.id} id={preop.id} title={preop.title} status={preop.status ?? undefined} isAdmin={isAdmin} selectedId={selectedId} setSelectedId={setSelectedId} validationLoading={validationLoading} onApprove={handleApprove} onReject={handleReject} t={t}>
               <TemplateContent content={preop.items} />
             </ExpandableCard>
           ))}
@@ -447,7 +447,7 @@ export function TemplatesTabs({
                 <h3 className="mb-2 text-sm font-semibold text-foreground">{t(`templates.cat.${key}`)}</h3>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {catInstruments.map((inst) => {
-                    const instStatus = (inst as unknown as Record<string, unknown>).status as string | undefined
+                    const instStatus = inst.status ?? undefined
                     return (
                       <div key={inst.id} className={`rounded-xl bg-card p-3 shadow-sm ring-1 ${instStatus === 'pending' ? 'ring-amber-500/40' : 'ring-border'}`}>
                         {inst.image_url && (

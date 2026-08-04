@@ -302,6 +302,7 @@ export interface CroTemplate {
   specialty_id: string | null
   content: Record<string, unknown>
   is_active: boolean
+  status: string | null
   created_by: string | null
   created_at: string
   updated_at: string
@@ -313,6 +314,7 @@ export interface PrescriptionTemplate {
   specialty_id: string | null
   content: Record<string, unknown>
   is_active: boolean
+  status: string | null
   created_by: string | null
   created_at: string
   updated_at: string
@@ -324,6 +326,7 @@ export interface PreopTemplate {
   specialty_id: string | null
   items: Record<string, unknown>
   is_active: boolean
+  status: string | null
   created_at: string
 }
 
@@ -335,6 +338,7 @@ export interface Instrument {
   image_url: string | null
   sort_order: number
   is_active: boolean
+  status: string | null
   created_at: string
 }
 

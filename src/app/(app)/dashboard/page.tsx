@@ -13,6 +13,7 @@ import {
 } from '@/components/dashboard/role-dashboards'
 import { getServerT } from '@/lib/i18n/server'
 import { createClient } from '@/lib/supabase/server'
+import { firstJoin } from '@/lib/supabase/helpers'
 
 export default async function DashboardPage() {
   const t = await getServerT()
@@ -38,8 +39,7 @@ export default async function DashboardPage() {
       .single()
 
     if (data) {
-      const hospitalData = data.hospitals as unknown as { name: string; logo_url: string | null } | { name: string; logo_url: string | null }[] | null
-      const hospital = Array.isArray(hospitalData) ? hospitalData[0] ?? null : hospitalData
+      const hospital = firstJoin<{ name: string; logo_url: string | null }>(data.hospitals)
       profile = {
         first_name: data.first_name,
         last_name: data.last_name,

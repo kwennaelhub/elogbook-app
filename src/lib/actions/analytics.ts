@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { firstJoin } from '@/lib/supabase/helpers'
 
 // ═══ ANALYTICS DASHBOARD — Métriques avancées ═══
 
@@ -139,7 +140,7 @@ export async function getAnalyticsStats(targetUserId?: string): Promise<Analytic
   let totalGardeHours = 0
 
   gardes.forEach(g => {
-    const hospital = g.hospital as unknown as { name: string } | null
+    const hospital = firstJoin<{ name: string }>(g.hospital)
     const hName = hospital?.name || 'Autre'
     gardesByHospitalMap[hName] = (gardesByHospitalMap[hName] || 0) + 1
     gardesByType[g.type || 'garde'] = (gardesByType[g.type || 'garde'] || 0) + 1
@@ -360,7 +361,7 @@ export async function getInstitutionStats(): Promise<InstitutionStats | null> {
   // ── Par hôpital (agrégé) ──
   const hospitalMap: Record<string, { entries: number; users: Set<string> }> = {}
   entries.forEach(e => {
-    const hospital = e.hospital as unknown as { name: string } | null
+    const hospital = firstJoin<{ name: string }>(e.hospital)
     const hName = hospital?.name || 'Autre'
     if (!hospitalMap[hName]) hospitalMap[hName] = { entries: 0, users: new Set() }
     hospitalMap[hName].entries++
@@ -373,7 +374,7 @@ export async function getInstitutionStats(): Promise<InstitutionStats | null> {
   // ── Liste utilisateurs pour sélecteur ──
   const userList = users
     .map(u => {
-      const hospital = u.hospital as unknown as { name: string } | null
+      const hospital = firstJoin<{ name: string }>(u.hospital)
       return {
         id: u.id,
         name: `${u.first_name} ${u.last_name}`,

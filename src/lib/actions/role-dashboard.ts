@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { firstJoin } from '@/lib/supabase/helpers'
 
 // ═══ Dashboards role-aware — MVP Phase C ═══
 //
@@ -78,8 +79,7 @@ export async function getSupervisorDashboard(): Promise<SupervisorDashboard | nu
 
   const since = firstDayOfCurrentMonthISO()
   const hospitalId = profile.hospital_id
-  const hospitalData = profile.hospitals as unknown as { name: string } | { name: string }[] | null
-  const hospital = Array.isArray(hospitalData) ? hospitalData[0] ?? null : hospitalData
+  const hospital = firstJoin<{ name: string }>(profile.hospitals)
 
   // Pour distinguer "DES entries" vs "mes auto-logs" : on filtre par user_id
   // (exclut self) pour les KPI de supervision + par user_id=me pour perso.
@@ -140,16 +140,13 @@ export async function getSupervisorDashboard(): Promise<SupervisorDashboard | nu
   ])
 
   // Dedup DES supervisés + compte leurs entries. PostgREST renvoie parfois
-  // l'embedding comme tableau même pour un to-one — on normalise.
+  // l'embedding comme tableau même pour un to-one — firstJoin normalise.
+  type SupervisedStudent = { id: string; first_name: string | null; last_name: string | null; des_level: string | null }
   const desMap = new Map<string, { id: string; name: string; desLevel: string | null; entryCount: number }>()
   for (const row of supervisedEntries ?? []) {
-    const raw = (row as unknown as {
-      student?:
-        | { id: string; first_name: string | null; last_name: string | null; des_level: string | null }
-        | { id: string; first_name: string | null; last_name: string | null; des_level: string | null }[]
-        | null
-    }).student
-    const studentData = Array.isArray(raw) ? raw[0] ?? null : raw
+    const studentData = firstJoin<SupervisedStudent>(
+      (row as { student?: SupervisedStudent | SupervisedStudent[] | null }).student,
+    )
     if (!studentData || !studentData.id) continue
     const key = studentData.id
     const existing = desMap.get(key)
@@ -198,8 +195,7 @@ export async function getServiceChiefDashboard(): Promise<ServiceChiefDashboard 
   if (!profile || profile.role !== 'service_chief' || !profile.service_id) return null
 
   const since = firstDayOfCurrentMonthISO()
-  const hospitalData = profile.hospitals as unknown as { name: string } | { name: string }[] | null
-  const hospital = Array.isArray(hospitalData) ? hospitalData[0] ?? null : hospitalData
+  const hospital = firstJoin<{ name: string }>(profile.hospitals)
 
   const { data: service } = await supabase
     .from('hospital_services')
@@ -262,15 +258,13 @@ export async function getServiceChiefDashboard(): Promise<ServiceChiefDashboard 
   ])
 
   // Distinct DES (role=student uniquement) + repartition par niveau
+  type ServiceStudent = { des_level: string | null; role: string }
   const desSet = new Set<string>()
   const levelMap = new Map<string, number>()
   for (const row of desInService ?? []) {
-    const r = row as unknown as {
-      user_id: string
-      student?: { des_level: string | null; role: string } | { des_level: string | null; role: string }[] | null
-    }
+    const r = row as { user_id: string; student?: ServiceStudent | ServiceStudent[] | null }
     if (!r.user_id) continue
-    const studentObj = Array.isArray(r.student) ? r.student[0] ?? null : r.student
+    const studentObj = firstJoin<ServiceStudent>(r.student)
     if (studentObj?.role !== 'student') continue
     if (!desSet.has(r.user_id)) {
       desSet.add(r.user_id)
@@ -313,8 +307,7 @@ export async function getInstitutionAdminDashboard(): Promise<InstitutionAdminDa
 
   const hospitalId = profile.hospital_id
   const since = firstDayOfCurrentMonthISO()
-  const hospitalData = profile.hospitals as unknown as { name: string } | { name: string }[] | null
-  const hospital = Array.isArray(hospitalData) ? hospitalData[0] ?? null : hospitalData
+  const hospital = firstJoin<{ name: string }>(profile.hospitals)
 
   const [
     { count: desCount },
