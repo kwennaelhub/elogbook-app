@@ -560,28 +560,22 @@ export async function getDashboardStats() {
     observer: { current: observerCount, target: DES_TOTAL_OBJECTIVES.observer, pct: Math.min(100, Math.round((observerCount / DES_TOTAL_OBJECTIVES.observer) * 100)) },
   }
 
-  // Évolution mensuelle (6 derniers mois)
-  const monthlyData: { month: string; count: number }[] = []
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date()
-    d.setMonth(d.getMonth() - i)
-    const start = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-    const end = d.getMonth() === 11
-      ? `${d.getFullYear() + 1}-01-01`
-      : `${d.getFullYear()}-${String(d.getMonth() + 2).padStart(2, '0')}-01`
+  // Évolution mensuelle (6 derniers mois) — 1 appel RPC agrégé au lieu de 6 COUNT
+  // séparés. Voir migration 00000000000009_dashboard_monthly_evolution_rpc.sql.
+  // Le month_label renvoyé par la RPC est en locale serveur (en_US sur Supabase
+  // Free) : on l'ignore et on regénère un label FR côté client pour rester
+  // compatible avec le format historique du composant qui consomme monthlyData.
+  const { data: monthlyRows } = await supabase.rpc('get_user_monthly_evolution', {
+    target_user_id: user.id,
+    months: 6,
+  })
 
-    const { count } = await supabase
-      .from('entries')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('intervention_date', start)
-      .lt('intervention_date', end)
-
-    monthlyData.push({
-      month: d.toLocaleDateString('fr-FR', { month: 'short' }),
-      count: count ?? 0,
-    })
-  }
+  const monthlyData: { month: string; count: number }[] = (monthlyRows ?? []).map(
+    (row: { month_start: string; entry_count: number }) => ({
+      month: new Date(row.month_start).toLocaleDateString('fr-FR', { month: 'short' }),
+      count: Number(row.entry_count) || 0,
+    }),
+  )
 
   // Top procédures
   const procCounts: Record<string, number> = {}
