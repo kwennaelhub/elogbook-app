@@ -84,6 +84,37 @@ export default function ConfidentialitePage() {
         Vous pouvez également adresser une réclamation à la CNIL (www.cnil.fr).
       </p>
 
+      <h2>8 bis. Droits RGPD self-service</h2>
+      <p>
+        Conformément aux articles 17 et 20 du RGPD, vous pouvez à tout moment,
+        directement depuis vos paramètres de compte (Paramètres → section
+        « Mes données personnelles » et « Zone dangereuse ») :
+      </p>
+      <ul>
+        <li>
+          <strong>Exporter vos données</strong> — un fichier JSON contenant
+          l&apos;intégralité de vos données personnelles vous est envoyé par email
+          dans un délai maximum de 24 heures. Le lien de téléchargement reste
+          valide 24 heures.
+        </li>
+        <li>
+          <strong>Demander la suppression de votre compte</strong> — après
+          confirmation par mot de passe, votre demande est enregistrée et
+          l&apos;effacement effectif intervient <strong>30 jours plus tard</strong>.
+          Vous pouvez annuler la demande à tout moment pendant ce délai en
+          vous reconnectant.
+        </li>
+      </ul>
+      <p>
+        Les données référencées par d&apos;autres utilisateurs — notamment vos
+        interventions validées par vos superviseurs — sont
+        <strong> anonymisées</strong> plutôt que supprimées lors de la purge,
+        afin de préserver l&apos;intégrité académique des logbooks tiers. Vos
+        informations personnelles (nom, prénom, email, matricule, date de
+        naissance, avatar, téléphone) sont en revanche effacées de manière
+        irréversible.
+      </p>
+
       <h2>9. Sécurité</h2>
       <p>
         Nous mettons en œuvre des mesures techniques et organisationnelles appropriées :
