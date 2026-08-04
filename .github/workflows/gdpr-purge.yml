@@ -1,0 +1,55 @@
+name: GDPR Purge (comptes en sursis expirés)
+
+# Cron quotidien qui :
+#   1. Appelle la RPC list_pending_deletions() (service_role) pour lister les
+#      comptes dont deletion_scheduled_for <= now().
+#   2. Pour chaque compte, tente auth.admin.deleteUser(). Si échec FK RESTRICT
+#      (SQLSTATE 23503), appelle anonymize_user_data() en fallback pour
+#      préserver la valeur académique des logbooks superviseurs.
+#   3. Purge également les fichiers d'export RGPD > 7 jours dans le bucket
+#      gdpr-exports.
+#   4. Log un résumé dans le job summary.
+#
+# Voir docs/rgpd/self-service.md et supabase/migrations/00000000000008_gdpr_deletion_grace.sql.
+
+on:
+  schedule:
+    - cron: '30 3 * * *'  # 03:30 UTC tous les jours
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install minimal deps
+        run: npm install --no-save @supabase/supabase-js@2
+
+      - name: Run GDPR purge
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/gdpr-purge.mjs
+
+      - name: Notify Sentry on failure
+        if: failure()
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          if [ -n "$SENTRY_DSN" ]; then
+            echo "Sending failure event to Sentry..."
+            curl -sS -X POST "$SENTRY_DSN" -H 'Content-Type: application/json' \
+              -d '{"message":"GDPR purge cron échoué","level":"error"}' || true
+          fi
