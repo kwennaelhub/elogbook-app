@@ -75,6 +75,12 @@ export interface Profile {
   is_active: boolean
   created_at: string
   updated_at: string
+  /** RGPD Art. 17 — horodatage de la demande de suppression self-service. NULL = pas de demande active. */
+  deletion_requested_at: string | null
+  /** RGPD Art. 17 — date effective de purge (demande + 30 jours). */
+  deletion_scheduled_for: string | null
+  /** RGPD Art. 17 — raison optionnelle fournie par l'utilisateur. */
+  deletion_reason: string | null
 }
 
 // ========== PHASE B — MODÈLE INSTITUTIONNEL ==========
