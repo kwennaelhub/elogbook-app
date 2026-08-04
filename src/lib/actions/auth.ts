@@ -33,70 +33,109 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
 }
 
 export async function register(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  const raw = Object.fromEntries(formData)
-  const parsed = registerSchema.safeParse(raw)
+  // Try/catch global : évite qu'une exception non gérée dans une étape (import,
+  // trigger DB, sendWelcomeEmail) ne provoque un écran Next.js « This page
+  // couldn't load » sans message. L'erreur est loggée et un state error
+  // exploitable côté UI est retourné.
+  const emailForLog = (formData.get('email') as string) ?? '?'
+  try {
+    const raw = Object.fromEntries(formData)
+    const parsed = registerSchema.safeParse(raw)
 
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0].message }
-  }
-
-  const supabase = await createClient()
-  const { createServiceClient } = await import('@/lib/supabase/server')
-  const serviceClient = await createServiceClient()
-
-  // Vérifier le matricule dans le registre DES (via service role pour bypass RLS)
-  const { data: registry, error: regError } = await serviceClient
-    .from('des_registry')
-    .select('*')
-    .eq('matricule', parsed.data.matricule)
-    .eq('is_active', true)
-    .limit(1)
-
-  if (regError || !registry || registry.length === 0) {
-    return {
-      error: 'auth.error.matriculeNotFound',
+    if (!parsed.success) {
+      return { error: parsed.error.issues[0].message }
     }
-  }
 
-  // Vérifier la cohérence email si le registre en a un
-  const desEntry = registry[0]
-  if (desEntry.email && desEntry.email !== parsed.data.email) {
-    return {
-      error: 'auth.error.emailMismatch',
+    log.info({ email: parsed.data.email, hasMatricule: !!parsed.data.matricule }, 'register: début')
+
+    const supabase = await createClient()
+    const { createServiceClient } = await import('@/lib/supabase/server')
+    const serviceClient = await createServiceClient()
+
+    // Le matricule DES est désormais facultatif (phase bêta ouverte aux internes
+    // hors registre national). S'il est fourni, on vérifie qu'il existe dans
+    // des_registry et que l'email correspond. Sinon on crée un compte student
+    // classique — la liaison au registre pourra être faite plus tard par un admin.
+    if (parsed.data.matricule) {
+      const { data: registry, error: regError } = await serviceClient
+        .from('des_registry')
+        .select('*')
+        .eq('matricule', parsed.data.matricule)
+        .eq('is_active', true)
+        .limit(1)
+
+      if (regError || !registry || registry.length === 0) {
+        log.info({ email: parsed.data.email, matricule: parsed.data.matricule }, 'register: matricule non trouvé')
+        return {
+          error: 'auth.error.matriculeNotFound',
+        }
+      }
+
+      const desEntry = registry[0]
+      if (desEntry.email && desEntry.email !== parsed.data.email) {
+        return {
+          error: 'auth.error.emailMismatch',
+        }
+      }
     }
-  }
 
-  // Créer le compte avec les métadonnées
-  const { error } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    options: {
-      data: {
-        first_name: parsed.data.first_name,
-        last_name: parsed.data.last_name,
-        matricule: parsed.data.matricule,
+    log.info({ email: parsed.data.email }, 'register: appel signUp')
+
+    // Créer le compte avec les métadonnées (matricule optionnel)
+    const { error } = await supabase.auth.signUp({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      options: {
+        data: {
+          first_name: parsed.data.first_name,
+          last_name: parsed.data.last_name,
+          ...(parsed.data.matricule ? { matricule: parsed.data.matricule } : {}),
+        },
       },
-    },
-  })
+    })
 
-  if (error) {
-    if (error.message.includes('already registered')) {
-      return { error: 'auth.error.emailExists' }
+    if (error) {
+      if (error.message.includes('already registered')) {
+        return { error: 'auth.error.emailExists' }
+      }
+      log.error(
+        { err: error.message, code: (error as { code?: string }).code, email: parsed.data.email },
+        'Échec inscription Supabase',
+      )
+      return { error: 'auth.error.creationFailed' }
     }
-    log.error({ err: error, email: parsed.data.email }, 'Échec inscription Supabase')
+
+    log.info({ email: parsed.data.email }, 'register: signUp OK')
+
+    // Envoyer l'email de bienvenue (non-bloquant, best effort)
+    try {
+      const { sendWelcomeEmail } = await import('@/lib/actions/admin')
+      await sendWelcomeEmail(parsed.data.email, parsed.data.first_name)
+    } catch (emailErr) {
+      log.warn(
+        { email: parsed.data.email, err: (emailErr as Error).message },
+        'Email de bienvenue échoué silencieusement',
+      )
+    }
+
+    return { success: true }
+  } catch (err) {
+    // Une exception non gérée dans le trigger DB (par ex. contrainte FK/NOT NULL
+    // sur profiles ou subscriptions) est propagée par supabase-js. On la logge
+    // avec un maximum de contexte et on renvoie un error state propre.
+    const e = err as Error & { code?: string; details?: string }
+    log.error(
+      {
+        err: e.message,
+        code: e.code,
+        details: e.details,
+        stack: e.stack?.split('\n').slice(0, 5).join('\n'),
+        email: emailForLog,
+      },
+      'register: exception non gérée',
+    )
     return { error: 'auth.error.creationFailed' }
   }
-
-  // Envoyer l'email de bienvenue (non-bloquant)
-  try {
-    const { sendWelcomeEmail } = await import('@/lib/actions/admin')
-    await sendWelcomeEmail(parsed.data.email, parsed.data.first_name)
-  } catch {
-    // Ne pas bloquer l'inscription si l'email échoue
-    log.warn({ email: parsed.data.email }, 'Email de bienvenue échoué silencieusement')
-  }
-
-  return { success: true }
 }
 
 export async function logout() {

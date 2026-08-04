@@ -29,6 +29,14 @@ export default function RegisterPage() {
   const [matricule, setMatricule] = useState('')
   const [lookupStatus, setLookupStatus] = useState<'idle' | 'loading' | 'found' | 'not_found'>('idle')
 
+  // Controlled inputs pour les mots de passe — sinon Safari (et Chrome avec
+  // password manager) vide le champ quand type bascule password ↔ text via
+  // le toggle œil, ce qui provoque un mismatch fantôme au submit.
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const passwordsMatch = password.length > 0 && password === confirmPassword
+  const passwordsMismatch = confirmPassword.length > 0 && password !== confirmPassword
+
   const lookupMatricule = useCallback(async (firstName: string, lastName: string) => {
     if (!firstName.trim() || !lastName.trim()) return
     setLookupStatus('loading')
@@ -86,7 +94,7 @@ export default function RegisterPage() {
     <form action={action} className="rounded-2xl bg-card p-8 shadow-xl">
       <h2 className="mb-2 text-xl font-semibold text-foreground">Inscription</h2>
       <p className="mb-6 text-sm text-muted-foreground">
-        Réservé aux étudiants DES inscrits au registre national.
+        Ouverte aux internes DES. Le matricule est facultatif pendant la phase bêta.
       </p>
 
       {state.error && (
@@ -126,20 +134,19 @@ export default function RegisterPage() {
 
       <div className="mb-4">
         <label htmlFor="matricule" className="label">
-          Matricule DES <span className="text-red-500">*</span>
+          Matricule DES <span className="text-muted-foreground">(facultatif)</span>
         </label>
         <input
           id="matricule"
           name="matricule"
           type="text"
-          required
           readOnly={lookupStatus === 'found'}
           value={matricule}
           onChange={(e) => { setMatricule(e.target.value); setLookupStatus('idle') }}
           className={`w-full rounded-lg border px-3 py-2.5 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none ${
             lookupStatus === 'found' ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-input'
           }`}
-          placeholder={t('auth.placeholder.matricule')}
+          placeholder="Rempli automatiquement si vous êtes dans le registre"
         />
         {lookupStatus === 'loading' && (
           <p className="mt-1 text-xs text-muted-foreground">Recherche en cours...</p>
@@ -148,15 +155,9 @@ export default function RegisterPage() {
           <p className="mt-1 text-xs text-green-600">Matricule trouvé dans le registre DES</p>
         )}
         {lookupStatus === 'not_found' && (
-          <div className="mt-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-3">
-            <p className="text-xs text-amber-700 dark:text-amber-400 mb-2">Nom non trouvé dans le registre DES.</p>
-            <Link
-              href={`/adhesion?nom=${encodeURIComponent((document.getElementById('last_name') as HTMLInputElement)?.value || '')}&prenom=${encodeURIComponent((document.getElementById('first_name') as HTMLInputElement)?.value || '')}`}
-              className="inline-block rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700"
-            >
-              Demander mon adhésion
-            </Link>
-          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Pas dans le registre national ? Aucun souci, continuez sans matricule — un administrateur pourra lier votre compte plus tard.
+          </p>
         )}
         {lookupStatus === 'idle' && !matricule && (
           <p className="mt-1 text-xs text-muted-foreground">Remplissez nom et prénom pour une recherche automatique</p>
@@ -190,6 +191,8 @@ export default function RegisterPage() {
             required
             autoComplete="new-password"
             minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="input-field pr-10"
             placeholder={t('auth.placeholder.password')}
           />
@@ -198,6 +201,7 @@ export default function RegisterPage() {
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-2.5 top-1/2 -translate-y-1/2"
             tabIndex={-1}
+            aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
           >
             <EyeIcon open={showPassword} />
           </button>
@@ -215,17 +219,32 @@ export default function RegisterPage() {
             type={showConfirm ? 'text' : 'password'}
             required
             autoComplete="new-password"
-            className="input-field pr-10"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className={`input-field pr-10 ${
+              passwordsMismatch
+                ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                : passwordsMatch
+                ? 'border-green-500 focus:border-green-500 focus:ring-green-500/20'
+                : ''
+            }`}
           />
           <button
             type="button"
             onClick={() => setShowConfirm(!showConfirm)}
             className="absolute right-2.5 top-1/2 -translate-y-1/2"
             tabIndex={-1}
+            aria-label={showConfirm ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
           >
             <EyeIcon open={showConfirm} />
           </button>
         </div>
+        {passwordsMismatch && (
+          <p className="mt-1 text-xs text-red-600">Les mots de passe ne correspondent pas</p>
+        )}
+        {passwordsMatch && (
+          <p className="mt-1 text-xs text-green-600">Les mots de passe correspondent</p>
+        )}
       </div>
 
       <div className="mb-4">

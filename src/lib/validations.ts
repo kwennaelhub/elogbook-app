@@ -8,7 +8,10 @@ export const loginSchema = z.object({
 })
 
 export const registerSchema = z.object({
-  matricule: z.string().min(1, 'Le matricule est obligatoire'),
+  matricule: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z.string().optional(),
+  ),
   email: z.string().email('Adresse email invalide'),
   password: z.string()
     .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
@@ -17,7 +20,7 @@ export const registerSchema = z.object({
   confirm_password: z.string(),
   first_name: z.string().min(2, 'Le prénom doit contenir au moins 2 caractères'),
   last_name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
-}).refine((data) => data.password === data.confirm_password, {
+}).refine((data) => data.password.trim() === data.confirm_password.trim(), {
   message: 'Les mots de passe ne correspondent pas',
   path: ['confirm_password'],
 })
