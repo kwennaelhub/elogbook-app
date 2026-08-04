@@ -39,6 +39,13 @@ export default async function AppLayout({
     profile = data
   }
 
+  // RGPD Art. 17 — si demande de suppression en cours, rediriger vers la page
+  // dédiée qui affiche le countdown + option d'annulation. La page est hors
+  // du groupe (app), donc pas de boucle de redirection.
+  if (profile?.deletion_requested_at) {
+    redirect('/account/deletion-pending')
+  }
+
   // Session tracking — résilient, pas de re-auth (réutilise le même client supabase)
   let sessionCount = 0
   try {
