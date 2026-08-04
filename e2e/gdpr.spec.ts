@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Tests e2e RGPD — self-service export + delete.
@@ -7,6 +7,10 @@ import { createClient } from '@supabase/supabase-js'
  * Pattern RP-33 (feedback_nextjs_supabase_app.md) : on crée UN compte test
  * dédié à ce fichier via auth.admin.createUser (service_role) et on le
  * détruit en fin de suite. Aucun MDP user mémorisé n'est utilisé.
+ *
+ * Skippé en CI tant que NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
+ * ne sont pas exposés au workflow e2e (à activer dans une PR de suivi une
+ * fois la migration 8 déployée en prod).
  */
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -18,12 +22,14 @@ gdprSuite('RGPD self-service', () => {
   const email = `gdpr-test-${Date.now()}@e2e.local`
   const password = 'GdprE2ETest2026!'
   let userId: string | null = null
-
-  const admin = createClient(SUPABASE_URL ?? '', SERVICE_KEY ?? '', {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  let admin: SupabaseClient
 
   test.beforeAll(async () => {
+    // Init lazy — n'est appelé que si le describe n'est pas skippé.
+    admin = createClient(SUPABASE_URL!, SERVICE_KEY!, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password,
