@@ -44,29 +44,33 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
   const { createServiceClient } = await import('@/lib/supabase/server')
   const serviceClient = await createServiceClient()
 
-  // Vérifier le matricule dans le registre DES (via service role pour bypass RLS)
-  const { data: registry, error: regError } = await serviceClient
-    .from('des_registry')
-    .select('*')
-    .eq('matricule', parsed.data.matricule)
-    .eq('is_active', true)
-    .limit(1)
+  // Le matricule DES est désormais facultatif (phase bêta ouverte aux internes
+  // hors registre national). S'il est fourni, on vérifie qu'il existe dans
+  // des_registry et que l'email correspond. Sinon on crée un compte student
+  // classique — la liaison au registre pourra être faite plus tard par un admin.
+  if (parsed.data.matricule) {
+    const { data: registry, error: regError } = await serviceClient
+      .from('des_registry')
+      .select('*')
+      .eq('matricule', parsed.data.matricule)
+      .eq('is_active', true)
+      .limit(1)
 
-  if (regError || !registry || registry.length === 0) {
-    return {
-      error: 'auth.error.matriculeNotFound',
+    if (regError || !registry || registry.length === 0) {
+      return {
+        error: 'auth.error.matriculeNotFound',
+      }
+    }
+
+    const desEntry = registry[0]
+    if (desEntry.email && desEntry.email !== parsed.data.email) {
+      return {
+        error: 'auth.error.emailMismatch',
+      }
     }
   }
 
-  // Vérifier la cohérence email si le registre en a un
-  const desEntry = registry[0]
-  if (desEntry.email && desEntry.email !== parsed.data.email) {
-    return {
-      error: 'auth.error.emailMismatch',
-    }
-  }
-
-  // Créer le compte avec les métadonnées
+  // Créer le compte avec les métadonnées (matricule optionnel)
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
@@ -74,7 +78,7 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
       data: {
         first_name: parsed.data.first_name,
         last_name: parsed.data.last_name,
-        matricule: parsed.data.matricule,
+        ...(parsed.data.matricule ? { matricule: parsed.data.matricule } : {}),
       },
     },
   })
