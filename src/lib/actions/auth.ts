@@ -143,20 +143,7 @@ export async function changePassword(
   return { success: true }
 }
 
-export async function deleteAccount(): Promise<AuthState> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'error.unauthorized' }
-
-  // Supprimer le profil (cascade supprimera les entrées liées via RLS)
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update({ is_active: false, email: `deleted_${user.id}@deleted.local` })
-    .eq('id', user.id)
-
-  if (profileError) return { error: profileError.message }
-
-  // Déconnecter
-  await supabase.auth.signOut()
-  redirect('/login')
-}
+// deleteAccount() a été retiré au profit de POST /api/account/delete qui
+// impose une ré-authentification par mot de passe, applique un sursis de
+// 30 jours et déclenche la purge via le cron GitHub Action gdpr-purge.
+// Voir src/app/api/account/delete/route.ts et docs/rgpd/self-service.md.

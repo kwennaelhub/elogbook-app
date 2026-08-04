@@ -2,8 +2,9 @@
 
 import { useState, useRef } from 'react'
 import Image from 'next/image'
-import { User, Hospital, AlertTriangle, Trash2, Camera, Pencil, Check, X, Save, Globe, Lock, Eye, EyeOff } from 'lucide-react'
-import { deleteAccount, changePassword } from '@/lib/actions/auth'
+import { User, Hospital, AlertTriangle, Trash2, Camera, Pencil, Check, X, Save, Globe, Lock, Eye, EyeOff, Download, ShieldAlert } from 'lucide-react'
+import { changePassword } from '@/lib/actions/auth'
+import { useRouter } from 'next/navigation'
 import { updateProfile } from '@/lib/actions/admin'
 import { useI18n } from '@/lib/i18n/context'
 import type { Locale } from '@/lib/i18n/dictionaries'
@@ -16,9 +17,19 @@ interface SettingsPanelProps {
 
 export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
   const { locale, setLocale, t } = useI18n()
+  const router = useRouter()
+
+  // RGPD — Export
+  const [exporting, setExporting] = useState(false)
+  const [exportResult, setExportResult] = useState<{ error?: string; success?: boolean; rowCount?: number; sizeKb?: number } | null>(null)
+
+  // RGPD — Delete (nouveau flux : password + reason + 30j grace)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [deleteText, setDeleteText] = useState('')
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteReason, setDeleteReason] = useState('')
+  const [deleteShowPw, setDeleteShowPw] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -66,12 +77,42 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
     }
   }
 
-  const confirmWord = t('settings.deleteConfirmWord')
+  const handleExport = async () => {
+    setExporting(true)
+    setExportResult(null)
+    try {
+      const res = await fetch('/api/user/export', { method: 'POST' })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setExportResult({ error: body.message || body.error || 'gdpr.error.internal' })
+        return
+      }
+      setExportResult({ success: true, rowCount: body.row_count, sizeKb: body.size_kb })
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const handleDelete = async () => {
-    if (deleteText !== confirmWord) return
+    if (!deletePassword) return
     setDeleting(true)
-    await deleteAccount()
+    setDeleteError(null)
+    try {
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deletePassword, reason: deleteReason || undefined }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setDeleteError(body.message || body.error || 'gdpr.error.deleteFailed')
+        return
+      }
+      // Session déjà invalidée côté serveur — redirection vers /login
+      router.push('/login?deletion=pending')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const handleSave = async () => {
@@ -464,53 +505,144 @@ export function SettingsPanel({ profile, hospitals }: SettingsPanelProps) {
         )}
       </div>
 
-      {/* Zone dangereuse */}
+      {/* RGPD — Export self-service (Art. 20) */}
+      <div className="rounded-xl bg-card p-4 shadow-sm ring-1 ring-emerald-500/20">
+        <div className="mb-3 flex items-center gap-2">
+          <Download className="h-4 w-4 text-emerald-600" />
+          <h3 className="text-sm font-semibold text-foreground">Mes données personnelles</h3>
+        </div>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Téléchargez une copie complète de vos données (profil, interventions, gardes, notes,
+          suivis) au format JSON — conformément à l&apos;article 20 du RGPD (droit à la portabilité).
+          Le lien de téléchargement vous sera envoyé par email et restera valide 24 h.
+        </p>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="flex items-center gap-2 rounded-lg border border-emerald-500/40 px-3 py-2 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-50 disabled:opacity-60"
+        >
+          <Download className="h-4 w-4" />
+          {exporting ? 'Génération en cours…' : 'Exporter mes données (RGPD)'}
+        </button>
+        {exportResult?.success ? (
+          <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            ✅ Export prêt — {exportResult.rowCount} enregistrements ({exportResult.sizeKb} Ko).
+            Consultez votre boîte email (vérifiez les spams).
+          </p>
+        ) : exportResult?.error ? (
+          <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
+            ❌ {exportResult.error === 'gdpr.error.rateLimited'
+              ? 'Vous avez atteint la limite de 3 exports par 24 heures.'
+              : `Erreur : ${exportResult.error}`}
+          </p>
+        ) : null}
+      </div>
+
+      {/* Zone dangereuse — Suppression compte (Art. 17) avec grace period 30j */}
       <div className="rounded-xl bg-card p-4 shadow-sm ring-1 ring-destructive/30">
         <div className="mb-3 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-destructive" />
-          <h3 className="text-sm font-semibold text-destructive">{t('settings.dangerZone')}</h3>
+          <h3 className="text-sm font-semibold text-destructive">Zone dangereuse</h3>
         </div>
 
         {!showDeleteConfirm ? (
           <div>
             <p className="mb-3 text-xs text-muted-foreground">
-              {t('settings.deleteWarning')}
+              La suppression de votre compte est réversible pendant 30 jours. Passé ce délai,
+              toutes vos données personnelles seront effacées ou anonymisées. Cette action
+              relève de l&apos;article 17 du RGPD.
             </p>
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="flex items-center gap-2 rounded-lg border border-destructive/30 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
             >
               <Trash2 className="h-4 w-4" />
-              {t('settings.deleteAccount')}
+              Supprimer mon compte
             </button>
           </div>
         ) : (
           <div className="space-y-3">
             <div className="rounded-lg bg-destructive/10 p-3">
-              <p className="text-xs font-medium text-destructive">
-                {t('settings.deleteConfirm')}
+              <div className="mb-2 flex items-start gap-2">
+                <ShieldAlert className="mt-0.5 h-4 w-4 flex-shrink-0 text-destructive" />
+                <div className="text-xs font-medium text-destructive">
+                  Vous avez 30 jours pour annuler cette demande. Après quoi vos données seront
+                  effacées définitivement. Nous vous recommandons d&apos;exporter vos données au
+                  préalable via le bouton ci-dessus.
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Confirmez avec votre mot de passe
+              </label>
+              <div className="relative">
+                <input
+                  type={deleteShowPw ? 'text' : 'password'}
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Votre mot de passe actuel"
+                  autoComplete="current-password"
+                  className="w-full rounded-lg border border-destructive/40 bg-card px-3 py-2 pr-10 text-sm text-foreground focus:border-destructive focus:outline-none focus:ring-2 focus:ring-destructive/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setDeleteShowPw((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={deleteShowPw ? 'Masquer' : 'Afficher'}
+                >
+                  {deleteShowPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Raison (facultatif — nous aide à améliorer InternLog)
+              </label>
+              <textarea
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value.slice(0, 500))}
+                rows={2}
+                placeholder="Ex. je n'utilise plus l'application, préoccupations de confidentialité…"
+                className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+              />
+              <p className="mt-1 text-right text-[10px] text-muted-foreground">
+                {deleteReason.length}/500
               </p>
             </div>
-            <input
-              type="text"
-              value={deleteText}
-              onChange={(e) => setDeleteText(e.target.value)}
-              placeholder={t('settings.typeDelete')}
-              className="w-full rounded-lg border border-destructive/40 bg-card px-3 py-2 text-sm text-foreground focus:border-destructive focus:outline-none focus:ring-2 focus:ring-destructive/20"
-            />
+
+            {deleteError ? (
+              <div className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
+                {deleteError === 'gdpr.error.passwordInvalid'
+                  ? 'Mot de passe incorrect.'
+                  : deleteError === 'gdpr.error.activeSubscription'
+                  ? 'Un abonnement est actif. Annulez-le avant de supprimer votre compte.'
+                  : deleteError === 'gdpr.error.alreadyPending'
+                  ? 'Une demande de suppression est déjà en cours.'
+                  : `Erreur : ${deleteError}`}
+              </div>
+            ) : null}
+
             <div className="flex gap-2">
               <button
-                onClick={() => { setShowDeleteConfirm(false); setDeleteText('') }}
+                onClick={() => {
+                  setShowDeleteConfirm(false)
+                  setDeletePassword('')
+                  setDeleteReason('')
+                  setDeleteError(null)
+                }}
                 className="flex-1 rounded-lg border border-input px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary/50"
               >
-                {t('common.cancel')}
+                Annuler
               </button>
               <button
                 onClick={handleDelete}
-                disabled={deleteText !== confirmWord || deleting}
+                disabled={!deletePassword || deleting}
                 className="flex-1 rounded-lg bg-destructive px-3 py-2 text-sm font-medium text-white hover:bg-destructive/90 disabled:opacity-50"
               >
-                {deleting ? t('settings.deleting') : t('settings.confirmDelete')}
+                {deleting ? 'Envoi…' : 'Confirmer la suppression'}
               </button>
             </div>
           </div>
