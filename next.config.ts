@@ -4,6 +4,13 @@ import { withSentryConfig } from "@sentry/nextjs";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
+  // Ancre chaque asset (JS chunks, Server Actions) au SHA du commit déployé.
+  // Combiné avec NEXT_SERVER_ACTIONS_ENCRYPTION_KEY (Vercel env vars), ça
+  // stabilise les IDs de Server Actions entre builds : un onglet chargé
+  // AVANT un redéploiement continue à trouver ses actions au submit au lieu
+  // de crasher avec UnrecognizedActionError → Erreur critique. Voir
+  // https://nextjs.org/docs/messages/failed-to-find-server-action
+  deploymentId: process.env.VERCEL_GIT_COMMIT_SHA,
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
