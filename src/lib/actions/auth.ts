@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { loginSchema, registerSchema } from '@/lib/validations'
+import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from '@/lib/validations'
 import { authLogger as log } from '@/lib/logger'
 
 export type AuthState = {
@@ -186,3 +186,79 @@ export async function changePassword(
 // impose une ré-authentification par mot de passe, applique un sursis de
 // 30 jours et déclenche la purge via le cron GitHub Action gdpr-purge.
 // Voir src/app/api/account/delete/route.ts et docs/rgpd/self-service.md.
+
+// ========== FORGOT / RESET PASSWORD ==========
+
+/**
+ * Demande d'envoi d'un email de reset password. Toujours retourner success
+ * pour ne pas révéler si l'email existe (prévention d'énumération d'users).
+ * Supabase envoie un magic link vers /auth/callback?next=/reset-password.
+ */
+export async function requestPasswordReset(
+  _prev: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const raw = Object.fromEntries(formData)
+  const parsed = forgotPasswordSchema.safeParse(raw)
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+
+  const supabase = await createClient()
+  const siteUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    'https://internlog.app'
+
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
+  })
+
+  if (error) {
+    // Log l'erreur mais retourne success au client pour éviter l'énumération.
+    log.warn(
+      { err: error.message, email: parsed.data.email },
+      'resetPasswordForEmail échoué',
+    )
+  }
+
+  return { success: true }
+}
+
+/**
+ * Applique le nouveau mot de passe. L'utilisateur doit avoir une session
+ * active issue du callback /auth/callback (échange code contre session).
+ * Le middleware Supabase-SSR pose les cookies, updateUser() les utilise.
+ */
+export async function resetPassword(
+  _prev: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const raw = Object.fromEntries(formData)
+  const parsed = resetPasswordSchema.safeParse(raw)
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    // Session absente : le lien de reset a expiré ou est invalide.
+    return { error: 'auth.error.resetSessionMissing' }
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: parsed.data.password,
+  })
+
+  if (error) {
+    log.error({ err: error.message, userId: user.id }, 'updateUser password échoué')
+    return { error: 'auth.error.resetFailed' }
+  }
+
+  log.info({ userId: user.id }, 'Password reset avec succès')
+  return { success: true }
+}
