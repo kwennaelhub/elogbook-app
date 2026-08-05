@@ -27,19 +27,23 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install minimal deps
         run: npm install --no-save @supabase/supabase-js@2
 
       - name: Run GDPR purge
         env:
-          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          # URL Supabase hardcodée (publique — pas un secret). Évite la
+          # dépendance au secret NEXT_PUBLIC_SUPABASE_URL qui n'existait pas
+          # côté GitHub Actions (uniquement configuré côté Vercel) et faisait
+          # échouer le premier run du 2026-08-05 avec "supabaseUrl is required".
+          SUPABASE_URL: https://nnoeiacqmjltpmokcmce.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/gdpr-purge.mjs
 
