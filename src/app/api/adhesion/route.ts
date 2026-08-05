@@ -95,6 +95,87 @@ export async function POST(request: NextRequest) {
       }).catch(err => log.error({ err, email }, 'Erreur envoi email confirmation adhésion'))
     }
 
+    // Email de notification à l'admin (ADMIN_NOTIFICATION_EMAIL ou fallback owner)
+    // pour qu'il puisse traiter la demande sans avoir besoin de checker le
+    // dashboard manuellement.
+    if (brevoApiKey) {
+      const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || 'fkethyj5@gmail.com'
+
+      // Résoudre hôpital + spécialité pour l'email (pas juste des UUIDs)
+      let hospitalName = hospitalOther?.trim() || 'Non précisé'
+      let specialtyName = 'Non précisée'
+      if (hospitalId) {
+        const { data: h } = await supabase.from('hospitals').select('name').eq('id', hospitalId).maybeSingle()
+        if (h?.name) hospitalName = h.name
+      }
+      if (specialtyId) {
+        const { data: s } = await supabase.from('specialties').select('name').eq('id', specialtyId).maybeSingle()
+        if (s?.name) specialtyName = s.name
+      }
+
+      await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { name: 'InternLog', email: process.env.BREVO_SENDER_EMAIL || 'noreply@internlog.app' },
+          to: [{ email: adminEmail, name: 'Administrateur InternLog' }],
+          replyTo: { email: email.trim().toLowerCase(), name: `${firstName.trim()} ${lastName.trim()}` },
+          subject: `Nouvelle demande d'adhésion — ${lastName.trim()} ${firstName.trim()} (${desLevel})`,
+          htmlContent: `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background: #f1f5f9; }
+  .container { max-width: 560px; margin: 40px auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+  .header { background: linear-gradient(135deg, #0f172a, #1e293b); padding: 24px; text-align: center; }
+  .header h1 { color: #10b981; font-size: 22px; margin: 0; }
+  .header p { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+  .body { padding: 28px 24px; }
+  .body h2 { color: #0f172a; font-size: 18px; margin: 0 0 16px; }
+  .body p { color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 12px; }
+  .info { background: #f8fafc; border-radius: 12px; padding: 16px; margin: 16px 0; }
+  .info-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-row strong { color: #0f172a; font-weight: 600; }
+  .info-row span { color: #475569; text-align: right; }
+  .motivation { background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin: 16px 0; }
+  .motivation p { color: #78350f; font-size: 13px; margin: 0; font-style: italic; }
+  .cta { display: inline-block; background: #10b981; color: white !important; text-decoration: none; padding: 12px 32px; border-radius: 8px; font-weight: 600; font-size: 14px; margin-top: 8px; }
+  .footer { padding: 20px 24px; text-align: center; border-top: 1px solid #e2e8f0; }
+  .footer p { color: #94a3b8; font-size: 11px; margin: 0; }
+</style></head><body>
+<div class="container">
+  <div class="header">
+    <h1>InternLog</h1>
+    <p>Nouvelle demande d'adhésion</p>
+  </div>
+  <div class="body">
+    <h2>${lastName.trim()} ${firstName.trim()}</h2>
+    <p>Une nouvelle demande d'adhésion vient d'être soumise et attend votre validation.</p>
+    <div class="info">
+      <div class="info-row"><strong>Email</strong><span>${email.trim().toLowerCase()}</span></div>
+      <div class="info-row"><strong>Téléphone</strong><span>${phone?.trim() || '—'}</span></div>
+      <div class="info-row"><strong>Niveau DES</strong><span>${desLevel}</span></div>
+      <div class="info-row"><strong>Hôpital</strong><span>${hospitalName}</span></div>
+      <div class="info-row"><strong>Spécialité</strong><span>${specialtyName}</span></div>
+      <div class="info-row"><strong>Promotion</strong><span>${promotionYear || '—'}</span></div>
+    </div>
+    ${motivation?.trim() ? `<div class="motivation"><p>« ${motivation.trim().replace(/</g, '&lt;')} »</p></div>` : ''}
+    <p style="text-align:center;margin-top:24px;">
+      <a href="https://internlog.app/admin" class="cta">Ouvrir l'espace admin</a>
+    </p>
+    <p style="font-size:12px;color:#94a3b8;text-align:center;margin-top:12px;">
+      Répondre à cet email vous met en contact direct avec le demandeur.
+    </p>
+  </div>
+  <div class="footer"><p>InternLog — Notification administrateur</p></div>
+</div></body></html>`,
+        }),
+      }).catch(err => log.error({ err, adminEmail }, 'Erreur envoi email notification admin'))
+    }
+
     return NextResponse.json({ success: true })
   } catch {
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
