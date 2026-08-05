@@ -95,9 +95,17 @@ export function LoginForm() {
       </div>
 
       <div className="mb-6">
-        <label htmlFor="password" className="label">
-          Mot de passe
-        </label>
+        <div className="mb-1 flex items-center justify-between">
+          <label htmlFor="password" className="label">
+            Mot de passe
+          </label>
+          <Link
+            href="/forgot-password"
+            className="text-xs font-medium text-primary hover:text-primary/90"
+          >
+            Mot de passe oublié&nbsp;?
+          </Link>
+        </div>
         <div className="relative">
           <input
             id="password"
