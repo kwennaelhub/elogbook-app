@@ -4,6 +4,14 @@ import { withSentryConfig } from "@sentry/nextjs";
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
+  // La stabilisation des Server Action IDs entre builds se fait via la
+  // variable d'env NEXT_SERVER_ACTIONS_ENCRYPTION_KEY (à configurer côté
+  // Vercel Environment Variables sur Production + Preview + Development).
+  // Le champ NextConfig.deploymentId a été retiré dans Next.js 16 → la
+  // protection version-skew passe exclusivement par la clé d'encryption +
+  // le fallback auto-reload dans src/app/global-error.tsx qui détecte
+  // UnrecognizedActionError et recharge la page proprement.
+  // Voir https://nextjs.org/docs/messages/failed-to-find-server-action
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
