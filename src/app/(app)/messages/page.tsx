@@ -1,12 +1,22 @@
 import Link from 'next/link'
-import { MessageCircle, Plus } from 'lucide-react'
-import { getConversations } from '@/lib/actions/messages'
+import { MessageCircle } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { getConversations, getSupportAdminId } from '@/lib/actions/messages'
 import { NewMessageButton } from '@/components/messages/new-message-button'
+import { SupportButton } from '@/components/messages/support-button'
 
 export const dynamic = 'force-dynamic'
 
 export default async function MessagesPage() {
-  const conversations = await getConversations()
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const [conversations, supportUserId] = await Promise.all([
+    getConversations(),
+    getSupportAdminId(),
+  ])
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
@@ -22,9 +32,12 @@ export default async function MessagesPage() {
         <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
           <MessageCircle className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
           <p className="text-sm text-foreground">Aucune conversation pour le moment.</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Cliquez sur <strong>+ Nouveau</strong> pour écrire à quelqu&apos;un.
+          <p className="mt-1 mb-5 text-xs text-muted-foreground">
+            Cliquez sur <strong>+ Nouveau</strong> pour écrire à quelqu&apos;un, ou contactez directement le support technique.
           </p>
+          <div className="flex justify-center">
+            <SupportButton supportUserId={supportUserId} currentUserId={user.id} variant="primary" />
+          </div>
         </div>
       ) : (
         <div className="space-y-2">

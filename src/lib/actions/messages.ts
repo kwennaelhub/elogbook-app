@@ -224,6 +224,31 @@ export async function searchUsers(query: string): Promise<UserSearchResult[]> {
 }
 
 // ============================================================================
+// Récupère l'ID admin support pour raccourci "Contacter le support"
+// ============================================================================
+// Priorité : env var SUPPORT_ADMIN_USER_ID (permet de désigner explicitement
+// qui reçoit les demandes support). Fallback : premier user role=superadmin
+// puis developer, actif, le plus ancien. Retourne null si personne trouvé
+// (l'appel côté client masque alors le bouton).
+
+export async function getSupportAdminId(): Promise<string | null> {
+  const explicit = process.env.SUPPORT_ADMIN_USER_ID
+  if (explicit) return explicit
+
+  const serviceClient = await createServiceClient()
+  const { data } = await serviceClient
+    .from('profiles')
+    .select('id')
+    .in('role', ['superadmin', 'developer'])
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  return data?.id ?? null
+}
+
+// ============================================================================
 // Notification email best-effort
 // ============================================================================
 

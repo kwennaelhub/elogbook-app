@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { User, LogOut, Shield, Settings, Crown, ClipboardCheck, StickyNote, AlertTriangle, Loader2, HeartPulse, ChevronDown, MessageCircle } from 'lucide-react'
+import { User, LogOut, Shield, Settings, Crown, ClipboardCheck, StickyNote, AlertTriangle, Loader2, HeartPulse, ChevronDown, MessageCircle, LifeBuoy } from 'lucide-react'
 import { logout } from '@/lib/actions/auth'
 import { logoutOtherSessions } from '@/lib/actions/sessions'
 import { useI18n } from '@/lib/i18n/context'
@@ -15,10 +15,12 @@ export function AppHeader({
   profile,
   otherSessionsCount = 0,
   unreadMessagesCount = 0,
+  supportUserId = null,
 }: {
   profile: ProfileWithSubscription | null
   otherSessionsCount?: number
   unreadMessagesCount?: number
+  supportUserId?: string | null
 }) {
   const { t } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -160,6 +162,17 @@ export function AppHeader({
                       </span>
                     )}
                   </Link>
+
+                  {supportUserId && supportUserId !== profile?.id && (
+                    <Link
+                      href={`/messages/${supportUserId}`}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-secondary/50"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <LifeBuoy className="h-4 w-4 text-emerald-500" />
+                      Contacter le support
+                    </Link>
+                  )}
 
                   <a
                     href="/notes"

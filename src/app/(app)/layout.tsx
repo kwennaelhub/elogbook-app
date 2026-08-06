@@ -97,6 +97,15 @@ export default async function AppLayout({
     // Migration 10 pas encore appliquée — badge à 0.
   }
 
+  // ID du support pour raccourci « Contacter le support » dans le menu profil.
+  let supportUserId: string | null = null
+  try {
+    const { getSupportAdminId } = await import('@/lib/actions/messages')
+    supportUserId = await getSupportAdminId()
+  } catch {
+    // Ignoré silencieusement — le bouton support est simplement masqué.
+  }
+
   return (
     <I18nProvider initialLocale={locale}>
       <div className="flex min-h-full bg-background">
@@ -109,6 +118,7 @@ export default async function AppLayout({
             profile={profile}
             otherSessionsCount={sessionCount > 1 ? sessionCount - 1 : 0}
             unreadMessagesCount={unreadMessagesCount}
+            supportUserId={supportUserId}
           />
           <main className="flex-1 pb-4">
             {children}
