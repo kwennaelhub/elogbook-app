@@ -87,6 +87,16 @@ export default async function AppLayout({
     // Table active_sessions pas encore créée — ignore
   }
 
+  // Messagerie interne — compteur non-lus pour le badge header.
+  // Silencieux : si la RPC échoue (migration 10 pas encore appliquée), badge à 0.
+  let unreadMessagesCount = 0
+  try {
+    const { data } = await supabase.rpc('get_unread_messages_count')
+    unreadMessagesCount = (data as number) ?? 0
+  } catch {
+    // Migration 10 pas encore appliquée — badge à 0.
+  }
+
   return (
     <I18nProvider initialLocale={locale}>
       <div className="flex min-h-full bg-background">
@@ -95,7 +105,11 @@ export default async function AppLayout({
 
         {/* Zone principale : header + contenu */}
         <div className="flex min-h-full flex-1 flex-col pb-16 lg:pb-0">
-          <AppHeader profile={profile} otherSessionsCount={sessionCount > 1 ? sessionCount - 1 : 0} />
+          <AppHeader
+            profile={profile}
+            otherSessionsCount={sessionCount > 1 ? sessionCount - 1 : 0}
+            unreadMessagesCount={unreadMessagesCount}
+          />
           <main className="flex-1 pb-4">
             {children}
           </main>

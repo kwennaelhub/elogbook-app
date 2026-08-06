@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { User, LogOut, Shield, Settings, Crown, ClipboardCheck, StickyNote, AlertTriangle, Loader2, HeartPulse, ChevronDown } from 'lucide-react'
+import Link from 'next/link'
+import { User, LogOut, Shield, Settings, Crown, ClipboardCheck, StickyNote, AlertTriangle, Loader2, HeartPulse, ChevronDown, MessageCircle } from 'lucide-react'
 import { logout } from '@/lib/actions/auth'
 import { logoutOtherSessions } from '@/lib/actions/sessions'
 import { useI18n } from '@/lib/i18n/context'
@@ -10,7 +11,15 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import type { ProfileWithSubscription } from '@/types/database'
 
-export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: ProfileWithSubscription | null; otherSessionsCount?: number }) {
+export function AppHeader({
+  profile,
+  otherSessionsCount = 0,
+  unreadMessagesCount = 0,
+}: {
+  profile: ProfileWithSubscription | null
+  otherSessionsCount?: number
+  unreadMessagesCount?: number
+}) {
   const { t } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
   const [showSessionAlert, setShowSessionAlert] = useState(otherSessionsCount > 0)
@@ -58,6 +67,21 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
         <div className="hidden lg:flex items-center gap-3">
           <h1 className="text-lg font-bold text-foreground">{t('header.subtitle')}</h1>
         </div>
+
+        <div className="flex items-center gap-2">
+          {/* Icône Messages + badge non-lu */}
+          <Link
+            href="/messages"
+            className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-secondary/50 transition-all hover:bg-secondary hover:shadow-sm"
+            aria-label={`Messagerie${unreadMessagesCount > 0 ? ` (${unreadMessagesCount} non lus)` : ''}`}
+          >
+            <MessageCircle className="h-4 w-4 text-foreground" />
+            {unreadMessagesCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+              </span>
+            )}
+          </Link>
 
         {/* User Menu */}
         <div className="relative">
@@ -121,6 +145,22 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
                     </a>
                   )}
 
+                  <Link
+                    href="/messages"
+                    className="flex items-center justify-between gap-2.5 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-secondary/50"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <MessageCircle className="h-4 w-4 text-primary" />
+                      Messagerie
+                    </span>
+                    {unreadMessagesCount > 0 && (
+                      <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                        {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                      </span>
+                    )}
+                  </Link>
+
                   <a
                     href="/notes"
                     className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground transition-colors hover:bg-secondary/50"
@@ -174,6 +214,7 @@ export function AppHeader({ profile, otherSessionsCount = 0 }: { profile: Profil
               </div>
             </>
           )}
+        </div>
         </div>
       </div>
     </header>
