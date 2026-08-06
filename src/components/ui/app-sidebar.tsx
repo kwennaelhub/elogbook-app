@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   BookOpen, BarChart3, Calendar, Library,
   StickyNote, HeartPulse, ClipboardCheck, Shield,
-  Settings, Crown, LogOut
+  Settings, Crown, LogOut, MessageCircle
 } from 'lucide-react'
 import { logout } from '@/lib/actions/auth'
 import { useI18n } from '@/lib/i18n/context'
@@ -32,6 +32,7 @@ export function AppSidebar({ profile }: { profile: ProfileWithSubscription | nul
   ]
 
   const secondaryNav: NavItem[] = [
+    { href: '/messages', label: 'Messagerie', icon: MessageCircle },
     { href: '/notes', label: t('nav.notes'), icon: StickyNote },
     { href: '/followups', label: t('nav.followups'), icon: HeartPulse },
     { href: '/supervision', label: t('nav.supervision'), icon: ClipboardCheck, roles: ['supervisor', 'service_chief', 'institution_admin', 'admin', 'superadmin', 'developer'] },

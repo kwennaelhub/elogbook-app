@@ -419,6 +419,30 @@ export interface Note {
   updated_at: string
 }
 
+// ========== MESSAGERIE INTERNE (Session 20 MVP) ==========
+
+export interface Message {
+  id: string
+  sender_id: string
+  recipient_id: string
+  body: string
+  read_at: string | null
+  created_at: string
+}
+
+/** Résultat de la RPC list_conversations() — 1 ligne par correspondant avec dernier message. */
+export interface ConversationSummary {
+  other_user_id: string
+  other_first_name: string
+  other_last_name: string
+  other_avatar_url: string | null
+  other_role: string
+  last_message_body: string
+  last_message_at: string
+  last_message_from_me: boolean
+  unread_count: number
+}
+
 // ========== TYPES FORMULAIRES (INSERT/UPDATE) ==========
 
 export type EntryInsert = Omit<Entry, 'id' | 'submitted_at' | 'entry_mode' | 'is_validated' | 'validated_at' | 'validated_by' | 'created_at' | 'updated_at'>
