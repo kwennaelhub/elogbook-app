@@ -2,7 +2,7 @@ export default function ConfidentialitePage() {
   return (
     <article className="prose prose-slate prose-sm max-w-none">
       <h1>Politique de confidentialité</h1>
-      <p className="text-sm text-muted-foreground">Dernière mise à jour : 09 avril 2026</p>
+      <p className="text-sm text-muted-foreground">Dernière mise à jour : 08 août 2026</p>
 
       <h2>1. Responsable du traitement</h2>
       <p>
@@ -57,8 +57,9 @@ export default function ConfidentialitePage() {
 
       <h2>6. Transferts internationaux</h2>
       <p>
-        Les données sont hébergées par Supabase et Vercel, dont les serveurs peuvent être situés
-        aux États-Unis ou à Singapour. Ces transferts sont encadrés par les clauses contractuelles
+        Les données sont hébergées par Supabase et Vercel, et des données techniques (rapports
+        d&apos;erreurs) sont traitées par Sentry, dont les serveurs peuvent être situés aux
+        États-Unis ou à Singapour. Ces transferts sont encadrés par les clauses contractuelles
         types de la Commission européenne.
       </p>
 
