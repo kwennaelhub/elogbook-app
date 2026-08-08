@@ -5,6 +5,25 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 const publicRoutes = ['/login', '/register', '/feedback', '/adhesion', '/offline']
 
+// Pages accessibles à tous, connecté ou non, SANS redirection.
+// Inclut les pages légales (/legal/*) : obligation RGPD / Code du numérique BJ /
+// LCEN — mentions légales, politique de confidentialité, cookies et CGU doivent
+// être consultables sans compte. Le formulaire /register renvoie d'ailleurs vers
+// /legal/cgu et /legal/confidentialite pour le consentement à l'inscription.
+function isAlwaysAccessible(pathname: string): boolean {
+  return (
+    pathname === '/feedback' ||
+    pathname === '/adhesion' ||
+    pathname === '/offline' ||
+    pathname === '/legal' ||
+    pathname.startsWith('/legal/')
+  )
+}
+
+function isPublicRoute(pathname: string): boolean {
+  return publicRoutes.includes(pathname) || isAlwaysAccessible(pathname)
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -45,7 +64,7 @@ export async function proxy(request: NextRequest) {
 
   // Si Supabase n'est pas configuré, laisser passer les routes publiques
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    if (publicRoutes.includes(pathname)) {
+    if (isPublicRoute(pathname)) {
       return NextResponse.next()
     }
     return NextResponse.redirect(new URL('/login', request.url))
@@ -77,11 +96,12 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Routes publiques
-  if (publicRoutes.includes(pathname)) {
-    // /feedback, /adhesion, /offline sont accessibles à tous (connecté ou non)
+  if (isPublicRoute(pathname)) {
+    // /feedback, /adhesion, /offline et /legal/* sont accessibles à tous
+    // (connecté ou non), sans redirection.
     // /offline doit être servi sans redirection : le service worker Safari
     // rejette toute réponse SW qui contient une redirection.
-    if (pathname === '/feedback' || pathname === '/adhesion' || pathname === '/offline') {
+    if (isAlwaysAccessible(pathname)) {
       return supabaseResponse
     }
     // login/register : si connecté, rediriger vers logbook
