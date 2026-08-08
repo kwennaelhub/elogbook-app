@@ -2,15 +2,18 @@ export default function MentionsLegalesPage() {
   return (
     <article className="prose prose-slate prose-sm max-w-none">
       <h1>Mentions légales</h1>
-      <p className="text-sm text-muted-foreground">Dernière mise à jour : 09 avril 2026</p>
+      <p className="text-sm text-muted-foreground">Dernière mise à jour : 08 août 2026</p>
 
       <h2>Éditeur du site</h2>
       <p>
         <strong>InternLog</strong> est édité par :<br />
-        À définir par l&apos;éditeur<br />
-        Adresse : À définir<br />
+        Kefa Global Network (KGN) — SARL de droit béninois<br />
+        Capital social : 2&nbsp;500&nbsp;000 FCFA<br />
+        Siège social : Ilot 1140, Houeyiho 1, Parcelle D, Cotonou, République du Bénin<br />
+        RCCM : RB/COT/20 B 27305 (Greffe du Tribunal de Commerce de Cotonou)<br />
+        IFU : 3202011568313<br />
         Email : contact@internlog.app<br />
-        Directeur de la publication : À définir
+        Directeur de la publication : Kwennaël Kethy Jean De La Croix Fagnon
       </p>
 
       <h2>Hébergement</h2>

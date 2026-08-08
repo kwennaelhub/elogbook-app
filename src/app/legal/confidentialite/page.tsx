@@ -2,11 +2,12 @@ export default function ConfidentialitePage() {
   return (
     <article className="prose prose-slate prose-sm max-w-none">
       <h1>Politique de confidentialité</h1>
-      <p className="text-sm text-muted-foreground">Dernière mise à jour : 09 avril 2026</p>
+      <p className="text-sm text-muted-foreground">Dernière mise à jour : 08 août 2026</p>
 
       <h2>1. Responsable du traitement</h2>
       <p>
-        Le responsable du traitement des données est l&apos;éditeur d&apos;InternLog.<br />
+        Le responsable du traitement des données est <strong>Kefa Global Network SARL</strong>,
+        éditeur d&apos;InternLog (Cotonou, Bénin).<br />
         Contact : contact@internlog.app
       </p>
 
@@ -51,14 +52,15 @@ export default function ConfidentialitePage() {
       <ul>
         <li><strong>Superviseurs désignés</strong> : accès aux interventions qui leur sont assignées</li>
         <li><strong>Administrateurs</strong> : accès aux données de leur hôpital</li>
-        <li><strong>Sous-traitants techniques</strong> : Supabase (hébergement), Vercel (déploiement), PayPal (paiement), Brevo (emails)</li>
+        <li><strong>Sous-traitants techniques</strong> : Supabase (hébergement), Vercel (déploiement), PayPal (paiement), Brevo (emails), Sentry (surveillance des erreurs)</li>
       </ul>
       <p>Aucune donnée n&apos;est vendue ou partagée à des fins commerciales.</p>
 
       <h2>6. Transferts internationaux</h2>
       <p>
-        Les données sont hébergées par Supabase et Vercel, dont les serveurs peuvent être situés
-        aux États-Unis ou à Singapour. Ces transferts sont encadrés par les clauses contractuelles
+        Les données sont hébergées par Supabase et Vercel, et des données techniques (rapports
+        d&apos;erreurs) sont traitées par Sentry, dont les serveurs peuvent être situés aux
+        États-Unis ou à Singapour. Ces transferts sont encadrés par les clauses contractuelles
         types de la Commission européenne.
       </p>
 

@@ -13,11 +13,14 @@ test.describe('Pages publiques', () => {
     await expect(page).toHaveURL(/\/adhesion/)
   })
 
-  test('pages légales redirigent vers login (protégées par proxy)', async ({ page }) => {
-    // Les pages légales sont dans le layout (app) protégé
-    await page.goto('/legal/cgu')
-    await page.waitForURL('**/login**', { timeout: 10_000 })
-    await expect(page).toHaveURL(/\/login/)
+  test('pages légales accessibles sans authentification', async ({ page }) => {
+    // Obligation RGPD / LCEN : mentions, CGU, confidentialité et cookies doivent
+    // être consultables sans compte (le proxy whitelist /legal/*, pas de redirect login)
+    for (const slug of ['mentions', 'cgu', 'confidentialite', 'cookies']) {
+      const response = await page.goto(`/legal/${slug}`)
+      expect(response?.status()).toBe(200)
+      await expect(page).toHaveURL(new RegExp(`/legal/${slug}`))
+    }
   })
 
   test('route inexistante redirige vers login (proxy)', async ({ page }) => {
