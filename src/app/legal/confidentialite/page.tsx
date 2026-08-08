@@ -6,7 +6,8 @@ export default function ConfidentialitePage() {
 
       <h2>1. Responsable du traitement</h2>
       <p>
-        Le responsable du traitement des données est l&apos;éditeur d&apos;InternLog.<br />
+        Le responsable du traitement des données est <strong>Kefa Global Network SARL</strong>,
+        éditeur d&apos;InternLog (Cotonou, Bénin).<br />
         Contact : contact@internlog.app
       </p>
 
