@@ -51,7 +51,7 @@ export default function ConfidentialitePage() {
       <ul>
         <li><strong>Superviseurs désignés</strong> : accès aux interventions qui leur sont assignées</li>
         <li><strong>Administrateurs</strong> : accès aux données de leur hôpital</li>
-        <li><strong>Sous-traitants techniques</strong> : Supabase (hébergement), Vercel (déploiement), PayPal (paiement), Brevo (emails)</li>
+        <li><strong>Sous-traitants techniques</strong> : Supabase (hébergement), Vercel (déploiement), PayPal (paiement), Brevo (emails), Sentry (surveillance des erreurs)</li>
       </ul>
       <p>Aucune donnée n&apos;est vendue ou partagée à des fins commerciales.</p>
 
